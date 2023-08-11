@@ -1,8 +1,14 @@
 #include "webserv.hpp"
 
-int main(void) {
+int main(int argc, char **argv) {
 
-    std::cout << "Hello World" << std::endl;
+    if (argc > 2) {
+        std::cout << "Error: Usage ./webserv [configuration file]" << std::endl;
+        return (1);
+    }
+
+    if (argc == 2)
+        std::cout << "[INFO]: getting configuration file " << argv[1] << std::endl;
 
     return (0);
 }
