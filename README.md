@@ -1,160 +1,243 @@
 # 42_webserv
 
-## Before starting
-- RFC 9110 - HTTP Semantics
+# Basic Concepts
+## HTTP Protocal
+The Hypertext Transfer Protocol (HTTP) is an application-level protocol for distributed, collaborative, hypermedia information systems. This is the foundation for data communication for the World Wide Web (WWW). HTTP is a generic and stateless protocol which can be used for other purposes as wll using extensions of its request methods, error codes, and headers.
+Basically, HTTP is a TCP/IP based communication protocol, that is used to deliver data (HTML files, images file, query results, etc.) on the WWW. The default port is TCP 80, but other ports can be used as well. It provides a standardized way for computers to communicate with each other. HTTP specification specifies how client's request data will be constructed and sent to the server, and how the servers respond to these requests.
 
-### What is the HTTP
-The Hypertext Transfer Protocol (HTTP) is a stateless application-level protocol for distributed, collaborative, hypertext information system. Simply to said that it is a protocol for fetching resources such as HTML document. It is the foundation of any data exchange on the Web and it is a client-server protocol, which means requests are initiated by the recipient, usually the Web browser. A documents is reconstructed from the different sub-documents fetched, for instance, text, layout desciption, images, videos, scripts, and more.
+### HTTP is connectionless
+The HTTP client, eg. a browser, initiates an HTTP request and after a request is made, the client waits for the response. The server processes the request and sends a response back after which client disconnect the connection. So client and server knows about each other during current request and response only. Further requests are made on new connection like client and server are new to each other.
 
-![image](https://github.com/bankung7/42_webserv/assets/65214132/6e311822-0eb5-4143-ab15-68eb5ac7084c)
+### HTTP is media independent
+It means, any type of data can be sent by HTTP as long as both the client and the server know how to handle the data content. It is required for the client as well as server to specify the content type using appropriate MIME-type.
 
-HTTP was created for the World Wide Web (WWW) architecture and has evolved over time to support the scalability needs of a wordlwide hypertext system.
+### HTTP is stateless
+HTTP is connectionless and it is direct result of HTTP being a stateless protocol. The server and client are aware of each other only during a current request. Afterwards, both of them forget about each other. Both the client and the browser can not retain information between different requests across the web pages.
 
-### Terminology
+## Client-Server Architecture
+### Basic Architecture
+![image](https://github.com/bankung7/42_webserv/assets/65214132/116df624-fa6e-4e65-a8ff-0f0aa6edf2e3)
 
-#### Resources
-The target of an HTTP request is called a "resource". HTTP does not limit the nature of a resource. Most of it is identified by a Uniform Resource Identifier (URI). HTTP relies upon the URI standard to indicate the taret resource and relationship between resources.
+The HTTp protocol is a  request/response protocol based on the client/server based architecture where web browsers, robots and serarch engines act like HTTP clients and the Web server acts as a server.
 
-#### Connections Clients and Servers
-HTTP is a client/server protocol that operates over a reliable transport or session-layer "connection".
-A HTTP client is a program that establishes a conenction to a server for the purpose of sending one or more HTTP requests.
-A HTTP server is a program that accepts connections in order to service HTTP requests by sending HTTP responses.
-HTTP is defined as a statless protocol, meaning that each request messages's semantics can be understood in isolation, and that the relationship between connections and messages on them has no impact on the interpretation of those messages.
+### Client
+The HTTP client sends a request to the server in the form of a request method, URI, and protocol version, followed by a MIME-like message containing request modifiers, client information, and possible body content over a TCP/IP connection.
 
-#### User Agents
-It refers to any of the various client programs that initiate a request.
+### Server
+The HTTP server responds with a status line, including the message's protocol version and a success or error code, followed by MIME-like message containing server information, entity meta information, and possible entity-body content.
 
-#### Proxy
-A Proxy is a message-forwarding agent that is chosen by the client, usually via local configuration rules, to receive requests for some type of absolute URI and attempt to satisfy those requests via translation through the HTTP interface.
+## Server-side and Client-side
+### Server-side
+Server-side refers to processes that are carried out on the web server, where the website or web application is hosted. These processes are typically executed by the server before the website or web application is delivered to the user's device, and they can include tasks such as retrieving data from a database, rendering a web page, or handling user input.
 
-#### Gateway
-It is (a.k.a reverse proxy) an intermidiary that acts as an origin server for the outbound connection but translates received requests and forwards them inbound to another server.
+### Client-side
+Client-side, on the other hand, refers to processes that are carried out on the user's device, typically in the user's web browser. These processes are executed after the website or web application has been delivered to the user's device, and they can include task such as rendering a web page, handling user interactions, or running JavaScript code.
 
-#### Tunnel
-A tunnel acts as a bind relay between two connections without changing the message. Once active, a tunnel is not considered a party to the HTTP communication, through the tunnel might have been initiaited by an HTTP request.
+## Web Server?
+A web server is software and hardware that uses HTTP and other protocol to respond to client requests made over the WWW. The main job of a web server is to display website content through storing, processing and delivering webpages to users.
 
-#### Cache
-A cache is a local store of previous response messages and the subsystem that controls its message storage, retrival, and deletion.
+Web server hardware is connected to the internet and allows data to be exchanged with other connected devices, while web server software controls how a user accesses hosted files. The web server process is an example of the client/server model. All computers that host websites must have web server software.
 
-#### Example of Message Exchange
-Client Request:
+### How do web servers work?
+Web server software is accessed through the domain names of websites and ensures the delivey of the site's content to the requesting user. The software side is also comprised of several components, with at least an HTTP server. The HTTP server is able to understand HTTP and URLs. As hardware, a web server is a computer that stores web server software and other files related to a website, such as HTML documents, images and JavaScript files.
+When a web browser needs a file that is hosted on a web server, the browser will request the file by HTTP. When the request is received by the web server, the HTTP server will accept the request, find the content and send it back to browser through HTTP.
+- Browser obtain the IP address of the domain name
+- Transalte the URL through DNS (Domain Name System) or by searching in its caches.
+- Browser request the specific file from the web server by HTTP request.
+- Web server respond, sending the requested page through HTTP.
+- Browser displays the webpage
+
+Web servers are used in web hosting, or the hosting of data for websites and web-based applications -- or web application.
+
+Web servers also support SMTP (Simple Mail Transfer Protocol) and FTP (File Transfer Protocol), used for email, file transfer and storage.
+
+### Static web server
+It refers to the content being shown as is. A static web server will consist of a computer and HTTP software. It is considered static because the server will send hosted file as is to a browser.
+
+### Dynamic web server
+It consist of a web server and other software such as an application server and database. It is considered dynamic because the application server can be used to update any hosted files before they are sent to a browser. The web server can generate content when it is requested from database. Though this process is more flexible.
+
+### Common and top web server software on the market
+- Apache HTTP server.
+- Microsoft Internet Information Services (IIS).
+- NGINX.
+- Lighttpd.
+- Sun Java System Web Server.
+
+## HTTP Requests and Responses
+### HTTP Request
+An HTTP client sends an HTTP request to a server in the form of a request message which includes following format:
 ```
-GET / HTTP/1.1
-User-Agent: curl/7.64.1
-Host: www.example.com
-Accept-Language: en, mi
+Request Line
+Header
+[Empty line]
+Message-body [OPTIONAL]
 ```
 
-Server Response:
+#### Request Line
+It begin with a method token, followed by the Request-URI and the protocol version, and ending with CRLF. The elements are separated by space [SP] characters.
+```
+Request-Line = Method SP Request-URI SP HTTP-Version CRLF
+```
+
+#### Request Method
+The request method indicates the method to be performed on the resource identified by the given Request-URI. The method is CASE-SENSITIVE and should always be mentioned in UPPERCASE.
+
+| Method | Description |
+-
+| **GET** | It is used to retrieve information from the given server using a given URI. Request using GET should only retrieve data and should have no other effect on the data. |
+| HEAD | Same as GET, but it transfers the status line and the header section only. |
+| **POST** | It is used to send data to the server, for example, customer information, file upload, etc. using HTML forms. |
+| PUT | Replaces all the current representations of the target resource with the uploaded content. |
+| **DELETE** | Removes all the current representation of the target resource given by URI. |
+| CONNECT | Establishes a tunnel to the server identified by given URI. |
+| OPTIONS | Describe the communication options for the target resource. |
+| TRACE | Performs a message loop back test along with the path to the target resource. |
+
+We will only focus on GET, POST, and DELETE in this project.
+
+#### Request-URI
+The Request-URI identifies the resource upon which to apply the request.
+```
+Request-URI = "*" | absoluteURI | abs_path | authority
+```
+
+| Method | Description |
+-
+| * | It is used when an HTTP request does not apply to a particular resource, but to the server itself, and is only allowed when the method used does not neccessarily apply to a resource. |
+| absoluteURI | It is used when an HTTP request is being made to a **proxy**. The proxy is requested to  forward the request or service from a valid cache, and return the response. |
+| absolute_path | It is the most common form of Request-URI is that used to identify a resource on an origin server or gateway. It can not be empty; if none is present in the original URI, it MUST be given as "/" (the server root). |
+
+#### Request Header Fields
+This field allow the client to pass additional information about the request, and about the client itseld, to the server. These fields act as request modifiers. Here is a list of some important header fields.
+
+- Accept-Charset
+- Accept-Encoding
+- Accept-Language
+- Authorization
+- Expect
+- From
+- Host
+- If-Match
+- If-Modified-Since
+- If-None-Match
+- If-Range
+- If-Unmodified-Since
+- Max-Forwards
+- Proxy-Authorization
+- Range
+- Referer
+- TE
+- User-Agent
+
+#### Example of Request Message
+```
+GET /hello.htm HTTP/1.1
+User-Agent: Mozilla/4.0 (compatible; MSIE5.01; Windows NT)
+Host: www.tutorialspoint.com
+Accept-Language: en-us
+Accept-Encoding: gzip, deflate
+Connection: Keep-Alive
+```
+
+```
+POST /cgi-bin/process.cgi HTTP/1.1
+User-Agent: Mozilla/4.0 (compatible; MSIE5.01; Windows NT)
+Host: www.tutorialspoint.com
+Content-Type: application/x-www-form-urlencoded
+Content-Length: length
+Accept-Language: en-us
+Accept-Encoding: gzip, deflate
+Connection: Keep-Alive
+
+licenseID=string&content=string&/paramsXML=string
+```
+
+```
+POST /cgi-bin/process.cgi HTTP/1.1
+User-Agent: Mozilla/4.0 (compatible; MSIE5.01; Windows NT)
+Host: www.tutorialspoint.com
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+Accept-Language: en-us
+Accept-Encoding: gzip, deflate
+Connection: Keep-Alive
+
+<?xml version="1.0" encoding="utf-8"?>
+<string xmlns="http://clearforest.com/">string</string>
+```
+
+### HTTP Response
+After receiving and interpreting a request message, a server responds with an HTTP response message.
+```
+Status line
+Header
+[Empty line]
+Message-body [OPTIONAL]
+```
+
+#### Message Status Line
+It consists of the protocol version followed by a numeric status code and its associated textual phrase. The elements are separated by space [SP] characters.
+```
+Status-Line = HTTP-Version SP Status-Code SP Reason-Phrase CRLF
+```
+#### HTTP Version
+the supporting version of HTTP, 1.1, it will return 
+```
+HTTP-Version = HTTP/1.1
+```
+
+#### Status Code
+It is a 3-digit integer where first digit of the code defines the class of response and the last 2 digits do not have any categorization role. There are 5 values for the first digit:
+
+| Code | Description |
+_
+| 1XX | Information: it means the request was received and the process is continuing. |
+| | 100 | Continue: Only a part of the request has been received by the server, but as long as it has not been rejected, the client should continue with request. |
+| 2XX | Success: it means the action was successfully received, understood, and accepted. |
+| 3XX | Redirection: it means further action must be taken in order to complete the request. |
+| 4XX | Client Error: it means the request contains incorrect syntax or cannot be fulfilled. |
+| 5XX | Server Error: it means the server failed to fulfill an apparently valid request. |
+
+#### Response Header Fields
+It allows the server to pass additional information about the response which cannot be placed in the Status-Line. These header fields give information about the server and about further access to the resource identifier by the Request-URI.
+- Accept-Ranges
+- Age
+- ETag
+- Location
+- Proxy-Authenticate
+- Retyr-After
+- Server
+- Vary
+- WWW-Authenticate
+
+#### Example of Response Message
 ```
 HTTP/1.1 200 OK
 Date: Mon, 27 Jul 2009 12:28:53 GMT
-Server: Apache
+Server: Apache/2.2.14 (Win32)
 Last-Modified: Wed, 22 Jul 2009 19:15:56 GMT
-ETag: "34aa387-d-1568eb00"
-Accept-Ranges: bytes
-Content-Length: 51
-Vary: Accept-Encoding
-Content-Type: text/plain
-
-Hello World! My content includes a trailing CRLF.
+Content-Length: 88
+Content-Type: text/html
+Connection: Closed
 ```
 
-### What is the Web server?
-It term of Web server can refer to hardware or software, or both of them working together.
-- Hardware side, a web server is a computer that stores web server software and a website's component files. A web server connects to the Internet and supports physical data interchange with other devices connected to the web.
-- Software side, it includes several parts that control how web users access hosted files. An HTTP server is software that understands URLs (web address) and HTTP (the protocol your browser uses to view webpages). It can be accessed through the domain names of the websites it stores, and delivers the content of these hosted websites to the end user's device.
-
-At most basic, whenever  a browser needs a file that is hosted on a web server, the browser request the file via HTTP. When the request reaches the correct web server, the HTTP server accepts the request, finds the requested document, and sends it back to the browser, through HTTP. It case the server can't find the requested document, it returns a 404 response instead.
-
-![image](https://github.com/bankung7/42_webserv/assets/65214132/38a8f472-45b8-48dd-b204-3b94b0476757)
-
-To publish a website, we need eithera static or a dynamic web server.
-
-- A Static web server, or stack, consists of a computer with an HTTP server. We call it static because the server sends its hosted files as-is to your browser.
-- A Dynamic web server consists of a static web server plus extra software, most commonly an application server and a database. We call it dynamic because the application server updates the hosted files before sending content to your browser via the HTTP server.
-
-### Message Parsing
-The normal procedure for parsing an HTTP message is to read the start-line into a structure, read each header field line into a hash table by field name until the empty line, and then use the parsed data to determine if a message body is expected. If a messagebody has been indicated, then it is read as a stream until an amount of octets equal to the message body length is read or the connection is closed.
-
-### Request Line
 ```
-request-line = method [SP] request-target [SP] HTTP-version
-```
-Remark: [SP] is single space
-
-#### Method
-The method token indicates the request method to be performed on the target resource. The request method is case-sensitive. It indicate the purpose for which the client has made this request and what is expected by the client as a successful result.
-
-| Method Name | Description |
--
-| GET | Transfer a current representation of the target resource |
-| POST | Perform resource-specific processing on the request content |
-| DELETE | Remove all current representation of the target resource |
-
-There are more on the method like HEAD, PUT, CONNECT, OPTIONS, and TRACE but we will leave it as later.
-The RFC 9110 are also said that the general-purpose server MUST support the methods GET and HEAD, All the other methods are OPTIONAL.
-
-#### Request Target
-The client derives a request-target from its desired target URI. There are 4 formats for the request-target, depending on both the method being requested and whether the request is to a proxy.
-
-```
-request-target = origin-form
-                / absolute-form
-                / authority-form
-                / asterisk-form
+HTTP/1.1 404 Not Found
+Date: Sun, 18 Oct 2012 10:36:20 GMT
+Server: Apache/2.2.14 (Win32)
+Content-Length: 230
+Connection: Closed
+Content-Type: text/html; charset=iso-8859-1
 ```
 
-No WHITESPACE is allowed in the request-target. Recipients of an invalid request-line SHOULD respond with either a 400 (Bad Request) or a 301 (Moved Permanently).
-A client MUST send a Host header field in all HTTP/1.1 request-message. A server MUST respond with a 400 status code to any HTTP/1.1 request message that lacks a Host header field and to any request message that contains more than 1 Host header field line or a Host header field with an invalid field value.
-
-##### origin-form
 ```
-origin-form = absolute-path [ "?" query ]
-```
-A client MUST send only the absolute path and query components of the target URI as the request-target when making a request "**DIRECTLY**" to an origin server, other than a CONNECT or server-wide OPTIONS request. If the target URI's path component is empty, the client MUST send "/" as the path within the origin-form of request-target.
-```
-https://www.example.com/where?q=now
-```
-A client wishing to retrieve a representation of the resource directly from the origin server would open a TCP connection to port 80 of the host "www.example.com" and send the lines:
-```
-GET /where?q=now HTTP/1.1
-Host: www.example.com
+HTTP/1.1 400 Bad Request
+Date: Sun, 18 Oct 2012 10:36:20 GMT
+Server: Apache/2.2.14 (Win32)
+Content-Length: 230
+Content-Type: text/html; charset=iso-8859-1
+Connection: Closed
 ```
 
-##### absolute-form
-When making a request to a proxy, other than a CONNECT or server-wide OPTIONS request, a client MUST send the target URI in "absolute-form" as the request-target.
-```
-GET http://www.example.org/pub/WWW/TheProject.html HTTP/1.1
-```
 
-##### authority-form
-It is only used for CONNECT requests. It consists of only the uri-host and port number of the tunnel desitnation, separated by a colon.
-```
-CONNECT www.example.com:80 HTTP/1.1
-Host: www.example.com
-```
-
-##### asterisk-form
-It is only used for a server-wide OPTIONS requests.
-```
-OPTIONS * HTTP/1.1
-Host: www.example.org:8001
-```
-
-#### Status Line
-the first line of a response message is the status-line, consisting of the protocol version, a space, the status code, and another space and ending with an OPTIONAL phrase describing the status code.
-```
- status-line = HTTP-version SP status-code SP [ reason-phrase ]
-```
-The status code element is a 3-digit integer code describing the result of the server's attempt to understand and satisfy th client's corresponding request.
-
-#### Field Syntax
-Each field line consists of a case-insensitive field name followed by a colon, optional leading whitespace the field line value, and optional trailing whitespace
-```
- field-line   = field-name ":" OWS field-value OWS
-```
-
-##### Field Line Parsing
-Messages are parsed using a generic alforithm, independent of the individual field names. The contents within a given filed line value are not aprsed until a later stage of message interpretation (usually after the message's entire field section has been processed).
-No WHITESPACE is allowed between the field name and colon, a server MUST reject with a status 400.
