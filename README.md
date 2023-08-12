@@ -85,14 +85,14 @@ The request method indicates the method to be performed on the resource identifi
 
 | Method | Description |
 |--------|-------------|
-| GET | It is used to retrieve information from the given server using a given URI. Request using GET should only retrieve data and should have no other effect on the data. |
-| HEAD | Same as GET, but it transfers the status line and the header section only. |
-| POST | It is used to send data to the server, for example, customer information, file upload, etc. using HTML forms. |
-| PUT | Replaces all the current representations of the target resource with the uploaded content. |
-| **DELETE** | Removes all the current representation of the target resource given by URI. |
-| CONNECT | Establishes a tunnel to the server identified by given URI. |
-| OPTIONS | Describe the communication options for the target resource. |
-| TRACE | Performs a message loop back test along with the path to the target resource. |
+| `GET` | It is used to retrieve information from the given server using a given URI. Request using GET should only retrieve data and should have no other effect on the data. |
+| `HEAD` | Same as GET, but it transfers the status line and the header section only. |
+| `POST` | It is used to send data to the server, for example, customer information, file upload, etc. using HTML forms. |
+| `PUT` | Replaces all the current representations of the target resource with the uploaded content. |
+| `DELETE` | Removes all the current representation of the target resource given by URI. |
+| `CONNECT` | Establishes a tunnel to the server identified by given URI. |
+| `OPTIONS` | Describe the communication options for the target resource. |
+| `TRACE` | Performs a message loop back test along with the path to the target resource. |
 
 We will only focus on GET, POST, and DELETE in this project.
 
@@ -103,7 +103,7 @@ Request-URI = "*" | absoluteURI | abs_path | authority
 ```
 
 | Method | Description |
--
+| - | - |
 | * | It is used when an HTTP request does not apply to a particular resource, but to the server itself, and is only allowed when the method used does not neccessarily apply to a resource. |
 | absoluteURI | It is used when an HTTP request is being made to a **proxy**. The proxy is requested to  forward the request or service from a valid cache, and return the response. |
 | absolute_path | It is the most common form of Request-URI is that used to identify a resource on an origin server or gateway. It can not be empty; if none is present in the original URI, it MUST be given as "/" (the server root). |
