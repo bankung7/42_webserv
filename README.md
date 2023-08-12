@@ -190,14 +190,14 @@ HTTP-Version = HTTP/1.1
 #### Status Code
 It is a 3-digit integer where first digit of the code defines the class of response and the last 2 digits do not have any categorization role. There are 5 values for the first digit:
 
-| Code | Description | |
-_
-| 1XX | Information: it means the request was received and the process is continuing. | |
+| Code | Description |
+| - | - |
+| 1XX | Information: it means the request was received and the process is continuing. |
 | | 100 | Continue: Only a part of the request has been received by the server, but as long as it has not been rejected, the client should continue with request. |
-| 2XX | Success: it means the action was successfully received, understood, and accepted. | |
-| 3XX | Redirection: it means further action must be taken in order to complete the request. | |
-| 4XX | Client Error: it means the request contains incorrect syntax or cannot be fulfilled. | |
-| 5XX | Server Error: it means the server failed to fulfill an apparently valid request. | |
+| 2XX | Success: it means the action was successfully received, understood, and accepted. |
+| 3XX | Redirection: it means further action must be taken in order to complete the request. |
+| 4XX | Client Error: it means the request contains incorrect syntax or cannot be fulfilled. |
+| 5XX | Server Error: it means the server failed to fulfill an apparently valid request. |
 
 #### Response Header Fields
 It allows the server to pass additional information about the response which cannot be placed in the Status-Line. These header fields give information about the server and about further access to the resource identifier by the Request-URI.
