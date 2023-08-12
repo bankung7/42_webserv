@@ -193,23 +193,23 @@ It is a 3-digit integer where first digit of the code defines the class of respo
 | Code | Description |
 | - | - |
 | `1XX` | Information: it means the request was received and the process is continuing. |
-| 100 : Continue | Only a part of the request has been received by the server, but as long as it has not been rejected, the client should continue with request. |
+| 100 | Continue: Only a part of the request has been received by the server, but as long as it has not been rejected, the client should continue with request. |
 | `2XX` | Success: it means the action was successfully received, understood, and accepted. |
-| 201 : Created | The request is completed, and a new resource is create. |
-| 202 : Accepted | The request is accepted for processing, but the processing is not completed. |
+| 201 | Created : The request is completed, and a new resource is create. |
+| 202 | Accepted : The request is accepted for processing, but the processing is not completed. |
 | `3XX` | Redirection: it means further action must be taken in order to complete the request. |
-| 301 : Moved Permanently | The requested page has moved to a new URL. |
+| 301 | Moved Permanently : The requested page has moved to a new URL. |
 | `4XX` | Client Error: it means the request contains incorrect syntax or cannot be fulfilled. |
-| 400 : Bad Request | The server did not understand the request. |
-| 401 : Unthorized | The requested page needs a username and a password. |
-| 403 : Forbidden | Access is forbidden to the requested page. |
-| 404 : Not Found | The server can not find the requested page. |
-| 408 : Request Timeout | The request took longer than the server was prepared to wait. |
+| 400 | Bad Request : The server did not understand the request. |
+| 401 | Unthorized : The requested page needs a username and a password. |
+| 403 | Forbidden : Access is forbidden to the requested page. |
+| 404 | Not Found : The server can not find the requested page. |
+| 408 | Request Timeout | The request took longer than the server was prepared to wait. |
 | `5XX` | Server Error: it means the server failed to fulfill an apparently valid request. |
-| 500 : internal Server Error | The request was not completed. The server met an unexpected condition. |
-| 502 : Bad Gateway | The request was not completed. The server received an invalid response from the upstream server. |
-| 503 : Service Unavailable | The request was not completed. The server is temporarily overloading or down. |
-| 504 : Gateway Timeout | The dateway has time out. |
+| 500 | internal Server Error : The request was not completed. The server met an unexpected condition. |
+| 502 | Bad Gateway : The request was not completed. The server received an invalid response from the upstream server. |
+| 503 | Service Unavailable : The request was not completed. The server is temporarily overloading or down. |
+| 504 | Gateway Timeout : The dateway has time out. |
 
 Those are some the most code we see, for more detail : https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
 
