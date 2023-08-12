@@ -84,7 +84,7 @@ Request-Line = Method SP Request-URI SP HTTP-Version CRLF
 The request method indicates the method to be performed on the resource identified by the given Request-URI. The method is CASE-SENSITIVE and should always be mentioned in UPPERCASE.
 
 | Method | Description |
--
+------------------------
 | **GET** | It is used to retrieve information from the given server using a given URI. Request using GET should only retrieve data and should have no other effect on the data. |
 | HEAD | Same as GET, but it transfers the status line and the header section only. |
 | **POST** | It is used to send data to the server, for example, customer information, file upload, etc. using HTML forms. |
