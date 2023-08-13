@@ -253,5 +253,22 @@ Content-Length: 230
 Content-Type: text/html; charset=iso-8859-1
 Connection: Closed
 ```
-
-
+### HTTP Header Fields
+#### General Header
+These header fields have general applicability for both request and response message.
+- Cache Control : is used to specify derectives that must be obeyed by all the caching system. eg. no-cache or max-age=seconds
+```
+Cache-Control : cache-request-directive|cache-response-directive
+```
+- Connection : It allows the sender to specify options that are desired for that particular connection and must not be communicatied by proxies over further connections. eg. close or keep-alive
+```
+Connection : "Connection"
+```
+- Date : It MUST be represented in UTC without exception.
+```
+Sun, 06 Nov 1994 08:49:37 GMT  ; RFC 822, updated by RFC 1123
+```
+- Pragma : It is used to include implementation specific directive that might apply to any recipient along the request/response chain.
+```
+Pragma : no-cache
+```
