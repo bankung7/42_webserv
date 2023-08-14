@@ -285,3 +285,40 @@ Connection: Closed
 
 For other, refer to https://www.tutorialspoint.com/http/http_header_fields.htm
 
+## What is the socket?
+A socket is a programming interface that provides a way for processes to communicate over a network using standard protocols. It's an abstraction that allows programs to send and receive data over a network connection. regardless of whether the communicatioin is happening within the same computer (inter-process communication) or between different computer (network communication).
+`
+So, Think of a socket as a virtual communication endpoint:
+`
+
+### Socket Types
+There are 2 primary types of sockets:
+
+#### Stream sockets (often associated with TCP)
+These provide a reliable, ordered, and connection-oriented communication channel. Data sent using stram sockets is **guaranteed** to arrive in the same order it was sent, and if any data is lost or corrupted, the underlying protocol handles retransmission.
+
+#### Datagram sockets (often associated with UDP)
+These provide a connectionless and unreliable communication channel. Data sent using datagram sockets might arrive out of order, duplicated, ot not at all. However, UDP can be faster and is often used for real-time application like video streaming and online gaming.
+
+### What Sockets are used for?
+- Networking Application
+- Inter-Process Communication (IPC)
+- Client-Server Communication
+- Data Exchange
+- Network Protocols
+
+### Summary
+A socket is a mechanism that enables communication between processes or application over a network. It abstracts away many of the complexities of network communication and provides a common interface that programmers can use to build a wide range of network application.
+
+## Step
+1. Server Initialization
+2. Listening for Request
+3. Accepting Connections
+4. Request Reception
+5. Request Parsing
+6. Routing and Resource Identification
+7. Resource Handling
+8. Response Generation
+9. Response Transmission
+10. Connection Closure
+11. Loggin and Monitoring
