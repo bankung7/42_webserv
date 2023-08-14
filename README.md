@@ -54,6 +54,9 @@ Web servers also support SMTP (Simple Mail Transfer Protocol) and FTP (File Tran
 ### Static web server
 It refers to the content being shown as is. A static web server will consist of a computer and HTTP software. It is considered static because the server will send hosted file as is to a browser.
 
+#### Static Content
+It is any file that is stored in a server and is the same everytime it is delivered to users. HTML files and images are examples of this kind of content. It is like a newspaper: once it was published, it features the same articles and photos all day for everyone who pick up a copy.
+
 ### Dynamic web server
 It consist of a web server and other software such as an application server and database. It is considered dynamic because the application server can be used to update any hosted files before they are sent to a browser. The web server can generate content when it is requested from database. Though this process is more flexible.
 
@@ -111,10 +114,36 @@ Request-URI = "*" | absoluteURI | abs_path | authority
 #### Request Header Fields
 This field allow the client to pass additional information about the request, and about the client itseld, to the server. These fields act as request modifiers. Here is a list of some important header fields.
 
-- Accept-Charset
-- Accept-Encoding
-- Accept-Language
-- Authorization
+- Accept : it can be used to specify certain media types which are acceptable for the response.
+  ```
+  Accept: type/subtype [q=value]
+  Accept: text/plain; text/html, text/x-dvi;
+  ```
+
+- Accept-Charset : it can be userd to indicate what character sets are acceptable for the response.
+  ```
+  Accept-Charset: character_set [q=value]
+  Accept-Charset: unicode1-1;
+  ```
+- Accept-Encoding : It is similar to Accept, but restrict the content-coding that are acceptable in the response.
+  ```
+  Accept-Encoding: encoding types
+  Accept-Encoding: compress, gzip
+  ```
+- Accept-Language : It is similar to Accept, but restrict the set of nature languages that are preferred as a response to the request.
+  ```
+  Accept-Language: language [q=value]
+  Accept-Language: da, en-gb;
+  ```
+- Authorization : It consists of credentials containing the authentication information of the user agent for the realm of the resource being request.
+  ```
+  Authorization: creadentials
+  Authorization: BASIC Z3Vlc3Q6Z3Vlc3QxMjM=
+  ```
+- Cookie : It contains a name/value pair of information stored for that URL.
+  ```
+  Cookie: name=value;name=value; ...
+  ```
 - Expect
 - From
 - Host
@@ -253,22 +282,6 @@ Content-Length: 230
 Content-Type: text/html; charset=iso-8859-1
 Connection: Closed
 ```
-### HTTP Header Fields
-#### General Header
-These header fields have general applicability for both request and response message.
-- Cache Control : is used to specify derectives that must be obeyed by all the caching system. eg. no-cache or max-age=seconds
-```
-Cache-Control : cache-request-directive|cache-response-directive
-```
-- Connection : It allows the sender to specify options that are desired for that particular connection and must not be communicatied by proxies over further connections. eg. close or keep-alive
-```
-Connection : "Connection"
-```
-- Date : It MUST be represented in UTC without exception.
-```
-Sun, 06 Nov 1994 08:49:37 GMT  ; RFC 822, updated by RFC 1123
-```
-- Pragma : It is used to include implementation specific directive that might apply to any recipient along the request/response chain.
-```
-Pragma : no-cache
-```
+
+For other, refer to https://www.tutorialspoint.com/http/http_header_fields.htm
+
