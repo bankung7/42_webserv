@@ -310,15 +310,32 @@ These provide a connectionless and unreliable communication channel. Data sent u
 ### Summary
 A socket is a mechanism that enables communication between processes or application over a network. It abstracts away many of the complexities of network communication and provides a common interface that programmers can use to build a wide range of network application.
 
-## Step
-1. Server Initialization
-2. Listening for Request
-3. Accepting Connections
-4. Request Reception
-5. Request Parsing
-6. Routing and Resource Identification
-7. Resource Handling
-8. Response Generation
-9. Response Transmission
-10. Connection Closure
-11. Loggin and Monitoring
+## How Socket works?
+Sockets are commonly used for client and server interaction. Typical system configuration places the server on one machine, with the clients on other machines. The client s connect to the server, exchange information, and then disconnect.
+A socket has a typical flow of events. In a connection-oriented client-to-server model, the socket on the server process waits for requests from a client. To do this, the server first establishes (binds) an address that clients can use to fine the server. When the address is established, the server waits for clients to request a service. The client-to-server data exhanges takes place when a client connects to the server throught a socket. The server performs the client's requests and sends the reply back to the client.
+
+![image](https://github.com/bankung7/42_webserv/assets/65214132/1c29b755-52ba-4b90-be8a-ffc18fcf3a6d)
+
+### Socket Characteristics
+- A socket is represented by an integer called a **socket descriptor**
+- A socket exists as long as the process maintains an open link to the socket.
+- We can name a socket and use it to communicate with other sockets in a communication domain.
+- Sockets perform the communication when the server accepts connections from them, or when it exchanges messages with them.
+- We can create sockets in pairs (only for AF_UNIX address family).
+
+### Socket Address Family
+- AF_INET : provides interprocess communication between processes that run on the same system or on different systems.
+- AF_INET6 : provides support for the Internet Protocol version 6 (IPv6), uses a 128 bit address.
+- AF_UNIX : provides interprocess communication on the same system that uses the socket APIs.
+- AF_UNIX_CCSID : is compatible with the AF_UNIX and has the same limitations.
+
+### Socket Type
+
+#### Stream (SOCK_STREAM)
+This type is connection-oriented. Establish an end-to-end connection by using the bind(), listen(), accept(), and connect() APIs. SOCK_STREAM sends data without error or duplication, and receives the data in the sending order.
+
+#### Datagram (SOCK_DGRAM)
+THs basic unit of data transfer is a datagram. The datagram socket is connectionless, establish no end-to-end connection with the transport provider(protocol). The socket sends datagrams as independent packets with no guarantee of delivery. We might lose or duplicate data. It also might arrive out of order. The size is limited ti the data size that we can send in a single transaction.
+
+#### Raw (SOCK_RAW)
+This type of socket allows direct access to lower-layer protocols. It requires more programming expertise because we manage the protocol header information used by the transport provider. At this level, the transport provider can dictate the format of the data and the semantic that are transport-provider specific.
