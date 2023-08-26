@@ -8,6 +8,7 @@
 // c++ library
 #include <iostream>
 #include <stdexcept>
+#include <sstream>
 
 // c library
 #include <unistd.h>
@@ -16,6 +17,7 @@
 #include <sys/stat.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
+#include <stdlib.h>
 
 // class
 #include "Server.hpp"

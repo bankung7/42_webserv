@@ -10,10 +10,12 @@ private:
     sockaddr_in _saddr;
     int _saddrLen;
     void start(void);
+    void sendJPG(int fd, std::string name);
 
 public:
     Server(void);
     ~Server(void);
+
 
 };
 

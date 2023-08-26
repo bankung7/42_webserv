@@ -59,35 +59,79 @@ void Server::start(void) {
             std::cout << "[ERROR] : read nothing" << std::endl;
             continue ;
         }
-        std::cout << bf << std::endl;
+        std::string request;
+        request.append(std::string(bf));
         free(bf);
 
+        // std::cout << request << std::endl;
+
+        // check the header request
+        std::stringstream ss(request);
+        std::string fline;
+        std::getline(ss, fline, '\n');
+
+        std::stringstream ss2(fline);
+        std::string rfile;
+        std::getline(ss2, rfile, ' ');
+        std::getline(ss2, rfile, ' ');
+
+        std::cout << fline << std::endl;
+        std::cout << rfile << std::endl;
+
         // send response
-        char header[] = "HTTP/1.0 200 OK\r\n"
-                  "Server: webserver-c\r\n"
-                  "Content-type: text/html\r\n\r\n";
-        char *res = (char *)malloc(sizeof(char) * BUFFER_SIZE);
-        memcpy((void *)res, (const void *)header, strlen(header));
-
-        // open file to send
-        int file = open("sites/index.html", O_RDONLY);
-        char *ifile = (char *)malloc(sizeof(char) * (BUFFER_SIZE - strlen(header) - 3));
-        while (read(file, ifile, (BUFFER_SIZE - strlen(header) - 3)) > 0) {
-            ifile[(BUFFER_SIZE - strlen(header) - 3)] = 0;
-            memcpy((void *)&res[strlen(res)], (const void *)ifile, strlen(ifile));
-
-            int owrite = send(cfd, res, strlen(res), 0);
-            if (owrite < 0) {
-                std::cout << "[ERROR] : response failed" << std::endl;
-                free(res);
-                free(ifile);
-                continue ;
-            }
-            std::cout << "[DEBUG] : response has been sent to client [" << cfd << "]" << std::endl;
-            std::cout << res << std::endl;
+        std::string header = "HTTP/1.1 200 OK\r\n";
+                //   "Content-type: text/html\r\n"
+                //   "Content-Length: ";
+        
+        std::string fileName;
+        if (rfile.length() == 1) {
+            header.append("Content-type: text/html\r\n");
+            fileName.append("sites/index.html");
+            std::cout << "==> Index file" << std::endl;
         }
-        free(res);
+        else if (rfile.compare("/panda.jpg") == 0) {
+            header.append("Content-type: image/jpeg\r\n");
+            fileName.append("sites/panda.jpeg");
+            std::cout << "==> Panda file" << std::endl;
+        }
+        else {
+            header.append("Content-type: text/html\r\n");
+            fileName.append("sites/index.html");
+            std::cout << "==> File not found" << std::endl;
+        }
+        header.append("Content-Length: ");
 
+        std::cout << "file request : " << fileName << std::endl;
+
+        struct stat sb;
+        stat(fileName.c_str(), &sb);
+        std::cout << "size of file sent : " << sb.st_size << std::endl;
+
+        // int total = sb.st_size;
+
+        header.append(std::to_string(sb.st_size));
+        header.append("\r\n\r\n");
+
+        int bytesSend = 0;
+        int ifile = open(fileName.c_str(), O_RDONLY);
+        int rd;
+        send(cfd, (void *)header.c_str(), header.length(), 0);
+        while (bytesSend < sb.st_size) {
+            bf = (char *)malloc(sizeof(char) * (BUFFER_SIZE + 1));
+            rd = read(ifile, bf, BUFFER_SIZE);
+            if (rd == -1) {
+                std::cout << "may be end of file" << std::endl;
+                free(bf);
+                break ;
+            }
+            bf[rd] = 0;
+            send(cfd, (void *)bf, rd, 0);
+            free(bf);
+            bytesSend += rd;
+        }
+        std::cout << "Total " << bytesSend << " was sent" << std::endl;
+        close(rd);
         close(cfd);
+        std::cout << std::endl;
     }
 }
