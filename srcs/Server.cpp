@@ -29,9 +29,11 @@ void Server::start(void) {
     this->_saddr.sin_addr.s_addr = htonl(INADDR_ANY);
     this->_saddrLen = sizeof(this->_saddr);
 
+    // set to res use the address, prevent waiting for old address killed in last process
     if (setsockopt(this->_sfd, SOL_SOCKET, SO_REUSEADDR, (const char *)&this->_saddr, this->_saddrLen) < 0)
         throw std::runtime_error("[ERROR] : set socket address reuse failed");
 
+    // bind socket with port
     if (bind(this->_sfd, (sockaddr *)&this->_saddr, this->_saddrLen) != 0)
         throw std::runtime_error("[ERROR] : (bind failed)");
     std::cout << "[DEBUG] : bind was successfully" << std::endl;
@@ -44,6 +46,7 @@ void Server::start(void) {
     // try connect with incoming
     while (1) {
 
+        // accept the request as fd
         int cfd = accept(this->_sfd, (sockaddr *)&this->_saddr, (socklen_t *)&this->_saddrLen);
         if (cfd < 0) {
             std::cout << "[ERROR] : accept failed to the connection" << std::endl;
@@ -75,14 +78,13 @@ void Server::start(void) {
         std::getline(ss2, rfile, ' ');
         std::getline(ss2, rfile, ' ');
 
+        // just try to catch the request path or file
         std::cout << fline << std::endl;
         std::cout << rfile << std::endl;
 
-        // send response
+        // create the header
         std::string header = "HTTP/1.1 200 OK\r\n";
-                //   "Content-type: text/html\r\n"
-                //   "Content-Length: ";
-        
+
         std::string fileName;
         if (rfile.length() == 1) {
             header.append("Content-type: text/html\r\n");
@@ -103,19 +105,23 @@ void Server::start(void) {
 
         std::cout << "file request : " << fileName << std::endl;
 
+        // to get the file info, eg size to be used for sending
         struct stat sb;
         stat(fileName.c_str(), &sb);
         std::cout << "size of file sent : " << sb.st_size << std::endl;
 
-        // int total = sb.st_size;
-
+        // append the total size to be sent in body as Content-Length
         header.append(std::to_string(sb.st_size));
         header.append("\r\n\r\n");
+
+        // send header
+        send(cfd, (void *)header.c_str(), header.length(), 0);
 
         int bytesSend = 0;
         int ifile = open(fileName.c_str(), O_RDONLY);
         int rd;
-        send(cfd, (void *)header.c_str(), header.length(), 0);
+    
+        // loop send body
         while (bytesSend < sb.st_size) {
             bf = (char *)malloc(sizeof(char) * (BUFFER_SIZE + 1));
             rd = read(ifile, bf, BUFFER_SIZE);
@@ -129,7 +135,9 @@ void Server::start(void) {
             free(bf);
             bytesSend += rd;
         }
+
         std::cout << "Total " << bytesSend << " was sent" << std::endl;
+        
         close(rd);
         close(cfd);
         std::cout << std::endl;
