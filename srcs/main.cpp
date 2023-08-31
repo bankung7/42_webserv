@@ -8,10 +8,14 @@ int main(void) {
 
 // Step
 // Create socket
-// bind ip and port
+// bind socket with port
 // Listen incoming message
+// Accept request
 // Parse the message
-// // check file type
+// // check method [GET POST DELETE]
+// // check file type [html jpeg js ...]
 // // open the file and read
 // // send file
 // close socket
+
+// when poll and execve used?

@@ -9,8 +9,12 @@ private:
     int _sfd;
     sockaddr_in _saddr;
     int _saddrLen;
+    std::map<std::string, std::string> _requestData;
+
     void start(void);
-    void sendJPG(int fd, std::string name);
+    int parsing(std::string req);
+    int getRequestLine(std::string line);
+    void readRequest(void);
 
 public:
     Server(void);

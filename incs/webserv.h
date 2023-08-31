@@ -9,6 +9,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <sstream>
+#include <map>
 
 // c library
 #include <unistd.h>

@@ -62,48 +62,31 @@ void Server::start(void) {
             std::cout << "[ERROR] : read nothing" << std::endl;
             continue ;
         }
-        std::string request;
-        request.append(std::string(bf));
+        std::string request(bf);
         free(bf);
 
         // std::cout << request << std::endl;
 
-        // check the header request
-        std::stringstream ss(request);
-        std::string fline;
-        std::getline(ss, fline, '\n');
-
-        std::stringstream ss2(fline);
-        std::string rfile;
-        std::getline(ss2, rfile, ' ');
-        std::getline(ss2, rfile, ' ');
-
-        // just try to catch the request path or file
-        std::cout << fline << std::endl;
-        std::cout << rfile << std::endl;
+        // parsing
+        parsing(request);
 
         // create the header
         std::string header = "HTTP/1.1 200 OK\r\n";
 
-        std::string fileName;
-        if (rfile.length() == 1) {
+        std::string fileName("sites");
+        if (this->_requestData["Target"].length() == 1) {
             header.append("Content-type: text/html\r\n");
-            fileName.append("sites/index.html");
-            std::cout << "==> Index file" << std::endl;
+            fileName.append("/index.html");
         }
-        else if (rfile.compare("/panda.jpg") == 0) {
+        else if (this->_requestData["Target"].compare("/panda.jpg") == 0) {
             header.append("Content-type: image/jpeg\r\n");
-            fileName.append("sites/panda.jpeg");
-            std::cout << "==> Panda file" << std::endl;
+            fileName.append("/panda.jpeg");
         }
         else {
             header.append("Content-type: text/html\r\n");
-            fileName.append("sites/index.html");
-            std::cout << "==> File not found" << std::endl;
+            fileName.append("/404.html");
         }
         header.append("Content-Length: ");
-
-        std::cout << "file request : " << fileName << std::endl;
 
         // to get the file info, eg size to be used for sending
         struct stat sb;
@@ -137,9 +120,82 @@ void Server::start(void) {
         }
 
         std::cout << "Total " << bytesSend << " was sent" << std::endl;
-        
+
+        this->_requestData.clear();
         close(rd);
         close(cfd);
         std::cout << std::endl;
     }
+}
+
+int Server::parsing(std::string req) {
+
+    if (req.empty())
+        return (1);
+
+    std::stringstream ss(req);
+    std::string line;
+
+    // get request line
+    std::getline(ss, line, '\n');
+
+    getRequestLine(line);
+
+    // loop the rest
+    while (std::getline(ss, line, '\n')) {
+        if (line.empty())
+            break ;
+        std::stringstream iss(line);
+        std::string arg;
+        std::string val;
+        std::getline(iss, arg, ':');
+        std::getline(iss, val);
+        if (arg.empty() == 1 || val.empty() == 1)
+            continue ;
+        this->_requestData.insert(this->_requestData.end(), std::pair<std::string, std::string>(arg, val));
+    }
+
+    readRequest();
+
+    return (0);
+}
+
+int Server::getRequestLine(std::string line) {
+
+    if (line.empty())
+        return (1);
+    
+    std::stringstream ss(line);
+    std::string input;
+
+    // get method [GET POST DELETE]
+    std::getline(ss, input, ' ');
+    if (input.empty())
+        return (1);
+    this->_requestData.insert(this->_requestData.end(), std::pair<std::string, std::string>("Method", input));
+
+    // get target
+    std::getline(ss, input, ' ');
+    if (input.empty())
+        return (1);
+    this->_requestData.insert(this->_requestData.end(), std::pair<std::string, std::string>("Target", input));
+
+    // get HTTP version
+    std::getline(ss, input, '\n');
+    if (input.empty())
+        return (1);
+    this->_requestData.insert(this->_requestData.end(), std::pair<std::string, std::string>("HTTP version", input));
+
+    return (0);
+}
+
+void Server::readRequest(void) {
+    std::map<std::string, std::string>::iterator it;
+
+    std::cout << "==================================" << std::endl;
+    it = this->_requestData.begin();
+    for (; it != this->_requestData.end(); it++) {
+        std::cout << it->first << " : " << it->second << std::endl;
+    }
+    std::cout << "==================================" << std::endl;
 }
