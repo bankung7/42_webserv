@@ -55,147 +55,107 @@ void Server::start(void) {
         std::cout << "[DEBUG] : connection [" << cfd << "] was accetped" << std::endl;
 
         // read incoming request
-        char *bf = (char *)malloc(sizeof(char) * BUFFER_SIZE + 1);
-        int iread = recv(cfd, bf, BUFFER_SIZE, 0);
-        bf[iread] = 0;
+        std::vector<char> bf(BUFFER_SIZE + 1);
+
+        int iread = recv(cfd, bf.data(), BUFFER_SIZE, 0);
         if (iread < 0) {
             std::cout << "[ERROR] : read nothing" << std::endl;
             continue ;
         }
-        std::string request(bf);
-        free(bf);
-
-        // std::cout << request << std::endl;
 
         // parsing
-        parsing(request);
+        std::map<std::string, std::string> requestHolder;
+        parsing(requestHolder, bf);
 
         // create the header
-        std::string header = "HTTP/1.1 200 OK\r\n";
-
-        std::string fileName("sites");
-        if (this->_requestData["Target"].length() == 1) {
-            header.append("Content-type: text/html\r\n");
-            fileName.append("/index.html");
-        }
-        else if (this->_requestData["Target"].compare("/panda.jpg") == 0) {
-            header.append("Content-type: image/jpeg\r\n");
-            fileName.append("/panda.jpeg");
-        }
-        else {
-            header.append("Content-type: text/html\r\n");
-            fileName.append("/404.html");
-        }
+        std::string header;
+        header.append("HTTP/1.1 200 OK\r\n");
+        header.append("Content-type: ");
+        header.append(requestHolder["content-type"]);
+        header.append("\r\n");
         header.append("Content-Length: ");
 
         // to get the file info, eg size to be used for sending
         struct stat sb;
-        stat(fileName.c_str(), &sb);
+        stat(requestHolder["filename"].c_str(), &sb);
         std::cout << "size of file sent : " << sb.st_size << std::endl;
 
         // append the total size to be sent in body as Content-Length
-        header.append(std::to_string(sb.st_size));
+        std::stringstream iss;
+        iss << sb.st_size;
+
+        std::string rsize;
+        iss >> rsize;
+        header.append(rsize);
         header.append("\r\n\r\n");
 
         // send header
         send(cfd, (void *)header.c_str(), header.length(), 0);
 
         int bytesSend = 0;
-        int ifile = open(fileName.c_str(), O_RDONLY);
+        int ifile = open(requestHolder["filename"].c_str(), O_RDONLY);
         int rd;
     
         // loop send body
         while (bytesSend < sb.st_size) {
-            bf = (char *)malloc(sizeof(char) * (BUFFER_SIZE + 1));
-            rd = read(ifile, bf, BUFFER_SIZE);
+            std::vector<char> bbf(BUFFER_SIZE + 1);
+            rd = read(ifile, bf.data(), BUFFER_SIZE);
             if (rd == -1) {
                 std::cout << "may be end of file" << std::endl;
-                free(bf);
                 break ;
             }
-            bf[rd] = 0;
-            send(cfd, (void *)bf, rd, 0);
-            free(bf);
+            send(cfd, (void *)bf.data(), rd, 0);
             bytesSend += rd;
         }
 
         std::cout << "Total " << bytesSend << " was sent" << std::endl;
 
-        this->_requestData.clear();
         close(rd);
         close(cfd);
         std::cout << std::endl;
     }
 }
 
-int Server::parsing(std::string req) {
+void Server::parsing(std::map<std::string, std::string> &requestHolder, std::vector<char> request) {
+    std::cout << request.data() << std::endl;
 
-    if (req.empty())
-        return (1);
+    (void)requestHolder;
 
-    std::stringstream ss(req);
-    std::string line;
-
-    // get request line
-    std::getline(ss, line, '\n');
-
-    getRequestLine(line);
-
-    // loop the rest
-    while (std::getline(ss, line, '\n')) {
-        if (line.empty())
-            break ;
-        std::stringstream iss(line);
-        std::string arg;
-        std::string val;
-        std::getline(iss, arg, ':');
-        std::getline(iss, val);
-        if (arg.empty() == 1 || val.empty() == 1)
-            continue ;
-        this->_requestData.insert(this->_requestData.end(), std::pair<std::string, std::string>(arg, val));
-    }
-
-    readRequest();
-
-    return (0);
-}
-
-int Server::getRequestLine(std::string line) {
-
-    if (line.empty())
-        return (1);
+    std::stringstream ss(request.data());
+    std::string arg;
     
-    std::stringstream ss(line);
-    std::string input;
+    // get method
+    std::getline(ss, arg, ' ');
+    requestHolder.insert(std::pair<std::string, std::string>("method", arg));
+    arg.clear();
 
-    // get method [GET POST DELETE]
-    std::getline(ss, input, ' ');
-    if (input.empty())
-        return (1);
-    this->_requestData.insert(this->_requestData.end(), std::pair<std::string, std::string>("Method", input));
-
-    // get target
-    std::getline(ss, input, ' ');
-    if (input.empty())
-        return (1);
-    this->_requestData.insert(this->_requestData.end(), std::pair<std::string, std::string>("Target", input));
+    // get resource
+    std::getline(ss, arg, ' ');
+    requestHolder.insert(std::pair<std::string, std::string>("resource", arg));
+    arg.clear();
 
     // get HTTP version
-    std::getline(ss, input, '\n');
-    if (input.empty())
-        return (1);
-    this->_requestData.insert(this->_requestData.end(), std::pair<std::string, std::string>("HTTP version", input));
+    std::getline(ss, arg, '\n');
+    requestHolder.insert(std::pair<std::string, std::string>("version", arg));
 
-    return (0);
-}
-
-void Server::readRequest(void) {
-    std::map<std::string, std::string>::iterator it;
-
-    std::cout << "==================================" << std::endl;
-    it = this->_requestData.begin();
-    for (; it != this->_requestData.end(); it++) {
-        std::cout << it->first << " : " << it->second << std::endl;
+    // set content-type
+    if (requestHolder["resource"].length() == 1) {
+        requestHolder.insert(std::pair<std::string, std::string>("Content-type", "text/html"));
+        requestHolder.insert(std::pair<std::string, std::string>("filename", "sites/index.html"));
+        return ;
+    } 
+    if (requestHolder["resource"].compare("/panda.jpg") == 0) {
+        requestHolder.insert(std::pair<std::string, std::string>("Content-type", "image/jpeg"));
+        requestHolder.insert(std::pair<std::string, std::string>("filename", "sites/panda.jpeg"));
+        return ;
     }
-    std::cout << "==================================" << std::endl;
+
+    // other case handle later
+    requestHolder.insert(std::pair<std::string, std::string>("Content-type", "text/html"));
+    requestHolder.insert(std::pair<std::string, std::string>("filename", "sites/404.html"));
+
 }
+
+// void Server::createHeader(std::string &header) {
+//     header.append("HTTP/1.1 200 OK\r\n");
+// }

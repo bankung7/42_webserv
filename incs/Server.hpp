@@ -8,18 +8,16 @@ class Server {
 private:
     int _sfd;
     sockaddr_in _saddr;
-    int _saddrLen;
-    std::map<std::string, std::string> _requestData;
+    int _saddrLen; // may be create another class with their request data
 
     void start(void);
-    int parsing(std::string req);
-    int getRequestLine(std::string line);
-    void readRequest(void);
+    void parsing(std::map<std::string, std::string> &requestHolder, std::vector<char>);
+    // void createHeader(std::string &header);
+
 
 public:
     Server(void);
     ~Server(void);
-
 
 };
 

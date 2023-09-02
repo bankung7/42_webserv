@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include <sstream>
 #include <map>
+#include <vector>
 
 // c library
 #include <unistd.h>
