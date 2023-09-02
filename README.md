@@ -339,3 +339,25 @@ THs basic unit of data transfer is a datagram. The datagram socket is connection
 
 #### Raw (SOCK_RAW)
 This type of socket allows direct access to lower-layer protocols. It requires more programming expertise because we manage the protocol header information used by the transport provider. At this level, the transport provider can dictate the format of the data and the semantic that are transport-provider specific.
+
+## HTTP Request
+The steps involved in the HTTP requests are:
+1. Client send the request
+2. Handshaking is done between the client and server, connection is established
+3. Server process response
+4. Server send response back to client
+5. Close the connection
+
+Every HTTP request is considered a new request because every request creates a new connection, as soon as the response is returned the connection is closed. In most web application rest API use HTTP requests.
+
+## HTTP Polling
+This is a variation of HTTP request where a client keeps sending a request to the server at a regular interval and the response can be empty.
+The step has the same as an HTTP request but only some difference is multiple requests at regular intervals.
+1. Client send the request.
+2. Handshaking is done between the client and server, connection is established
+3. Server process response.
+4. Server send the response to the client, it may or may not have any update for the client so the response can be empty.
+5. Close the connection.
+6. This process is repeated at regular intervals to fetch the response of change from the server.
+
+The major disadvantange of this is unnecessary network calls as most of the time the response will be empty.
