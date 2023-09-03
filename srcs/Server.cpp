@@ -1,21 +1,19 @@
 #include "Server.hpp"
 
 Server::Server(void) {
-
-    // start
-    try {
-        start();
-    } catch (std::exception &e) {
-        std::cout << e.what() << std::endl;
-    }
-
 }
 
 Server::~Server(void) {
+}
 
+void Server::setConfigFile(std::string file) {
+    (void)file;
+    std::cout << "[DEBUG] : set config file path [" << file << "] => planning" << std::endl;
 }
 
 void Server::start(void) {
+
+    // load and set config
 
     // create server socket
     this->_sfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -23,10 +21,16 @@ void Server::start(void) {
         throw std::runtime_error("[ERROR] : (socket failed)");
     std::cout << "[DEBUG] : socket has been created successfully" << std::endl;
 
+    // clear the add first
+    memset(&this->_saddr, 0, sizeof(this->_saddr));
+
     // bind ip and port
     this->_saddr.sin_family = AF_INET;
-    this->_saddr.sin_port = htons(PORT);
     this->_saddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    // this->_saddr.sin_addr = inet_addr("127.0.0.1"); // provide with ip later
+    this->_saddr.sin_port = htons(PORT);
+    
+    // set length
     this->_saddrLen = sizeof(this->_saddr);
 
     // set to res use the address, prevent waiting for old address killed in last process
@@ -78,14 +82,15 @@ void Server::start(void) {
             std::vector<char> bbf(BUFFER_SIZE);
             rd = read(ifile, bbf.data(), BUFFER_SIZE);
             if (rd == -1) {
-                std::cout << "may be end of file" << std::endl;
+                std::cout << "[ERROR] : Something wrong when tring to send data" << std::endl;
                 break ;
             }
             send(cfd, (void *)bbf.data(), rd, 0);
             bytesSend += rd;
         }
 
-        std::cout << "Total " << bytesSend << " was sent" << std::endl;
+        // std::cout << "Total " << bytesSend << " was sent" << std::endl;
+        std::cout << "======== Connection with [" << cfd << "] closed ========" << std::endl;
 
         close(rd);
         close(cfd);

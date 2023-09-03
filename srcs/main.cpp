@@ -1,8 +1,23 @@
 #include "webserv.h"
 
-int main(void) {
+int main(int argc, char **argv) {
     
+    if (argc > 2) {
+        std::cout << "Usage: ./webserv [Configuration file]" << std::endl;
+        return (1);
+    }
+
+    // initiate the server
     Server wb;
+
+    // set configuration file
+    if (argc == 2)
+        wb.setConfigFile(std::string(argv[1]));
+    else
+        wb.setConfigFile("config/default.config");
+
+    // start the server
+    wb.start();
 
 }
 

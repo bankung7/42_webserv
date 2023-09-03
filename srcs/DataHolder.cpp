@@ -9,7 +9,7 @@ DataHolder::DataHolder(std::vector<char> &request): _headerLength(0), _bodyLengt
     parsing(request);
 
     // check the request
-    std::cout << "============== Client Request ==============" << std::endl;
+    std::cout << "============== Client Request ===============" << std::endl;
     std::cout << "Method: " << this->_method << std::endl;
     std::cout << "Resource: " << this->_resource << std::endl;
     std::cout << "Version: " << this->_cversion << std::endl;
@@ -21,8 +21,10 @@ DataHolder::DataHolder(std::vector<char> &request): _headerLength(0), _bodyLengt
     setResponse();
 
     // checking the process
+    std::cout << "============== Server Response ==============" << std::endl;
     std::cout << "Filename: " << this->_filename << std::endl;
     std::cout << "Body length: " << this->_bodyLength << " bytes" << std::endl;
+    std::cout << std::endl;
 }
 
 DataHolder::~DataHolder(void) {
@@ -50,19 +52,19 @@ void DataHolder::parsing(std::vector<char> &request) {
 void DataHolder::getRequest(void) {
     // set content-type
     if (this->_resource.compare("/") == 0) {
-        this->_filename = "sites/index.html";
+        this->_filename = "sites/html/index.html";
         this->_contentType = "text/html";
         return ;
     }
 
     if (this->_resource.compare("/panda.jpg") == 0) {
-        this->_filename = "sites/panda.jpeg";
+        this->_filename = "sites/image/panda.jpeg";
         this->_contentType = "image/jpeg";
         return ;
     }
 
     // in case cannot find any one of them
-    this->_filename = "sites/404.html";
+    this->_filename = "sites/html/404.html";
     this->_contentType = "text/html";
 }
 
@@ -99,5 +101,5 @@ void DataHolder::setResponse(void) {
     this->_header.append("\r\n\r\n");
 
     this->_headerLength = this->_header.length();
-    
+
 }
