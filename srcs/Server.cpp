@@ -47,53 +47,80 @@ void Server::start(void) {
         throw std::runtime_error("[ERROR] : listen failed");
     std::cout << "[DEBUG] : listen is ready" << std::endl;
 
+    struct kevent change[4], event[4];
+    int kq, nevent, socket_connection_fd;
+    // prepare the kqueue
+    kq = kqueue();
+
+    EV_SET(change, this->_sfd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, 0);
+
+    // register kevent
+    if (kevent(kq, change, 1, NULL, 0, NULL) == -1)
+        throw std::runtime_error("[ERROR] : kevent failed");
+
     // try connect with incoming
-    while (1) {
+    for (;;) {
+        nevent = kevent(kq, NULL, 0, event, 1, NULL);
+        if (nevent == -1)
+            throw std::runtime_error("[ERROR] : new event failed");
 
-        // accept the request as fd
-        int cfd = accept(this->_sfd, (sockaddr *)&this->_saddr, (socklen_t *)&this->_saddrLen);
-        if (cfd < 0) {
-            std::cout << "[ERROR] : accept failed to the connection" << std::endl;
-            continue ;
-        }
-        std::cout << "[DEBUG] : connection [" << cfd << "] was accetped" << std::endl;
+        for (int i = 0; nevent > i; i++) {
+            int event_fd = event[i].ident;
 
-        // read incoming request
-        std::vector<char> bf(BUFFER_SIZE);
-
-        int iread = recv(cfd, bf.data(), BUFFER_SIZE, 0);
-        if (iread < 0) {
-            std::cout << "[ERROR] : read nothing" << std::endl;
-            continue ;
-        }
-
-        // parsing and processing
-        DataHolder holder(bf);
-
-        // send status line and header
-        send(cfd, (void *)holder._header.c_str(), holder._headerLength, 0);
-
-        int bytesSend = 0;
-        int ifile = open(holder._filename.c_str(), O_RDONLY);
-        int rd;
-    
-        // loop send body
-        while (bytesSend < holder._bodyLength) {
-            std::vector<char> bbf(BUFFER_SIZE);
-            rd = read(ifile, bbf.data(), BUFFER_SIZE);
-            if (rd == -1) {
-                std::cout << "[ERROR] : Something wrong when tring to send data" << std::endl;
-                break ;
+            if (event[i].flags & EV_EOF) {
+                std::cout << "Client has disconnected" << std::endl;
+                close(event_fd);
             }
-            send(cfd, (void *)bbf.data(), rd, 0);
-            bytesSend += rd;
+            else if (event_fd == this->_sfd) {
+                socket_connection_fd = accept(event_fd, (sockaddr *)&this->_saddr, (socklen_t *)&this->_saddrLen);
+                if (socket_connection_fd == -1) {
+                    std::cout << "[ERROR] : accept failed to the connection" << std::endl;
+                    continue ;
+                }
+                std::cout << "[DEBUG] : connection [" << socket_connection_fd << "] was accetped" << std::endl;
+
+                EV_SET(change, socket_connection_fd, EVFILT_READ, EV_ADD, 0, 0, NULL);
+                if (kevent(kq, change, 1, NULL, 0, NULL) < 0)
+                    std::cout << "[ERROR] : kevent error" << std::endl;
+            }
+            else if (event[i].filter & EVFILT_READ) {
+                std::vector<char> bf(BUFFER_SIZE);
+
+                int iread = recv(socket_connection_fd, bf.data(), BUFFER_SIZE, 0);
+                if (iread < 0) {
+                    std::cout << "[ERROR] : read nothing" << std::endl;
+                    continue ;
+                }
+
+                // parsing and processing
+                DataHolder holder(bf);
+
+                // send status line and header
+                send(socket_connection_fd, (void *)holder._header.c_str(), holder._headerLength, 0);
+
+                int bytesSend = 0;
+                int ifile = open(holder._filename.c_str(), O_RDONLY);
+                int rd;
+            
+                // loop send body
+                while (bytesSend < holder._bodyLength) {
+                    std::vector<char> bbf(BUFFER_SIZE);
+                    rd = read(ifile, bbf.data(), BUFFER_SIZE);
+                    if (rd == -1) {
+                        std::cout << "[ERROR] : Something wrong when tring to send data" << std::endl;
+                        break ;
+                    }
+                    send(socket_connection_fd, (void *)bbf.data(), rd, 0);
+                    bytesSend += rd;
+                }
+
+                // std::cout << "Total " << bytesSend << " was sent" << std::endl;
+                std::cout << "======== Connection with [" << socket_connection_fd << "] closed ========" << std::endl;
+
+                close(rd);
+                // close(cfd);
+                std::cout << std::endl;
+            }
         }
-
-        // std::cout << "Total " << bytesSend << " was sent" << std::endl;
-        std::cout << "======== Connection with [" << cfd << "] closed ========" << std::endl;
-
-        close(rd);
-        close(cfd);
-        std::cout << std::endl;
     }
 }

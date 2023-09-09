@@ -20,6 +20,7 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <sys/event.h>
 
 // class
 #include "Server.hpp"
