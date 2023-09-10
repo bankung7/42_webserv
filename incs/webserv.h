@@ -11,6 +11,7 @@
 #include <sstream>
 #include <map>
 #include <vector>
+#include <cstring>
 
 // c library
 #include <unistd.h>
@@ -20,7 +21,7 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <stdlib.h>
-#include <sys/event.h>
+#include <stdio.h>
 
 // class
 #include "Server.hpp"
