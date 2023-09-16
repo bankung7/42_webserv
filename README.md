@@ -361,3 +361,33 @@ The step has the same as an HTTP request but only some difference is multiple re
 6. This process is repeated at regular intervals to fetch the response of change from the server.
 
 The major disadvantange of this is unnecessary network calls as most of the time the response will be empty.
+
+## EPOLL
+It is a linux kernel system call for as scalable I/O event notification mechanism. It is similar to 'kqueue' which consists of a set of user-space function, each taking a file descriptor. Epoll uses a red-black tree data structure to keep track of all fd that are currently being monitor.
+
+```
+int epoll_create(int size); # size is ignored but must be more that 0;
+```
+This funciton returns its fds.
+
+```
+int epoll_ctl(int epfd, int op, in fd, struct epoll_event *event);
+```
+this function contorls which fds are watched by this object, and for which event.
+'op' can beว
+EPOLL_CTL_ADD : add fd to the interest list
+EPOLL_CTL_MOD : change the setting with fd in the interest list
+EPOLL_CTL_DEL : remove the target fd from the interest list.
+
+```
+int epoll_wait(int epfd, struct epoll_event *events, int max_events, int timeout);
+```
+It waits for any of the event registered for with epoll_ctl, until at least one occurs or the time out elapses. Returns the occurede events in 'events' up to max_events at once. 'max_events' is the maximum number of 'epoll_event' fd to be monitored. In most case, max_events is set to the value of the sizeof '*event' arguments.
+EPOLLIN : file is available for read operations;
+EPOLLOUT : file is available for write operations;
+EPOLLERR : error condition happened on the fd;
+EPOLLET : set the edge triggered;
+
+### Triggering modes
+edge-triggered will return only when a new event is enqueued with the epoll object.
+level-triggered will return as long as the condition holds.
