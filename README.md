@@ -363,18 +363,18 @@ The step has the same as an HTTP request but only some difference is multiple re
 The major disadvantange of this is unnecessary network calls as most of the time the response will be empty.
 
 ## EPOLL
-It is a linux kernel system call for as scalable I/O event notification mechanism. It is similar to 'kqueue' which consists of a set of user-space function, each taking a file descriptor. Epoll uses a red-black tree data structure to keep track of all fd that are currently being monitor.
+It is a linux kernel system call for as scalable I/O event notification mechanism. It is similar to `kqueue` which consists of a set of user-space function, each taking a file descriptor. Epoll uses a red-black tree data structure to keep track of all fd that are currently being monitor.
 
 ```
-int epoll_create(int size); # size is ignored but must be more that 0;
+int epoll_create(int size);
 ```
-This funciton returns its fds.
+The size is ignored but must be greater than 0. The function create something called a `watch set`, which itseld is a set of fd which we'd like to monitor.
 
 ```
 int epoll_ctl(int epfd, int op, in fd, struct epoll_event *event);
 ```
 this function contorls which fds are watched by this object, and for which event.
-'op' can beว
+'op' can be
 EPOLL_CTL_ADD : add fd to the interest list
 EPOLL_CTL_MOD : change the setting with fd in the interest list
 EPOLL_CTL_DEL : remove the target fd from the interest list.
@@ -382,7 +382,7 @@ EPOLL_CTL_DEL : remove the target fd from the interest list.
 ```
 int epoll_wait(int epfd, struct epoll_event *events, int max_events, int timeout);
 ```
-It waits for any of the event registered for with epoll_ctl, until at least one occurs or the time out elapses. Returns the occurede events in 'events' up to max_events at once. 'max_events' is the maximum number of 'epoll_event' fd to be monitored. In most case, max_events is set to the value of the sizeof '*event' arguments.
+It waits for I/O events on the watch set, blocking the calling thread until one or more events are detected.
 EPOLLIN : file is available for read operations;
 EPOLLOUT : file is available for write operations;
 EPOLLERR : error condition happened on the fd;
