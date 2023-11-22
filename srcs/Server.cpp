@@ -124,36 +124,67 @@ int Server::polling(void) {
 
                 std::cout << "[INFO]: New connection found" << std::endl;
 
-                int cfd = accept(this->_listener, (struct sockaddr*)&peer_addr, (socklen_t*)&peer_addrlen);
-                if (cfd == -1) {
+                int conn = accept(this->_listener, (struct sockaddr*)&peer_addr, (socklen_t*)&peer_addrlen);
+                if (conn == -1) {
                     std::cout << "[ERROR]: Something wrong when tryong to accept the new connection" << std::endl;
                     continue;
                 }
 
                 // connection success, set fd to nonblock state
-                setnonblock(cfd);
+                setnonblock(conn);
 
                 // set it for reading state and add it to epoll fd
-                // epoll_event nevent;
-                // nevent.events = EPOLLIN | EPOLLET;
-                // create the holder 
+                epoll_event nevent;
+                nevent.events = EPOLLIN | EPOLLET;
+                nevent.data.ptr = new HttpHandler(conn);
 
-                // close it for no, just test
-                close(cfd);
+                if (epoll_ctl(this->_epfd, EPOLL_CTL_ADD, conn, &nevent) == -1) {
+                    std::cout << "[ERROR]: Something wrong when epoll_ctl adding the listener" << std::endl;
+                    close(conn);
+                }
 
-                // if (epoll_ctl(this->_epfd, EPOLL_CTL_ADD, cfd, &nevent) == -1) {
-                //     std::cout << "[ERROR]: Something wrong when epoll_ctl adding the listener" << std::endl;
-                //     close(cfd);
-                // }
-
-                std::cout << "[DEBUG]: Connection to " << cfd << " successfully" << std::endl;
+                std::cout << "[DEBUG]: Connection to " << conn << " successfully" << std::endl;
             }
             // in case of EPOLLIN
             else if (events[i].events & EPOLLIN) {
 
+                HttpHandler* handler = (HttpHandler*)events[i].data.ptr;
+                std::cout << "[DEBUG]: Epoll in state with " << handler->getfd() << std::endl;
+
+                // TODO: reading state [HttpHandler.cpp]
+                handler->handlingRequest();
+
+
+                // reading complete, push to EPOLLOUT state
+                epoll_event nevent;
+                nevent.events = EPOLLOUT | EPOLLET;
+                nevent.data.ptr = (void*)handler;
+
+                if (epoll_ctl(this->_epfd, EPOLL_CTL_MOD, handler->getfd(), &nevent) == -1) {
+                    std::cout << "[ERROR]: Something wrong when epoll_ctl modify the fd" << handler->getfd() << std::endl;
+                }
+
             }
             // in case of EPOLLOUT
             else if (events[i].events & EPOLLOUT) {
+
+                HttpHandler* handler = (HttpHandler*)events[i].data.ptr;
+                std::cout << "[DEBUG]: Epoll out state with " << handler->getfd() << std::endl;
+
+                // TODO: sending state [HttpHandler.cpp]
+                handler->handlingResponse();
+
+                // remove from epollfd
+                if (epoll_ctl(this->_epfd, EPOLL_CTL_DEL, handler->getfd(), NULL) == -1) {
+                    std::cout << "[ERROR]: Something wrong when epoll_ctl removing the fd" << handler->getfd() << std::endl;
+                }
+
+                std::cout << "[DEBUG]: Close the connection with " << handler->getfd() << std::endl;
+
+                // clear the context
+                close(handler->getfd());
+                delete handler;
+
 
             } else {
                 std::cout << "[ERROR]: Some other case, can not be here at all" << std::endl;

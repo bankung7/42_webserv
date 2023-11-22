@@ -17,6 +17,9 @@
 // C++
 #include <iostream>
 
+// Own hpp
+#include "HttpHandler.hpp"
+
 // Parameter
 #define PORT "8080"
 #define BACKLOG 25
