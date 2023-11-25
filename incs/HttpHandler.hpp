@@ -5,6 +5,7 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
+// #include <unordered_map>
 
 // C
 #include <sys/socket.h>
@@ -16,8 +17,17 @@ class HttpHandler {
 private:
 
     int _fd;
+    // std::unordered_map<std::string, std::string> _context;
+
     std::string _req;
     std::string _res;
+
+    std::string _uri;
+    std::string _method;
+    std::string _version;
+
+    int header_only;
+    int header_sent;
 
     HttpHandler(void);
 

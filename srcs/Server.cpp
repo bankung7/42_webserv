@@ -2,22 +2,37 @@
 
 Server::Server(void) {
 
-    // TODO: setup config file
-
-    // get Listener
-    get_listener();
-
-    // start polling
-    polling();
-
 }
 
 Server::~Server(void) {
 
 }
 
+int Server::start(void) {
+
+    // read and set up server from config file
+    setup_server();
+
+    // get Listener
+    // get_listener();
+
+    // loop
+    this->_port[0] = "8080";
+    this->_port[1] = "8081";
+
+    for (int i = 0; i < 2; i++) {
+        this->_fd[i] = get_listener(i);
+        // std::cout << "get " << i << " listener with fd " << this->_fd[i] << std::endl;
+    }
+
+    // start polling
+    polling();
+
+    return (0);
+}
+
 // Get the listener fd
-int Server::get_listener(void) {
+int Server::get_listener(int i) {
     
     int listener;
     struct addrinfo hints, *ai, *p;
@@ -29,8 +44,9 @@ int Server::get_listener(void) {
     hints.ai_flags = AI_PASSIVE;
 
     // get the info from the host and port
+    // usage of getaddrinfo() https://linuxhint.com/c-getaddrinfo-function-usage/
     int rv;
-    if ((rv = getaddrinfo(NULL, PORT, &hints, &ai)) != 0) {
+    if ((rv = getaddrinfo(NULL, this->_port[i].c_str(), &hints, &ai)) != 0) {
         std::cout << "[ERROR]: getaddrinfo failed" << std::endl;
         return (-1);
     }
@@ -74,7 +90,7 @@ int Server::get_listener(void) {
 
     std::cout << "[DEBUG]: system listening on fd " << listener << std::endl;
 
-    return (0);
+    return (listener);
 }
 
 // polling
@@ -92,12 +108,22 @@ int Server::polling(void) {
     // put listener to be in the epollfd
     struct epoll_event ev, events[MAX_EVENTS];
     
-    ev.events = EPOLLIN;
-    ev.data.fd = this->_listener;
+    // ev.events = EPOLLIN;
+    // ev.data.fd = this->_listener;
     
-    if (epoll_ctl(this->_epfd, EPOLL_CTL_ADD, this->_listener, &ev) == -1) {
-        std::cout << "[ERROR]: Something wrong when epoll_ctl adding the listener" << std::endl;
-        return (-1);
+    // if (epoll_ctl(this->_epfd, EPOLL_CTL_ADD, this->_listener, &ev) == -1) {
+    //     std::cout << "[ERROR]: Something wrong when epoll_ctl adding the listener" << std::endl;
+    //     return (-1);
+    // }
+
+    // loop put listener
+    for (int i = 0; i < 2; i++) {
+        ev.events = EPOLLIN;
+        ev.data.fd = this->_fd[i];
+        if (epoll_ctl(this->_epfd, EPOLL_CTL_ADD, this->_fd[i], &ev) == -1) {
+            std::cout << "[ERROR]: Something wrong when epoll_ctl adding the listener" << std::endl;
+            return (-1);
+        }
     }
 
     // prepare for incoming connection
@@ -120,11 +146,12 @@ int Server::polling(void) {
         for (int i = 0; i < nfds; i++) {
 
             // fd is the listner, connect to it
-            if (events[i].data.fd == this->_listener) {
+            // if (events[i].data.fd == this->_listener) {
+            if (events[i].data.fd == this->_fd[0] || events[i].data.fd == this->_fd[1]) {
 
-                std::cout << "[INFO]: New connection found" << std::endl;
+                std::cout << "[INFO]: New connection found with " << events[i].data.fd << std::endl;
 
-                int conn = accept(this->_listener, (struct sockaddr*)&peer_addr, (socklen_t*)&peer_addrlen);
+                int conn = accept(events[i].data.fd, (struct sockaddr*)&peer_addr, (socklen_t*)&peer_addrlen);
                 if (conn == -1) {
                     std::cout << "[ERROR]: Something wrong when tryong to accept the new connection" << std::endl;
                     continue;
@@ -199,4 +226,15 @@ int Server::polling(void) {
 
 int Server::setnonblock(int fd) {
     return (fcntl(fd, F_SETFL, O_NONBLOCK));
+}
+
+void Server::set_config_name(std::string file) {
+    this->_config_file = std::string(file);
+}
+
+void Server::setup_server(void) {
+
+
+
+
 }

@@ -12,19 +12,6 @@ HttpHandler::~HttpHandler(void) {
 
 }
 
-// nginx http request flow
-// 1- post_read
-// 2- server_rewrite: uri conversion at server level
-// 3- find_config: search out th configuration in which the request will be processed
-// 4- rewrite: uri conversion at location level
-// 5- post_rewrite: processing of the request uri conversion result
-// 6- preaccess: preparation for access control
-// 7- access: access verification
-// 8- post_access: processing the result of access check
-// 9- try_files
-// 10- content: response generation
-// 11- log: log recording
-
 // https://nginx.org/en/docs/http/request_processing.html
 // https://nginx.org/en/docs/dev/development_guide.html#http_request
 

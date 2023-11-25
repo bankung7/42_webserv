@@ -16,6 +16,7 @@
 
 // C++
 #include <iostream>
+#include <map>
 
 // Own hpp
 #include "HttpHandler.hpp"
@@ -29,16 +30,28 @@
 class Server {
 
 private:
+
+    int _fd[2];
+    std::string _port[2];
+
+    std::map<std::string, std::string> _context;
+
     int _listener;
     int _epfd;
+    std::string _config_file;
 
 public:
     Server(void);
     ~Server(void);
 
-    int get_listener(void);
+    int start(void);
+
+    int get_listener(int i);
     int polling(void);
     int setnonblock(int fd);
+
+    void set_config_name(std::string file);
+    void setup_server(void);
 
 };
 

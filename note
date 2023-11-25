@@ -1,0 +1,80 @@
+// Process
+- process_master
+    read configuration file, create cycle, and start and control child process. it do not perform any I/O task.
+- process_worker
+    it handles client connections. it is triggered by master process.
+
+// Signal controlling ?
+
+// OBJECT
+each client will create the object with it to use along the process.
+- client fd
+- array of http module context
+- read_handler() and write_handler()
+- request_body() for POST method
+- method name
+- http version
+- request_line (original client request)
+- uri
+- header_only [FLAG] if body is not required
+- header_sent [FLAG] if header has been sent
+
+// Connection Process
+- accept()
+    accept a client TCP connection, this handle is called to read a notification on a listen socket.
+- init_connection()
+    performs initialization of http connection.
+- wait_request_handler()
+    read event handler is called when data is available on the client socket.
+- process_request()
+    read client request line. The data is read into connection's buffer. [the size is set by directive]. The entire client HEADER is supposed to fit in this buffer.
+- process_request_header()
+    read client request header
+- core_run_phase()
+    is called when the request_header() completed read and parsed. This phase intended to generate response and sent to the client at this phase.
+- close_request()
+    is called when the complete response has been sent to the client and the request can be destroyed.
+
+// Phases
+Each request passes through a sequence of phases.
+- post_read
+    register its handler to enable substitution of client addressse.
+- find_config
+    assign the location to the request.
+- rewrite
+    rewrite rules defined in the location in previous phase
+- access
+    verify the client is authorized to make a request
+- content
+    generate the response
+- loging
+
+// Response
+It is produced by sending the response header then followed by the optional response body.
+
+// response_header()
+sending the response header, triggered by header_out is set.
+
+// response_body()
+send the response body. each time it sends a part of the response body in the form of buffer chain. set the flag in the last body buffer.
+
+
+// =============================== //
+// Summary http handlering process
+// =============================== //
+- accept()                          // accept the connection                                [server]
+- init_connection()                 // create object and put thing to the queue             [server|http]
+- process_request()
+    - process_request_header()      // process header and set parameter for response        [http]
+    - process_request_body()        // process body if required                             [http]
+    - find_config()                 // find matching location rule                          [http]
+    - rewrite()                     // rewrite uri by the location rule                     [http]
+- process response()
+    - access()                      // try_file                                             [http]
+    - content()                     // create response                                      [http]
+    - process_response_header()     // send response header                                 [http]
+    - process_response_body()       // send response body                                   [http]
+- loging()
+- close_request()
+    - close()                       // close the request and connection                     [server|http]
+
