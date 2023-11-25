@@ -12,13 +12,31 @@ HttpHandler::~HttpHandler(void) {
 
 }
 
+// nginx http request flow
+// 1- post_read
+// 2- server_rewrite: uri conversion at server level
+// 3- find_config: search out th configuration in which the request will be processed
+// 4- rewrite: uri conversion at location level
+// 5- post_rewrite: processing of the request uri conversion result
+// 6- preaccess: preparation for access control
+// 7- access: access verification
+// 8- post_access: processing the result of access check
+// 9- try_files
+// 10- content: response generation
+// 11- log: log recording
+
+// https://nginx.org/en/docs/http/request_processing.html
+// https://nginx.org/en/docs/dev/development_guide.html#http_request
+
 // request handling part
 void HttpHandler::handlingRequest(void) {
 
-    // readind form fd
+    // 1- readind form fd
     int rd;
     char bf[BUFFER_SIZE];
     std::stringstream ss;
+
+    ss << std::noskipws;
 
     do {
         rd = recv(this->_fd, bf, BUFFER_SIZE, 0);
@@ -48,8 +66,8 @@ void HttpHandler::handlingResponse(void) {
     std::stringstream ss;
     ss << "HTTP/1.1 200 OK\r\n"
         << "Content-Type: text/html\r\n"
-        << "Content-Length: 5\r\n\r\n"
-        << "Hello";
+        << "Content-Length: " << this->_req.size() << "\r\n\r\n"
+        << this->_req;
 
     std::string res = std::string(ss.str());
     std::vector<char> msg;
