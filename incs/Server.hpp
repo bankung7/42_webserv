@@ -31,11 +31,6 @@ class Server {
 
 private:
 
-    int _fd[2];
-    std::string _port[2];
-
-    std::map<std::string, std::string> _context;
-
     int _listener;
     int _epfd;
     std::string _config_file;
