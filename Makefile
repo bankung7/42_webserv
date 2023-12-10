@@ -9,7 +9,7 @@ RM = rm -rf
 INCS = -Iincs
 
 SRCS_DIR = srcs/
-SRCS = main.cpp Server.cpp HttpHandler.cpp
+SRCS = main.cpp Webserv.cpp Epoll.cpp Server.cpp HttpHandler.cpp
 
 OBJS_DIR = objs/
 OBJS = $(addprefix $(OBJS_DIR), $(SRCS:.cpp=.o))

@@ -1,60 +1,47 @@
 #ifndef SERVER_HPP
 #define SERVER_HPP
 
-// C
-#include <unistd.h> // close()
-#include <string.h> // memset()
-#include <fcntl.h> // fcntl()
+#include <iostream>
+#include <vector>
+#include <map>
 
-// C server
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/socket.h> // socket(), bind(), listen()
 #include <netdb.h> // addrinfo, getaddrinfo(), freeaddrinfo()
-#include <sys/epoll.h> // epoll_create(), epoll_wait(), epoll_ctl()
-
-// C++
-#include <iostream>
-#include <map>
-
-// Own hpp
-#include "HttpHandler.hpp"
-
-// Parameter
-#define PORT "8080"
-#define BACKLOG 25
-#define MAX_EVENTS 25
-#define BUFFER_SIZE 1024
+#include <string.h> // memset
 
 class Server {
 
 private:
+    std::string _host;
+    std::vector<int> _port;
+    int _size;
 
-    int _listener;
-    int _epfd;
-    std::string _config_file;
+    // TODO: multiple server name
+    std::string _serverName;
 
 public:
     Server(void);
     ~Server(void);
 
-    int start(void);
+    void add_host(std::string host);
+    void add_port(int port);
 
-    int get_listener(int i);
-    int polling(void);
-    int setnonblock(int fd);
+    std::string get_host(void) const;
+    int get_port(int i) const;
+    int get_size(void) const;
+    std::string get_server_name(void) const;
 
-    void set_config_name(std::string file);
-    void setup_server(void);
+    // test funciton
+    void set_size(int n);
+    void set_server_name(std::string name);
 
 };
 
 #endif
 
-// Server.cpp
-// Running the server, epoll
-// push the task of request and response dealing to HttpHandler.cpp
-// CGI?
-
-// still does not handle when it unexpected closed
+// all server setting is stored here
+// plan to user the std::map
+// getter the value for each attribute
