@@ -20,7 +20,7 @@ private:
     int _size;
 
     // TODO: multiple server name
-    std::string _serverName;
+    std::vector<std::string> _serverName;
 
 public:
     Server(void);
@@ -31,12 +31,13 @@ public:
 
     std::string get_host(void) const;
     int get_port(int i) const;
+    std::vector<int>& get_all_port(void);
     int get_size(void) const;
-    std::string get_server_name(void) const;
+    std::string get_server_name(int i);
 
     // test funciton
     void set_size(int n);
-    void set_server_name(std::string name);
+    void add_server_name(std::string name);
 
 };
 

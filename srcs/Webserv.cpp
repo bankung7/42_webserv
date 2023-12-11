@@ -20,14 +20,14 @@ void Webserv::start(void) {
     for (int i = 0; i < this->_serverSize; i++) {
 
         // for each port in each server
-        int size = this->_server[i].get_size();
-        std::cout << "[DEBUG]: size of " << this->_server[i].get_server_name() << " = " << size << std::endl;
+        std::cout << "[DEBUG]: size of " << this->_server[i].get_server_name(0) << " = " << this->_server[i].get_size() << std::endl;
 
         // TODO: bind with hostname
-        for (int j = 0; j < size; j++)
-            create_socket(this->_server[i].get_host(), this->_server[i].get_port(j), size);
+        create_socket(this->_server[i].get_host(), this->_server[i].get_all_port(), this->_server[i].get_size());
         
     }
+
+    std::cout << "[DEBUG]: Created all listener completed, starting polling the listner" << std::endl;
 
     // start polling
     polling();
@@ -44,16 +44,14 @@ void Webserv::setup(void) {
     Server sv1;
     sv1.add_host("127.0.0.1");
     sv1.add_port(8081);
-    sv1.set_size(1);
-    sv1.set_server_name("test1");
+    sv1.add_port(8082);
+    sv1.add_server_name("test1");
     this->_server.push_back(sv1);
 
-
     Server sv2;
-    sv2.add_host("127.0.0.2");
-    sv2.add_port(8082);
-    sv2.set_size(1);
-    sv2.set_server_name("test2");
+    sv2.add_host("127.0.0.9");
+    sv2.add_port(8091);
+    sv2.add_server_name("test2");
     this->_server.push_back(sv2);
 
 }
@@ -63,7 +61,9 @@ void Webserv::set_config_name(std::string file) {
 }
 
 int Webserv::check_listener(int fd) {
-    for (int i = 0; i < this->_serverSize; i++) {
+
+    std::cout << "[DEBUG]: cheking listener" << std::endl;
+    for (int i = 0; i < this->_socketSize; i++) {
         if (this->_socket[i] == fd)
             return (fd);
     }
@@ -71,14 +71,14 @@ int Webserv::check_listener(int fd) {
 }
 
 // create socket
-void Webserv::create_socket(std::string host, int port, int size) {
+void Webserv::create_socket(std::string host, std::vector<int> port, int size) {
 
     int listening;
 
     // loop create with total size
     for (int i = 0; i < size; i++) {
 
-        std::cout << "[DEBUG]: Start creating socket for " << host << ":" << port << std::endl;
+        std::cout << "[DEBUG]: Start creating socket for " << host << ":" << port[i] << std::endl;
 
         // create socket
         listening = socket(AF_INET,SOCK_STREAM, 0);
@@ -89,7 +89,7 @@ void Webserv::create_socket(std::string host, int port, int size) {
         this->_socket.push_back(listening);
         this->_socketSize++;
 
-        std::cout << "[DEBUG]: socket " << listening << " was created" << std::endl;
+        // std::cout << "[DEBUG]: socket " << listening << " was created" << std::endl;
 
         // setsockopt for reusing
         int optval = 1;
@@ -99,7 +99,7 @@ void Webserv::create_socket(std::string host, int port, int size) {
         struct sockaddr_in  addr;
         memset(&addr, 0, sizeof(addr));
         addr.sin_family = AF_INET;
-        addr.sin_port = htons(port);
+        addr.sin_port = htons(port[i]);
         // addr.sin_addr.s_addr = INADDR_ANY;
         addr.sin_addr.s_addr = inet_addr(host.c_str());
 
@@ -120,7 +120,7 @@ void Webserv::create_socket(std::string host, int port, int size) {
             throw std::runtime_error("failed to listen the socket");
         
         // complete
-        std::cout << "[DEBUG]: The fd " << this->_socket[current] << " starting listening on " << host << ":" << port << std::endl;
+        std::cout << "[DEBUG]: listener " << this->_socket[current] << " starting listening" << std::endl;
 
     }
 }

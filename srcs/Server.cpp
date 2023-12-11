@@ -32,12 +32,16 @@ int Server::get_port(int i) const {
     return (this->_port[i]);
 }
 
+std::vector<int>& Server::get_all_port(void) {
+    return (this->_port);
+}
+
 int Server::get_size(void) const {
     return (this->_size);
 }
 
-std::string Server::get_server_name(void) const {
-    return (this->_serverName);
+std::string Server::get_server_name(int i) {
+    return (this->_serverName[i]);
 }
 
 // test function
@@ -45,6 +49,6 @@ void Server::set_size(int n) {
     this->_size = n;
 }
 
-void Server::set_server_name(std::string name) {
-    this->_serverName = std::string(name);
+void Server::add_server_name(std::string name) {
+    this->_serverName.push_back(name);
 }

@@ -54,7 +54,7 @@ public:
     void setup(void);
 
     // epoll.cpp
-    void create_socket(std::string host, int fd, int size);
+    void create_socket(std::string host, std::vector<int> port, int size);
     int setnonblock(int fd);
 
     int polling(void);

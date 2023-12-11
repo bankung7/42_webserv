@@ -80,7 +80,7 @@ int Webserv::polling(void) {
     struct epoll_event ev, events[MAX_EVENTS];
 
     // loop put listener to epoll_fd
-    for (int i = 0; i < _serverSize; i++) {
+    for (int i = 0; i < _socketSize; i++) {
 
         int fd = this->_socket[i];
 
@@ -118,6 +118,8 @@ int Webserv::polling(void) {
             if (events[i].events & EPOLLIN) {
 
                 // check if it match any listening
+
+                // in the case of listner, create the new connection to it
                 if (check_listener(events[i].data.fd) > 0) {
 
                     std::cout << "[INFO]: New connection found with " << events[i].data.fd << std::endl;
