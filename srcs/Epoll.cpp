@@ -64,7 +64,6 @@
 //     return (listener);
 // }
 
-// polling
 int Webserv::polling(void) {
 
     // create an epoll fd
@@ -77,10 +76,22 @@ int Webserv::polling(void) {
     std::cout << "[DEBUG]: An epoll fd " << this->_epfd << " has been created" << std::endl;
 
     // put listener to be in the epollfd
-    struct epoll_event events[MAX_EVENTS];
+    struct epoll_event ev, events[MAX_EVENTS];
 
-    // add listener to epoll
-    add_listener_to_epoll();
+    // loop put listener to epoll_fd
+    for (int i = 0; i < _serverSize; i++) {
+
+        int fd = this->_socketList[i];
+
+        ev.events = EPOLLIN;
+        ev.data.fd = fd;
+        if (epoll_ctl(this->_epfd, EPOLL_CTL_ADD, fd, &ev) == -1) {
+            std::cout << "[ERROR]: Something wrong when epoll_ctl adding the listener" << std::endl;
+            return (-1);
+        }
+        std::cout << "[DEBUG]: the fd " << fd << " is added to the epoll_fd" << std::endl;
+
+    }
 
     // prepare for incoming connection
     struct sockaddr peer_addr;
@@ -108,7 +119,7 @@ int Webserv::polling(void) {
                 // check if it match any listening
 
                 // in the case of listner, create the new connection to it
-                if (check_listener(events[i].data.fd) != -1) {
+                if (check_listener(events[i].data.fd) == 0) {
 
                     std::cout << "[INFO]: New connection found with " << events[i].data.fd << std::endl;
 
@@ -122,7 +133,7 @@ int Webserv::polling(void) {
                     setnonblock(conn);
 
                     // set it for reading state and add it to epoll fd
-                    struct epoll_event nevent;
+                    epoll_event nevent;
                     nevent.events = EPOLLIN | EPOLLET;
                     nevent.data.ptr = new HttpHandler(conn);
 
@@ -141,6 +152,7 @@ int Webserv::polling(void) {
 
                     // TODO: reading state [HttpHandler.cpp]
                     handler->handlingRequest();
+
 
                     // reading complete, push to EPOLLOUT state
                     epoll_event nevent;
@@ -173,6 +185,7 @@ int Webserv::polling(void) {
                 close(handler->getfd());
                 delete handler;
 
+
             } else {
                 std::cout << "[ERROR]: Some other case, can not be here at all" << std::endl;
             }
@@ -182,23 +195,4 @@ int Webserv::polling(void) {
     }
 
     return (0);
-}
-
-void Webserv::add_listener_to_epoll(void) {
-
-    struct epoll_event ev;
-
-    for (int i = 0; i < this->_serverSize; i++) {
-        ev.events = EPOLLIN;
-        ev.data.fd = this->_socketList[i];
-
-        std::cout << "[DEBUG]: add fd " << ev.data.fd << " to epoll fd" << std::endl;
-
-        if (epoll_ctl(this->_epfd, EPOLL_CTL_ADD, this->_socketList[i], &ev) == -1)
-            throw std::runtime_error("epoll_ctl error for add");
-
-    }
-
-    std::cout << "[DEBUG]: succesfully add all listeners to epoll fd" << std::endl;
-
 }

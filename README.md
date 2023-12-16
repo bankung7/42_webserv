@@ -36,3 +36,6 @@ This server_name must be manually added in the /etc/hosts.
 
 ## File Structure
 It will main control by Webserv which store each
+
+## Something found
+- when siege with 0.0.0.0, it stuck with on idea what it is.

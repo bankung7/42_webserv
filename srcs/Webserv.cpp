@@ -22,7 +22,7 @@ void Webserv::start(void) {
     // TODO: create socket
     create_socket(this->_server);
 
-    std::cout << "[DEBUG]: Created all listener completed" << std::endl;
+    std::cout << "[DEBUG]: Created all listener [" << this->_serverSize << "] completed" << std::endl;
 
     // start polling
     polling();
@@ -96,7 +96,7 @@ int Webserv::check_listener(int fd) {
     std::cout << "[DEBUG]: cheking listener" << std::endl;
     for (int i = 0; i < this->_serverSize; i++) {
         if (fd == this->_socketList[i])
-            return (i);
+            return (0);
     }
     return (-1);
 }
