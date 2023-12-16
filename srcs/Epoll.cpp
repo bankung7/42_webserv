@@ -77,22 +77,10 @@ int Webserv::polling(void) {
     std::cout << "[DEBUG]: An epoll fd " << this->_epfd << " has been created" << std::endl;
 
     // put listener to be in the epollfd
-    struct epoll_event ev, events[MAX_EVENTS];
+    struct epoll_event events[MAX_EVENTS];
 
-    // loop put listener to epoll_fd
-    for (int i = 0; i < _socketSize; i++) {
-
-        int fd = this->_socket[i];
-
-        ev.events = EPOLLIN;
-        ev.data.fd = fd;
-        if (epoll_ctl(this->_epfd, EPOLL_CTL_ADD, fd, &ev) == -1) {
-            std::cout << "[ERROR]: Something wrong when epoll_ctl adding the listener" << std::endl;
-            return (-1);
-        }
-        std::cout << "[DEBUG]: the fd " << fd << " is added to the epoll_fd" << std::endl;
-
-    }
+    // add listener to epoll
+    add_listener_to_epoll();
 
     // prepare for incoming connection
     struct sockaddr peer_addr;
@@ -120,7 +108,7 @@ int Webserv::polling(void) {
                 // check if it match any listening
 
                 // in the case of listner, create the new connection to it
-                if (check_listener(events[i].data.fd) > 0) {
+                if (check_listener(events[i].data.fd) != -1) {
 
                     std::cout << "[INFO]: New connection found with " << events[i].data.fd << std::endl;
 
@@ -134,7 +122,7 @@ int Webserv::polling(void) {
                     setnonblock(conn);
 
                     // set it for reading state and add it to epoll fd
-                    epoll_event nevent;
+                    struct epoll_event nevent;
                     nevent.events = EPOLLIN | EPOLLET;
                     nevent.data.ptr = new HttpHandler(conn);
 
@@ -196,4 +184,23 @@ int Webserv::polling(void) {
     }
 
     return (0);
+}
+
+void Webserv::add_listener_to_epoll(void) {
+
+    struct epoll_event ev;
+
+    for (std::map<int, int>::iterator it = this->_socketList.begin(); it != this->_socketList.end(); ++it) {
+        ev.events = EPOLLIN;
+        ev.data.fd = it->first;
+
+        std::cout << "[DEBUG]: add fd " << ev.data.fd << " to epoll fd" << std::endl;
+
+        if (epoll_ctl(this->_epfd, EPOLL_CTL_ADD, it->first, &ev) == -1)
+            throw std::runtime_error("epoll_ctl error for add");
+
+    }
+
+    std::cout << "[DEBUG]: succesfully add all listeners to epoll fd" << std::endl;
+
 }

@@ -13,6 +13,7 @@
 
 // C++ library
 #include <iostream>
+#include <map>
 
 // Custom hpp
 #include "HttpHandler.hpp"
@@ -32,11 +33,7 @@ private:
     std::vector<Server> _server;
     int _serverSize;
 
-    std::vector<int> _socket;
-    std::vector<struct sockaddr_in> _addr;
-    std::vector<socklen_t>  _addrLen;
-
-    int _socketSize;
+    std::map<int, int> _socketList; // <fd, index>
     
     // epoll.hpp
     int _epfd;
@@ -45,19 +42,24 @@ public:
     Webserv(void);
     ~Webserv(void);
 
-    void start(void);
+    // Configuration Part
     void set_config_name(std::string file);
 
+    void start(void);
+
+    void create_socket(std::vector<Server> &server);
+    int setnonblock(int fd);
     int check_listener(int fd);
 
-    // test function
-    void setup(void);
+    // setter
+    void add_socket(int fd, int index);
 
     // epoll.cpp
-    void create_socket(std::string host, std::vector<int> port, int size);
-    int setnonblock(int fd);
-
     int polling(void);
+    void add_listener_to_epoll(void);
+
+    // Test function
+    void setup(void);
 
 };
 

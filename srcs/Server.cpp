@@ -1,54 +1,59 @@
 #include "Server.hpp"
 
-Server::Server(void) {
-    this->_size = 0;
+Server::Server(void): _ip(std::string("")), _port(-1), _socket(-1) {
+
 }
 
 Server::~Server(void) {
 
 }
 
-// add host
-void Server::add_host(std::string host) {
-    this->_host = host;
+// =============== Setter ================ //
+void Server::set_ip(std::string ip) {
+    this->_ip = ip;
 }
 
-// add port
-void Server::add_port(int port) {
-    this->_port.push_back(port);
-    this->_size++;
+void Server::set_port(int port) {
+    this->_port = port;
+}
+
+void Server::add_server_name(std::string name) {
+    this->_serverName.push_back(name);
+}
+
+void Server::set_socket(int fd) {
+    this->_socket = fd;
+}
+
+void Server::set_addr(struct sockaddr_in addr) {
+    this->_addr = addr;
+}
+
+void Server::set_addr_len(socklen_t len) {
+    this->_addrLen = len;
 }
 
 // getter
-std::string Server::get_host(void) const {
-    if (this->_host.size() == 0)
-        return (std::string(""));
-    return (this->_host);
+std::string Server::get_ip(void) const {
+    return (this->_ip);
 }
 
-int Server::get_port(int i) const {
-    if (i >= this->_size)
-        return (-1);
-    return (this->_port[i]);
-}
-
-std::vector<int>& Server::get_all_port(void) {
+int Server::get_port(void) const {
     return (this->_port);
-}
-
-int Server::get_size(void) const {
-    return (this->_size);
 }
 
 std::string Server::get_server_name(int i) {
     return (this->_serverName[i]);
 }
 
-// test function
-void Server::set_size(int n) {
-    this->_size = n;
+int Server::get_socket(void) {
+    return (this->_socket);
 }
 
-void Server::add_server_name(std::string name) {
-    this->_serverName.push_back(name);
+struct sockaddr_in Server::get_addr(void) {
+    return (this->_addr);
+}
+
+socklen_t Server::get_addr_len(void) {
+    return (this->_addrLen);
 }

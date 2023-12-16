@@ -15,29 +15,37 @@
 class Server {
 
 private:
-    std::string _host;
-    std::vector<int> _port;
-    int _size;
+    std::string _ip; // for specific ip
+    int _port; // only 1 port per server block
 
-    // TODO: multiple server name
+    // TODO: server_name
     std::vector<std::string> _serverName;
+
+    // server's socket info
+    int _socket;
+    struct sockaddr_in _addr;
+    socklen_t _addrLen;
+
 
 public:
     Server(void);
     ~Server(void);
 
-    void add_host(std::string host);
-    void add_port(int port);
-
-    std::string get_host(void) const;
-    int get_port(int i) const;
-    std::vector<int>& get_all_port(void);
-    int get_size(void) const;
-    std::string get_server_name(int i);
-
-    // test funciton
-    void set_size(int n);
+    // setter
+    void set_ip(std::string ip);
+    void set_port(int port);
     void add_server_name(std::string name);
+    void set_socket(int fd);
+    void set_addr(struct sockaddr_in addr);
+    void set_addr_len(socklen_t len);
+
+    // getter
+    std::string get_ip(void) const;
+    int get_port(void) const;
+    std::string get_server_name(int i);
+    int get_socket(void);
+    struct sockaddr_in get_addr(void);
+    socklen_t get_addr_len(void);
 
 };
 
