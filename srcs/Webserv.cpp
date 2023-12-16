@@ -49,7 +49,7 @@ void Webserv::create_socket(std::vector<Server> &server) {
 
         // set and add listening
         server[i].set_socket(listening); // keep to its own data
-        add_socket(listening, i); // add to Webserv for searching
+        add_socket(listening); // add to Webserv for searching
 
         // setsockopt for reusing
         int optval = 1;
@@ -94,17 +94,16 @@ int Webserv::setnonblock(int fd) {
 int Webserv::check_listener(int fd) {
     
     std::cout << "[DEBUG]: cheking listener" << std::endl;
-
-    try {
-        return (this->_socketList.at(fd));
-    } catch (...) {
-        return (-1);
+    for (int i = 0; i < this->_serverSize; i++) {
+        if (fd == this->_socketList[i])
+            return (i);
     }
+    return (-1);
 }
 
 // setter
-void Webserv::add_socket(int fd, int index) {
-    this->_socketList.insert(std::pair<int, int>(fd, index));
+void Webserv::add_socket(int fd) {
+    this->_socketList.push_back(fd);
 }
 
 // Test function

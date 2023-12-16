@@ -142,7 +142,6 @@ int Webserv::polling(void) {
                     // TODO: reading state [HttpHandler.cpp]
                     handler->handlingRequest();
 
-
                     // reading complete, push to EPOLLOUT state
                     epoll_event nevent;
                     nevent.events = EPOLLOUT | EPOLLET;
@@ -174,7 +173,6 @@ int Webserv::polling(void) {
                 close(handler->getfd());
                 delete handler;
 
-
             } else {
                 std::cout << "[ERROR]: Some other case, can not be here at all" << std::endl;
             }
@@ -190,13 +188,13 @@ void Webserv::add_listener_to_epoll(void) {
 
     struct epoll_event ev;
 
-    for (std::map<int, int>::iterator it = this->_socketList.begin(); it != this->_socketList.end(); ++it) {
+    for (int i = 0; i < this->_serverSize; i++) {
         ev.events = EPOLLIN;
-        ev.data.fd = it->first;
+        ev.data.fd = this->_socketList[i];
 
         std::cout << "[DEBUG]: add fd " << ev.data.fd << " to epoll fd" << std::endl;
 
-        if (epoll_ctl(this->_epfd, EPOLL_CTL_ADD, it->first, &ev) == -1)
+        if (epoll_ctl(this->_epfd, EPOLL_CTL_ADD, this->_socketList[i], &ev) == -1)
             throw std::runtime_error("epoll_ctl error for add");
 
     }
