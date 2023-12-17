@@ -26,6 +26,12 @@ private:
     struct sockaddr_in _addr;
     socklen_t _addrLen;
 
+    // default server or not
+    int _isDefaultServer;
+
+    // for location block
+    std::string _root;
+
 
 public:
     Server(void);
@@ -46,6 +52,12 @@ public:
     int get_socket(void);
     struct sockaddr_in get_addr(void);
     socklen_t get_addr_len(void);
+    std::string get_root(void);
+
+    int check_server_name(std::string name);
+
+    // Location block
+    void set_root(std::string root);
 
 };
 

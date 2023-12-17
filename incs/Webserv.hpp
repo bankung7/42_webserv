@@ -33,7 +33,7 @@ private:
     std::vector<Server> _server;
     int _serverSize;
 
-    std::vector<int> _socketList; // <fd, index>
+    std::vector<int> _socketList;
     
     // epoll.hpp
     int _epfd;
@@ -53,6 +53,9 @@ public:
 
     // setter
     void add_socket(int fd);
+
+    // getter
+    Server& get_server(int i);
 
     // epoll.cpp
     int polling(void);

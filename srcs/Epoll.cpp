@@ -119,7 +119,11 @@ int Webserv::polling(void) {
                 // check if it match any listening
 
                 // in the case of listner, create the new connection to it
-                if (check_listener(events[i].data.fd) == 0) {
+                int server_index = check_listener(events[i].data.fd);
+                
+                if (server_index != -1) {
+
+                    std::cout << "server index " << server_index << std::endl;
 
                     std::cout << "[INFO]: New connection found with " << events[i].data.fd << std::endl;
 
@@ -137,6 +141,10 @@ int Webserv::polling(void) {
                     nevent.events = EPOLLIN | EPOLLET;
                     nevent.data.ptr = new HttpHandler(conn);
 
+                    HttpHandler* handler = (HttpHandler*)nevent.data.ptr;
+                    handler->set_server(this->get_server(server_index));
+                    handler->set_server_list(this->_server); // set the server list to correct the server block after parsing request
+
                     if (epoll_ctl(this->_epfd, EPOLL_CTL_ADD, conn, &nevent) == -1) {
                         std::cout << "[ERROR]: Something wrong when epoll_ctl adding the listener" << std::endl;
                         close(conn);
@@ -152,7 +160,6 @@ int Webserv::polling(void) {
 
                     // TODO: reading state [HttpHandler.cpp]
                     handler->handlingRequest();
-
 
                     // reading complete, push to EPOLLOUT state
                     epoll_event nevent;
@@ -170,6 +177,9 @@ int Webserv::polling(void) {
 
                 HttpHandler* handler = (HttpHandler*)events[i].data.ptr;
                 std::cout << "[DEBUG]: Epoll out state with fd " << handler->getfd() << std::endl;
+
+                Server sv = handler->get_server();
+                std::cout << "[DEBUG]: file directory is " << sv.get_root() << std::endl;
 
                 // TODO: sending state [HttpHandler.cpp]
                 handler->handlingResponse();

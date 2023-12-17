@@ -1,6 +1,6 @@
 #include "Server.hpp"
 
-Server::Server(void): _ip(std::string("")), _port(-1), _socket(-1) {
+Server::Server(void): _ip(std::string("")), _port(-1), _socket(-1), _isDefaultServer(0) {
 
 }
 
@@ -33,7 +33,7 @@ void Server::set_addr_len(socklen_t len) {
     this->_addrLen = len;
 }
 
-// getter
+// =============== Getter ================== //
 std::string Server::get_ip(void) const {
     return (this->_ip);
 }
@@ -56,4 +56,24 @@ struct sockaddr_in Server::get_addr(void) {
 
 socklen_t Server::get_addr_len(void) {
     return (this->_addrLen);
+}
+
+std::string Server::get_root(void) {
+    return (this->_root);
+}
+
+//
+int Server::check_server_name(std::string name) {
+    for (int i = 0; i < (int)this->_serverName.size(); i++) {
+        if (this->_serverName[i].compare(name) == 0) {
+            std::cout << this->_serverName[i] << " " << name << std::endl;
+            return (i);
+        }
+    }
+    return (-1);
+}
+
+// Location block
+void Server::set_root(std::string root) {
+    this->_root = std::string(root);
 }

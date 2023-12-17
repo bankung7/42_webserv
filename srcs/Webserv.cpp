@@ -37,7 +37,7 @@ void Webserv::create_socket(std::vector<Server> &server) {
     // loop create with total size
     for (int i = 0; i < this->_serverSize; i++) {
 
-        std::string cip = server[i].get_ip();
+        // std::string cip = server[i].get_ip(); // for specified ip
         int cport = server[i].get_port();
 
         std::cout << "[DEBUG]: Start creating socket for port " << cport << std::endl;
@@ -47,31 +47,30 @@ void Webserv::create_socket(std::vector<Server> &server) {
         if (listening == -1)
             throw std::runtime_error("[ERROR]: failed to create new socket");
 
-        // set and add listening
-        server[i].set_socket(listening); // keep to its own data
-        add_socket(listening); // add to Webserv for searching
-
         // setsockopt for reusing
         int optval = 1;
-        setsockopt(listening, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int));
+        setsockopt(listening, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &optval, sizeof(int));
+        // reuse port for same port but different in server name ?
 
         // set address
         struct sockaddr_in  addr;
         addr.sin_family = AF_INET;
         addr.sin_port = htons(cport);
         addr.sin_addr.s_addr = INADDR_ANY; // for 0.0.0.0
-        // addr.sin_addr.s_addr = inet_addr(host.c_str()); // for specific ip
-
-        // set addr and it length
-        // this->_addr.push_back(addr);
-        // this->_addrLen.push_back(sizeof(addr));
-        server[i].set_addr(addr);
-        server[i].set_addr_len(sizeof(addr));
+        // addr.sin_addr.s_addr = inet_addr(cip.c_str()); // for specific ip
 
         // bind the address with port
         // if (bind(this->_socket[current], (struct sockaddr*)&this->_addr[current], (int)this->_addrLen[current]) == -1)
         if (bind(listening, (struct sockaddr*)&addr, (int)(sizeof(addr))) == -1)
             throw std::runtime_error("[ERROR]: failed to bind the port");
+
+        // set socket and its addr
+        server[i].set_socket(listening); // keep to its own data
+        server[i].set_addr(addr);
+        server[i].set_addr_len(sizeof(addr));
+
+        // add to webser for checking in epoll state
+        add_socket(listening);
         
         // set socket as nonblock state
         setnonblock(listening);
@@ -90,13 +89,11 @@ int Webserv::setnonblock(int fd) {
     return (fcntl(fd, F_SETFL, O_NONBLOCK));
 }
 
-
+// check listen and server_name
 int Webserv::check_listener(int fd) {
-    
-    std::cout << "[DEBUG]: cheking listener" << std::endl;
     for (int i = 0; i < this->_serverSize; i++) {
         if (fd == this->_socketList[i])
-            return (0);
+            return (i);
     }
     return (-1);
 }
@@ -106,23 +103,35 @@ void Webserv::add_socket(int fd) {
     this->_socketList.push_back(fd);
 }
 
+// getter
+Server& Webserv::get_server(int i) {
+    return (this->_server[i]);
+}
+
 // Test function
 void Webserv::setup(void) {
 
     std::cout << "[DEBUG]: setting up" << std::endl;
 
-    this->_serverSize = 2;
+    this->_serverSize = 3;
 
+    // default server
     Server sv1;
-    // sv1.add_host("127.0.0.1");
-    sv1.set_port(8081);
-    sv1.add_server_name("test1");
+    sv1.set_port(8080);
+    sv1.add_server_name("webserv1");
+    sv1.set_root("/sites/www1/");
     this->_server.push_back(sv1);
 
     Server sv2;
-    // sv2.add_host("127.0.0.9");
-    sv2.set_port(8082);
-    sv2.add_server_name("test2");
+    sv2.set_port(8080);
+    sv2.add_server_name("webserv2");
+    sv2.set_root("/sites/www2/");
     this->_server.push_back(sv2);
+
+    Server sv3;
+    sv3.set_port(8081);
+    sv3.add_server_name("webserv3");
+    sv3.set_root("/sites/www3/");
+    this->_server.push_back(sv3);
 
 }
