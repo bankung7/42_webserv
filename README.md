@@ -3,26 +3,26 @@
 ## PROGRESS
 [N] Configuration file structure & parsing.\
 [N] Request Handler\
-    [N] Structure\
-    [N] Parsing the request\
+&emsp;[N] Structure\
+&emsp;[N] Parsing the request\
 [N] Response Handler\
-    [N] Create the response\
-        [N] Response Status\
-    [N] When connection is not "keep-alive"\
+&emsp;[N] Create the response\
+&emsp;&emsp;[N] Response Status\
+&emsp;[N] When connection is not "keep-alive"\
 [I] Server Specification\
-    [C] Epoll process\
-    [I] Choose port and host\
-    [I] Setup server_name\
-    [I] default server for host:port\
-    [N] default error page\
-    [N] Limit Client Body Size\
-    [N] Location rules\
-        [N] Allowed Method\
-        [N] Redirection\
-        [I] Root\
-        [N] Directory Listing\
-        [N] Default file if Directory\
-    [N] Upload and Download file\
+&emsp;[C] Epoll process\
+&emsp;[I] Choose port and host\
+&emsp;[I] Setup server_name\
+&emsp;[I] default server for host:port\
+&emsp;[N] default error page\
+&emsp;[N] Limit Client Body Size\
+&emsp;[N] Location rules\
+&emsp;&emsp;[N] Allowed Method\
+&emsp;&emsp;[N] Redirection\
+&emsp;&emsp;[I] Root\
+&emsp;&emsp;[N] Directory Listing\
+&emsp;&emsp;[N] Default file if Directory\
+&emsp;[N] Upload and Download file\
 [N] CGI\
 [N] Stress Test\
 
