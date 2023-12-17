@@ -59,40 +59,40 @@ server {
 ```
 
 ### Host
-We must manually input the host name in /etc/host. This will be matching the ip with host for server_name.\
-We use 127.0.0.1 for all testing.\
+We must manually input the host name in /etc/host. This will be matching the ip with host for server_name.
+We use 127.0.0.1 for all testing.
 
 ### Listen
-It will accept the port int numeric format only.\
-Each server block must have only 1 listen.\
+It will accept the port int numeric format only.
+Each server block must have only 1 listen.
 > listen 8080;
 
-To use same port, put ~SO_REUSEPORT~ while binding.\
+To use same port, put ~SO_REUSEPORT~ while binding.
 
 ### Server Name
-If server_name is specify by host in the request.\
-> server_name wwww.example.com\
+If server_name is specify by host in the request.
+> server_name wwww.example.com
 
 ```
 The first server for a host:port will be the default for this host:port (that means
 it will answer to all the requests that don’t belong to an other server).
 ```
 
-[Result]:\
-Different port, same server_name:\
+#### Result ####
+Different port, same server_name:
     - match port, then find exact server_name.
 
-Different port, different server_name:\
+Different port, different server_name:
     - match port, then find exact server_name.
 
-Different port, no server_name:\
+Different port, no server_name:
     - match port, return default server block.
 
-Same port, different server_name:\
-    - when found the exact server_name, return that block.
-    - when not found the server_name, return return default server block.
+Same port, different server_name:
+    - when found the exact server_name, return that block.\
+    - when not found the server_name, return default server block.
 
-Same port, same server_name:\
+Same port, same server_name:
     - return the first found (default server block).
 
 ## Something found
