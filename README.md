@@ -80,22 +80,22 @@ it will answer to all the requests that don’t belong to an other server).
 
 [Result]:\
 Different port, same server_name:\
-    - match port, then find exact server_name.\
+    - match port, then find exact server_name.
 
 Different port, different server_name:\
-    - match port, then find exact server_name.\
+    - match port, then find exact server_name.
 
 Different port, no server_name:\
-    - match port, return default server block.\
+    - match port, return default server block.
 
 Same port, different server_name:\
-    - when found the exact server_name, return that block.\
-    - when not found the server_name, return return default server block.\
+    - when found the exact server_name, return that block.
+    - when not found the server_name, return return default server block.
 
 Same port, same server_name:\
-    - return the first found (default server block).\
+    - return the first found (default server block).
 
 ## Something found
-- when siege with 0.0.0.0, it stuck with on idea what it is.\
+- when siege with 0.0.0.0, it stuck with on idea what it is.
 - to set the /etc/hosts in ~window~ run this powershell command 
-    Start-Process -FilePath notepad.exe -Verb runas -ArgumentList "$env:SystemRoot\system32\drivers\etc\hosts"\
+    Start-Process -FilePath notepad.exe -Verb runas -ArgumentList "$env:SystemRoot\system32\drivers\etc\hosts"
