@@ -1,30 +1,39 @@
 # Webserv [EPOLL]
 
 ## PROGRESS
-- [ ] Configuration file structure & parsing.
-- [ ] Request Handler
-&nbsp;&nbsp;- [ ] Structure
-&nbsp;&nbsp;- [ ] Parsing the request
-- [ ] Response Handler
-&nbsp;&nbsp;- [ ] Create the response
-&nbsp;&nbsp;- [ ] Response Status
-&nbsp;&nbsp;- [ ] When connection is not "keep-alive"
-- [ ] Server Specification
-&nbsp;&nbsp;- [x] Epoll process
-&nbsp;&nbsp;- [x] Choose port and host
-&nbsp;&nbsp;- [x] Setup server_name
-&nbsp;&nbsp;- [x] default server for host:port
-&nbsp;&nbsp;- [ ] default error page
-&nbsp;&nbsp;- [ ] Limit Client Body Size
-&nbsp;&nbsp;- [ ] Location rules
-&nbsp;&nbsp;- [ ] Allowed Method
-&nbsp;&nbsp;- [ ] Redirection
-&nbsp;&nbsp;- [ ] Root
-&nbsp;&nbsp;- [ ] Directory Listing
-&nbsp;&nbsp;- [ ] Default file if Directory
-&nbsp;&nbsp;- [ ] Upload and Download file
-- [ ] CGI
-- [ ] Stress Test
+### Configuration file
+- [ ] Structure
+- [ ] Parsing
+
+### Request Handler
+- [ ] Structure
+- [ ] Parsing the request
+
+### Response Handler
+- [ ] Create the response
+- [ ] Response Status
+- [ ] When connection is not "keep-alive"
+
+### Server Specification
+- [x] Epoll process
+- [x] Choose port and host
+- [x] Setup server_name
+- [x] default server for host:port
+- [ ] default error page
+- [ ] Limit Client Body Size
+- [ ] Location rules
+- [ ] Allowed Method
+- [ ] Redirection
+- [ ] Root
+- [ ] Directory Listing
+- [ ] Default file if Directory
+- [ ] Upload and Download file
+
+### CGI
+- [ ] cgi
+
+### Testing
+- [ ] Stress
 
 ## Configuration file
 
