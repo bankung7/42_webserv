@@ -46,6 +46,7 @@ void HttpHandler::handlingRequest(void) {
 
     check_host();
 
+    // TODO: function to get this request information
     // get start line
     std::string line;
     std::getline(ss, line, '\n');
@@ -105,7 +106,7 @@ int HttpHandler::check_host(void) {
                 }
             }
             
-            // set the server
+            // set the server // better to use one in response, just set the index
             this->set_server(this->_serverList[this->_server_index]);
 
             break ;
@@ -133,77 +134,102 @@ void HttpHandler::handlingResponse(void) {
     std::cout << "[DEBUG]: try find the location [" << this->_uri << "]" << std::endl;
 
     // check === no / === in config file.
-    this->set_location_value(sv.get_location(this->_uri));
-    // std::cout << this->_location_value << std::endl;
+    this->set_location_attr(this->_uri);
     
     // >>>>>>>>>>>>>.. set file name <<<<<<<<<<<<<<<, //
 
     // set filename
     std::string name(this->_uri);
     std::string root(this->get_root());
-    std::cout << "root " << root << std::endl;
-    std::cout << "file name " << name << std::endl;
+    // std::cout << "location " << this->_location_path << std::endl;
+    // std::cout << "location value " << this->_location_value << std::endl;
+    // std::cout << "root " << root << std::endl;
+    name.erase(0, this->_location_path.size() - 1);
+    name.insert(name.begin(), root.begin(), root.end());
+
+    // just set index.html, ignore index value for now.
+    if (this->_uri.compare("/") == 0)
+        name.append("html/index.html");
+
+    name.erase(0, 1);
+
+    std::cout << "[DEBUG]: file name " << name << std::endl;
 
     // get file name to send
-    std::string fileName(sv.get_root());
-    fileName.append(std::string("/html/index.html"));
-    fileName.erase(fileName.begin());
-
-    // std::cout << "try to send the file name [" << fileName << "]" << std::endl;
-
     std::ifstream file;
-    file.open(fileName.c_str(), std::ios::in);
+    if (this->_location_path.compare("/images/") == 0)
+        file.open(name.c_str(), std::ios::binary);
+    else
+        file.open(name.c_str(), std::ios::in);
 
-    if (!file)
-        throw std::runtime_error("[ERROR]: cannot open the file");
+    int fileSize = 0;
+    std::string fileData;
 
-    file.seekg(0, std::ios::end);
-
-    int fileSize = file.tellg();
-
-    file.seekg(0, std::ios::beg);
+    if (!file) {
+        std::cout << "[ERROR]: the file cannot be open or no file exist" << std::endl;
+    } else {
+        fileData = std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+        fileSize = fileData.size();
+    }
 
     // ================  create and send response header  ====================
 
+    std::string content_type;
+    if (this->_location_path.compare("/images/") == 0)
+        content_type = std::string("image/jpeg");
+    else
+        content_type = std::string("text/html");
+
     std::stringstream ss;
     ss << "HTTP/1.1 200 OK\r\n"
-        << "Content-Type: text/html\r\n"
-        // << "Content-Length: " << this->_req.size() << "\r\n\r\n"
-        << "Content-Length: " << fileSize << "\r\n\r\n";
+        << "Content-type: " << content_type << "\r\n"
+        << "Content-Length: " << fileSize << "\r\n\r\n"
+        << fileData;
+
+    // std::cout << fileSize << std::endl;
+    // std::cout << ss.str().size() << std::endl;
+    // std::cout << ss.str().size() - fileSize << std::endl;
 
     // send the header
-    std::string rHeader = std::string(ss.str());
-    std::vector<char> header;
-    header.insert(header.begin(), rHeader.begin(), rHeader.end());
-    send(this->_fd, header.data(), header.size(), MSG_NOSIGNAL);
+    // std::string rHeader = std::string(ss.str());
+    // std::vector<char> header;
+    // header.insert(header.begin(), rHeader.begin(), rHeader.end());
+    // send(this->_fd, header.data(), header.size(), MSG_NOSIGNAL);
 
     // ==================  create and send response body  =====================
 
-    std::stringstream body;
-    body << file.rdbuf();
-    std::string res = body.str();
+    std::string res = ss.str();
     std::vector<char> msg;
     msg.insert(msg.begin(), res.begin(), res.end());
 
-    // loop send body
-    int totalBytes = fileSize;
-    int bytes = 0;
+    // send in one shot
+    int totalBytes = msg.size();
+    int bytes = send(this->_fd, msg.data(), totalBytes, MSG_NOSIGNAL);
 
-    while (bytes < totalBytes) {
-        int sentBytes = send(this->_fd, msg.data() + bytes, BUFFER_SIZE, MSG_NOSIGNAL);
+    if (bytes == -1)
+        std::cout << "[ERROR]: send fail" << std::endl;
 
-        // TODO: error handling
-        if (sentBytes <= 0) {
-            std::cout << "[ERROR]: sending failed " << this->_fd << std::endl;
-            break ;
-        }
+    // split send fail wit no idea.
+    // flag MSG_NOSIGNAL
+    // while (bytes < totalBytes) {
+    //     int sentBytes;
+    //     if (totalBytes - bytes < BUFFER_SIZE)
+    //         sentBytes = send(this->_fd, msg.data() + bytes, BUFFER_SIZE, 0);
+    //     else
+    //         sentBytes = send(this->_fd, msg.data() + bytes, BUFFER_SIZE, 0);
 
-        bytes += sentBytes;
-    }
+    //     // TODO: error handling
+    //     if (sentBytes <= 0) {
+    //         std::cout << "[ERROR]: sending failed " << this->_fd << std::endl;
+    //         break ;
+    //     }
+
+    //     bytes += sentBytes;
+    // }
 
     // ==========================================================================
 
-    std::cout << "[DEUBG]: Total sent " << totalBytes << " to " << this->_fd << std::endl;
+    std::cout << "[DEUBG]: Total sent " << bytes << " " << totalBytes << " to " << this->_fd << std::endl;
 
 }
 
@@ -211,9 +237,64 @@ void HttpHandler::set_file(std::string input) {
     this->_file = std::string(input);
 }
 
-void HttpHandler::set_location_value(std::string input) {
-    this->_location_value = std::string(input);
+void HttpHandler::set_location_attr(std::string loc) {
+
+    // std::cout << "[" << loc << "]" << std::endl;
+
+    std::map<std::string, std::string> location = this->_server.get_location_block();
+
+    // try the exact match, if found return
+    if (location.find(loc) != location.end()) {
+        // std::cout << "found exact match " << loc << std::endl;
+        this->_location_path = std::string(loc);
+        this->_location_value = std::string(location[loc]);
+        return ;
+    }
+
+    // try most match by block to block
+    std::map<std::string, std::string>::iterator it = location.begin();
+    std::map<std::string, std::string>::iterator output;
+    int match_value = 0;
+    for (; it != location.end(); it++) {
+
+        // std::cout << "matching " << it->first << " with " << loc << std::endl;
+
+        // set if / and mot match any yet, by default
+        if (match_value == 0 && it->first.compare("/") == 0)
+            output = it;
+
+        int match = -1;
+        for (int i = 0; i < (int)it->first.size(); i++, match++) {
+            if (loc[i] != it->first[i]) {
+                // std::cout << i << " " << match << " " << loc[match] << " => " << it->first[match] << std::endl;
+                break ;
+            }
+        }
+
+        // std::cout << match << " with " << it->first[match] << " for " << it->first << std::endl;
+
+        if (match > 0 && it->first[match] == '/' && match > match_value) {
+            match_value = match;
+            output = it;
+        }
+
+    }
+
+    // std::cout << "[DEBUG]: found most match [" << match_value << "] long is [" << output->first << "]" << std::endl;
+
+    // return
+    if (match_value >= 0) {
+        this->_location_path = std::string(output->first);
+        this->_location_value = std::string(output->second);
+        return ;
+    }
+
+    // return default path /, just back up check
+    this->_location_path = std::string("/");
+    this->_location_value = std::string(location["/"]);
 }
+
+
 
 std::string HttpHandler::get_root(void) {
     std::size_t start = this->_location_value.find("root:");

@@ -67,13 +67,13 @@ public:
 
     // response part
     void handlingResponse(void);
-    void set_location_value(std::string input);
     void set_file(std::string input);
     std::string get_root(void);
 
     // getter
     int getfd(void);
     Server& get_server(void);
+    void set_location_attr(std::string loc);
 
     // set server
     void set_server(Server &sv);

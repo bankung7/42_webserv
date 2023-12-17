@@ -59,7 +59,8 @@ public:
 
     // Location block
     void add_location(std::string loc, std::string value);
-    std::string get_location(std::string loc);
+    // std::string get_location(std::string loc);
+    std::map<std::string, std::string> get_location_block(void);
     void set_root(std::string root);
 
 };

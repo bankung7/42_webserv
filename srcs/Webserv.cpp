@@ -129,6 +129,7 @@ void Webserv::setup(void) {
 
     Server sv2;
     sv2.set_port(8080);
+    sv2.add_location("/", "allowedMethod:GET;return:;root:/sites/www2;autoIndex:;allowedUploadFile:;uploadPath:;");
     sv2.add_server_name("webserv2");
     sv2.set_root("/sites/www2");
     this->_server.push_back(sv2);
@@ -136,6 +137,7 @@ void Webserv::setup(void) {
     Server sv3;
     sv3.set_port(8081);
     // sv3.add_server_name("webserv3");
+    sv3.add_location("/", "allowedMethod:GET;return:;root:/sites/www3;autoIndex:;allowedUploadFile:;uploadPath:;");
     sv3.set_root("/sites/www3");
     this->_server.push_back(sv3);
 
