@@ -67,7 +67,7 @@ int HttpHandler::check_host(void) {
                 host.erase(sep, host.size() - sep);
             }
             this->_host = std::string(host);
-            std::cout << "this host is " << this->_host << " : " << strport << std::endl;
+            std::cout << "[DEBUG]: " << this->_host << " with port " << strport << std::endl;
 
             // convert
             std::stringstream iss(strport);
@@ -78,19 +78,19 @@ int HttpHandler::check_host(void) {
             this->_server_index = -1;
             for (int i = 0; i < (int)this->_serverList.size(); i++) {
                 if (this->_serverList[i].get_port() == port) {
-                    std::cout << "same port " << port << std::endl;
+
+                    // set to defautl server, if not found server name yet
+                    if (this->_server_index == -1)
+                        this->_server_index = i;
+
+                    // check if it match the server_name
                     int index = this->_serverList[i].check_server_name(host);
                     if (index != -1) {
-                        std::cout << "index is " << i << std::endl;
                         this->_server_index = i;
                         break ;
                     }
                 }
             }
-
-            // if not found, set the to default server
-            if (this->_server_index == -1)
-                this->_server_index = 0;
             
             // set the server
             this->set_server(this->_serverList[this->_server_index]);

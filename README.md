@@ -77,7 +77,9 @@ If server_name is specify by host in the request.\
 The first server for a host:port will be the default for this host:port (that means
 it will answer to all the requests that don’t belong to an other server).
 ```
-[Guess] I think if all the server block routed to the same port but diferrent in server_name for each block. It will check the exact match to each block and use that block to process. If not it will use the first server block for default.\
+[Result]:\
+When found the server_name of that port, return that block.\
+when not found the server_name on that port, return first server block.\
 
 ## Something found
 - when siege with 0.0.0.0, it stuck with on idea what it is.\

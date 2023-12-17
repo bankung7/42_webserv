@@ -65,10 +65,8 @@ std::string Server::get_root(void) {
 //
 int Server::check_server_name(std::string name) {
     for (int i = 0; i < (int)this->_serverName.size(); i++) {
-        if (this->_serverName[i].compare(name) == 0) {
-            std::cout << this->_serverName[i] << " " << name << std::endl;
+        if (this->_serverName[i].compare(name) == 0)
             return (i);
-        }
     }
     return (-1);
 }

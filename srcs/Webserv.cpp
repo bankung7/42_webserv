@@ -113,12 +113,12 @@ void Webserv::setup(void) {
 
     std::cout << "[DEBUG]: setting up" << std::endl;
 
-    this->_serverSize = 3;
+    this->_serverSize = 4;
 
     // default server
     Server sv1;
     sv1.set_port(8080);
-    sv1.add_server_name("webserv1");
+    // sv1.add_server_name("webserv1");
     sv1.set_root("/sites/www1/");
     this->_server.push_back(sv1);
 
@@ -130,8 +130,14 @@ void Webserv::setup(void) {
 
     Server sv3;
     sv3.set_port(8081);
-    sv3.add_server_name("webserv3");
+    // sv3.add_server_name("webserv3");
     sv3.set_root("/sites/www3/");
     this->_server.push_back(sv3);
+
+    Server sv4;
+    sv4.set_port(8081);
+    sv4.add_server_name("webserv3");
+    sv4.set_root("/sites/www2/");
+    this->_server.push_back(sv4);
 
 }
