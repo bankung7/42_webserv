@@ -30,7 +30,8 @@ private:
     int _isDefaultServer;
 
     // for location block
-    std::string _root;
+    std::map<std::string, std::string> _location;
+    std::string _root; // main root, throw error if not found.
 
 
 public:
@@ -57,6 +58,8 @@ public:
     int check_server_name(std::string name);
 
     // Location block
+    void add_location(std::string loc, std::string value);
+    std::string get_location(std::string loc);
     void set_root(std::string root);
 
 };

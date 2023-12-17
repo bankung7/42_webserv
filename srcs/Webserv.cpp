@@ -113,31 +113,30 @@ void Webserv::setup(void) {
 
     std::cout << "[DEBUG]: setting up" << std::endl;
 
-    this->_serverSize = 4;
+    this->_serverSize = 3;
 
     // default server
     Server sv1;
     sv1.set_port(8080);
     // sv1.add_server_name("webserv1");
-    sv1.set_root("/sites/www1/");
+    sv1.add_location("/", "allowedMethod:GET;return:;root:/sites/www1;autoIndex:;allowedUploadFile:;uploadPath:;");
+    sv1.add_location("/images/", "allowedMethod:GET;return:;root:/sites/www1/images;autoIndex:;allowedUploadFile:;uploadPath:;");
+    sv1.add_location("/images/panda/", "allowedMethod:GET;return:;root:/sites/www1/images;autoIndex:;allowedUploadFile:;uploadPath:;");
+    sv1.add_location("/return/", "allowedMethod:GET;return:127.0.0.1:8080;root:;autoIndex:;allowedUploadFile:;uploadPath:;");
+    sv1.add_location("/upload/", "allowedMethod:POST;return:;root:;autoIndex:;allowedUploadFile:on;uploadPath:/uploads/;");
+    sv1.set_root("/sites/www1");
     this->_server.push_back(sv1);
 
     Server sv2;
     sv2.set_port(8080);
     sv2.add_server_name("webserv2");
-    sv2.set_root("/sites/www2/");
+    sv2.set_root("/sites/www2");
     this->_server.push_back(sv2);
 
     Server sv3;
     sv3.set_port(8081);
     // sv3.add_server_name("webserv3");
-    sv3.set_root("/sites/www3/");
+    sv3.set_root("/sites/www3");
     this->_server.push_back(sv3);
-
-    Server sv4;
-    sv4.set_port(8081);
-    sv4.add_server_name("webserv3");
-    sv4.set_root("/sites/www2/");
-    this->_server.push_back(sv4);
 
 }

@@ -42,11 +42,24 @@ void HttpHandler::handlingRequest(void) {
     // save to req
     this->_req = std::string(ss.str());
 
-    std::cout << this->_req << std::endl;
+    // std::cout << this->_req << std::endl;
 
     check_host();
 
+    // get start line
+    std::string line;
+    std::getline(ss, line, '\n');
+
+    std::stringstream sline(line);
+    std::getline(sline, this->_method, ' '); // get method
+    std::getline(sline, this->_uri, ' '); // get resource
+    std::getline(sline, this->_version); // get version
+
+    // std::cout << "[DEBUG]: Request Method => " << this->_method << std::endl;
+    // std::cout << "[DEBUG]: Request Resource => " << this->_uri << std::endl;
+
 }
+
 
 // check server_name to assign correct server block
 int HttpHandler::check_host(void) {
@@ -67,7 +80,7 @@ int HttpHandler::check_host(void) {
                 host.erase(sep, host.size() - sep);
             }
             this->_host = std::string(host);
-            std::cout << "[DEBUG]: " << this->_host << " with port " << strport << std::endl;
+            // std::cout << "[DEBUG]: " << this->_host << " with port " << strport << std::endl;
 
             // convert
             std::stringstream iss(strport);
@@ -104,20 +117,36 @@ int HttpHandler::check_host(void) {
 }
 
 // ============================ REQUEST PART - [END] =================================
+// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-// ============================ RESPONSE PART - [START] =================================
+
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+// ============================ RESPONSE PART - [START] ==============================
 
 // response handling
 void HttpHandler::handlingResponse(void) {
 
-    // =========================  Open the file =============================
-        
     // TODO: create response
     Server sv = this->_server;
 
+    // try matching the location block by _uri
+    std::cout << "[DEBUG]: try find the location [" << this->_uri << "]" << std::endl;
+
+    // check === no / === in config file.
+    this->set_location_value(sv.get_location(this->_uri));
+    // std::cout << this->_location_value << std::endl;
+    
+    // >>>>>>>>>>>>>.. set file name <<<<<<<<<<<<<<<, //
+
+    // set filename
+    std::string name(this->_uri);
+    std::string root(this->get_root());
+    std::cout << "root " << root << std::endl;
+    std::cout << "file name " << name << std::endl;
+
     // get file name to send
     std::string fileName(sv.get_root());
-    fileName.append(std::string("html/index.html"));
+    fileName.append(std::string("/html/index.html"));
     fileName.erase(fileName.begin());
 
     // std::cout << "try to send the file name [" << fileName << "]" << std::endl;
@@ -176,6 +205,29 @@ void HttpHandler::handlingResponse(void) {
 
     std::cout << "[DEUBG]: Total sent " << totalBytes << " to " << this->_fd << std::endl;
 
+}
+
+void HttpHandler::set_file(std::string input) {
+    this->_file = std::string(input);
+}
+
+void HttpHandler::set_location_value(std::string input) {
+    this->_location_value = std::string(input);
+}
+
+std::string HttpHandler::get_root(void) {
+    std::size_t start = this->_location_value.find("root:");
+    // if not find, get root from server block instead
+    if (start == std::string::npos)
+        return (std::string(this->_server.get_root()));
+
+    start += 5; // move to the start of path
+    std::string root(this->_location_value, (int)start, this->_location_value.find(";", (int)start) - start);
+    // std::cout << root << std::endl;
+
+    this->_root = std::string(root);
+
+    return (std::string(root));
 }
 
 // ============================ RESPONSE PART - [END] =================================

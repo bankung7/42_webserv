@@ -123,7 +123,7 @@ int Webserv::polling(void) {
                 
                 if (server_index != -1) {
 
-                    std::cout << "server index " << server_index << std::endl;
+                    // std::cout << "server index " << server_index << std::endl;
 
                     std::cout << "[INFO]: New connection found with " << events[i].data.fd << std::endl;
 
@@ -142,7 +142,7 @@ int Webserv::polling(void) {
                     nevent.data.ptr = new HttpHandler(conn);
 
                     HttpHandler* handler = (HttpHandler*)nevent.data.ptr;
-                    handler->set_server(this->get_server(server_index));
+                    // handler->set_server(this->get_server(server_index)); // no need to assign it here
                     handler->set_server_list(this->_server); // set the server list to correct the server block after parsing request
 
                     if (epoll_ctl(this->_epfd, EPOLL_CTL_ADD, conn, &nevent) == -1) {

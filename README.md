@@ -49,10 +49,10 @@ server {
         allowedMethod [GET,POST,DELETE];    // list of accepted HTTP methods
         return [url];                       // HTTP redirection
         root [directory];                   // directory
-        autoindex [boolean];                // directory listing
+        autoindex [on];                // directory listing
         ???                                 // default file for directory request.
         ???                                 // cgi
-        allowedUploadFile [boolean];
+        allowedUploadFile [on];
         uploadPath [path];
     }
 }
@@ -63,11 +63,10 @@ We must manually input the host name in /etc/host. This will be matching the ip 
 We use 127.0.0.1 for all testing.
 
 ### Listen
-It will accept the port int numeric format only.
 Each server block must have only 1 listen.
 > listen 8080;
 
-To use same port, put ~SO_REUSEPORT~ while binding.
+To use same port, put SO_REUSEPORT while binding.
 
 ### Server Name
 If server_name is specify by host in the request.
@@ -78,7 +77,10 @@ The first server for a host:port will be the default for this host:port (that me
 it will answer to all the requests that don’t belong to an other server).
 ```
 
-#### Result ####
+### Concept
+This webserv will try to match each server block by PORT. If there is only 1 most matched, it will server that server block. If there are multiple server blocks matches, it will look through the server_name in each block (no regexp accepted).
+
+#### Result
 Different port, same server_name:\
     - match port, then find exact server_name.
 
@@ -94,6 +96,12 @@ Same port, different server_name:\
 
 Same port, same server_name:
     - return the first found (default server block).
+
+## Location Block
+It will match the path by most block to block (/..../..../). If not, it will return / (default path).
+MUST, check that the default path is exist in the config file. If not, may create the default one with basic setup.
+
+It will be parsed in the form like JSON {key:value; key:value}.
 
 ## Something found
 - when siege with 0.0.0.0, it stuck with on idea what it is.

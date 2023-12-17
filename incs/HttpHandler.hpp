@@ -27,11 +27,24 @@ private:
     std::string _req;
     std::string _res;
 
-    std::string _uri;
+    // start line
     std::string _method;
+    std::string _uri;
     std::string _version;
 
+    // header
+    std::string _accept;
+    std::string _connection;
     std::string _host;
+
+    // body
+    std::string _body;
+
+    // location and file
+    std::string _location_path;
+    std::string _location_value;
+    std::string _root;
+    std::string _file;
 
     int header_only;
     int header_sent;
@@ -54,6 +67,9 @@ public:
 
     // response part
     void handlingResponse(void);
+    void set_location_value(std::string input);
+    void set_file(std::string input);
+    std::string get_root(void);
 
     // getter
     int getfd(void);
