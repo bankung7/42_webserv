@@ -79,16 +79,16 @@ it will answer to all the requests that don’t belong to an other server).
 ```
 
 #### Result ####
-Different port, same server_name:
+Different port, same server_name:\
     - match port, then find exact server_name.
 
-Different port, different server_name:
+Different port, different server_name:\
     - match port, then find exact server_name.
 
-Different port, no server_name:
+Different port, no server_name:\
     - match port, return default server block.
 
-Same port, different server_name:
+Same port, different server_name:\
     - when found the exact server_name, return that block.\
     - when not found the server_name, return default server block.
 
