@@ -77,9 +77,23 @@ If server_name is specify by host in the request.\
 The first server for a host:port will be the default for this host:port (that means
 it will answer to all the requests that don’t belong to an other server).
 ```
+
 [Result]:\
-When found the server_name of that port, return that block.\
-when not found the server_name on that port, return first server block.\
+Different port, same server_name:\
+    - match port, then find exact server_name.\
+
+Different port, different server_name:\
+    - match port, then find exact server_name.\
+
+Different port, no server_name:\
+    - match port, return default server block.\
+
+Same port, different server_name:\
+    - when found the exact server_name, return that block.\
+    - when not found the server_name, return return default server block.\
+
+Same port, same server_name:\
+    - return the first found (default server block).\
 
 ## Something found
 - when siege with 0.0.0.0, it stuck with on idea what it is.\
