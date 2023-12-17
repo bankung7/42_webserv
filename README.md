@@ -1,38 +1,30 @@
 # Webserv [EPOLL]
 
 ## PROGRESS
-[N] Configuration file structure & parsing.\
-[N] Request Handler\
-&emsp;[N] Structure\
-&emsp;[N] Parsing the request\
-[N] Response Handler\
-&emsp;[N] Create the response\
-&emsp;&emsp;[N] Response Status\
-&emsp;[N] When connection is not "keep-alive"\
-[I] Server Specification\
-&emsp;[C] Epoll process\
-&emsp;[I] Choose port and host\
-&emsp;[I] Setup server_name\
-&emsp;[I] default server for host:port\
-&emsp;[N] default error page\
-&emsp;[N] Limit Client Body Size\
-&emsp;[N] Location rules\
-&emsp;&emsp;[N] Allowed Method\
-&emsp;&emsp;[N] Redirection\
-&emsp;&emsp;[I] Root\
-&emsp;&emsp;[N] Directory Listing\
-&emsp;&emsp;[N] Default file if Directory\
-&emsp;[N] Upload and Download file\
-[N] CGI\
-[N] Stress Test\
-
-### Terminology
-[N] - Not starting.\
-[I] - In progress.\
-[C] - Completed, wait for testing.\
-[T] - Testing.\
-[P] - Testing Success and got the expected result.\
-[F] - Testing Success and fail.\
+[ ] Configuration file structure & parsing.\
+[ ] Request Handler\
+- [ ] Structure\
+- [ ] Parsing the request\
+[ ] Response Handler\
+- [ ] Create the response\
+- [ ] Response Status\
+- [ ] When connection is not "keep-alive"\
+[ ] Server Specification\
+-[x] Epoll process\
+-[x] Choose port and host\
+-[x] Setup server_name\
+-[x] default server for host:port\
+-[ ] default error page\
+-[ ] Limit Client Body Size\
+-[ ] Location rules\
+-[ ] Allowed Method\
+-[ ] Redirection\
+-[ ] Root\
+-[ ] Directory Listing\
+-[ ] Default file if Directory\
+-[ ] Upload and Download file\
+[ ] CGI\
+[ ] Stress Test\
 
 ## Configuration file
 
