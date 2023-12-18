@@ -4,13 +4,153 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Webserv</title>
+    <title>Webserv 1</title>
+
+    <style type="text/css">
+        .flex {
+            display: flex;
+        }
+        
+        .justify-center {
+            justify-content: center;
+        }
+        
+        .p5 {
+            padding: 5px;
+        }
+        
+        .m5 {
+            margin: 5px;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .text-bold {
+            text-decoration: solid;
+        }
+        
+        ul {
+            padding: 5px 0;
+            margin: 0;
+        }
+        
+        li {
+            list-style-type: none;
+        }
+        
+        a {
+            text-decoration: none;
+        }
+        
+        a:hover {
+            color: red;
+        }
+        
+        a:active {
+            color: black;
+        }
+        
+        .border-solid-black {
+            border: 1px solid black;
+        }
+        
+        .btn-submit {
+            border: 1px solid black;
+            border-radius: 3px;
+            padding: 2px 5px;
+            color: black;
+            background-color: white;
+        }
+        
+        .btn-submit:hover {
+            color: white;
+            background-color: blue;
+        }
+    </style>
+
 </head>
 
 <body>
-    <div style="display: flex;">
-        <div>Webserv 1</div>
-        <img src="/images/panda1.jpeg" style="width:500px;" alt="panda1">
+    <div class="flex justify-center">
+        <div style="max-width: 500px;">
+            <div class="text-center">
+                <h1>Webserv 1</h1>
+            </div>
+
+            <!-- GET Method Zone -->
+            <div class="border-solid-black p5 m5">
+                <div><strong>GET</strong></div>
+                <div>
+                    <p>Idea: just a link which specify by URL</p>
+                </div>
+                <ul>
+                    <li><a href="/page1.html">Page 1</a></li>
+                    <li><a href="/page2.html">Page 2</a></li>
+                </ul>
+            </div>
+
+            <div class="border-solid-black p5 m5">
+                <div><strong>Redirection</strong></div>
+                <div>
+                    <p>Idea: just click the which is not direct link to another webserv</p>
+                </div>
+                <div>
+                    <a href="/return/webserv.html">Webserv2</a>
+                </div>
+            </div>
+
+            <!-- POST Method Zone -->
+            <div class="border-solid-black p5 m5">
+                <div><strong>POST</strong></div>
+                <div>
+                    <p>Idea: Answer the question</p>
+                </div>
+                <div>
+                    <p>What is right answer?</p>
+                    <form action="/post.html" method="POST">
+                        <input type="text" name="postValue">
+                        <input class="btn-submit" type="submit" value="Submit">
+                    </form>
+                </div>
+            </div>
+
+            <!-- DELETE Method Zone -->
+            <div class="border-solid-black p5 m5">
+                <div><strong>DELETE</strong></div>
+                <div>
+                    <p>Idea: may be remove the prepared page</p>
+                </div>
+                <div>
+                    <p>Will you remove the page 2, it cannot be restore anymore?</p>
+                    <a href="#" class="btn-submit">Yes, I don't care about it!</a>
+                </div>
+            </div>
+
+            <!-- Upload File -->
+            <div class="flex border-solid-black p5 m5">
+                <div class="border-solid-black p5 m5">
+                    <div>
+                        <div><strong>Upload</strong></div>
+                        <div>
+                            <p>Try to input something here</p>
+                            <input type="file" name="uploadFile">
+                            <input type="submit" value="Upload">
+                        </div>
+                    </div>
+                </div>
+                <div class="border-solid-black p5 m5">
+                    <div>
+                        <div><strong>Download</strong></div>
+                        <div>
+                            <input type="button" value="Download">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
     </div>
 </body>
 

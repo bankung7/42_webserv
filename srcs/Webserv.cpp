@@ -119,9 +119,8 @@ void Webserv::setup(void) {
     Server sv1;
     sv1.set_port(8080);
     // sv1.add_server_name("webserv1");
-    sv1.add_location("/", "allowedMethod:GET;return:;root:/sites/www1;autoIndex:;allowedUploadFile:;uploadPath:;");
+    sv1.add_location("/", "allowedMethod:GET;return:;root:/sites/www1/html;autoIndex:;allowedUploadFile:;uploadPath:;");
     sv1.add_location("/images/", "allowedMethod:GET;return:;root:/sites/www1/images;autoIndex:;allowedUploadFile:;uploadPath:;");
-    sv1.add_location("/images/panda/", "allowedMethod:GET;return:;root:/sites/www1/images;autoIndex:;allowedUploadFile:;uploadPath:;");
     sv1.add_location("/return/", "allowedMethod:GET;return:127.0.0.1:8080;root:;autoIndex:;allowedUploadFile:;uploadPath:;");
     sv1.add_location("/upload/", "allowedMethod:POST;return:;root:;autoIndex:;allowedUploadFile:on;uploadPath:/uploads/;");
     sv1.set_root("/sites/www1");

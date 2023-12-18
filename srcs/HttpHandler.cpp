@@ -149,7 +149,7 @@ void HttpHandler::handlingResponse(void) {
 
     // just set index.html, ignore index value for now.
     if (this->_uri.compare("/") == 0)
-        name.append("html/index.html");
+        name.append("index.html");
 
     name.erase(0, 1);
 
