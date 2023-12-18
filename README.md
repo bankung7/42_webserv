@@ -42,7 +42,7 @@ flowchart TD
     B --> C[Initialize Server];
     C --> D[Create Epoll Server];
     D --> DD{Start Loop};
-    DD -- New --> D1[Connect, EPOLLIN];
+    DD -- New Connection --> D1[Connect, EPOLLIN];
     D1 --> F;
     DD -- EPOLLIN --> D2[Read and Parsing Request, EPOLLOUT];
     D2 --> F;
