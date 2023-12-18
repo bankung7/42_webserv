@@ -40,6 +40,9 @@
 flowchart TD
     A[Start] --> B[Parsing Config file];
     B --> C[Initialize Server];
+    C --> D[Create Epoll Server];
+    D --> DD{Start Loop};
+    DD --> D1[New Connection];
 ```
 
 ## Configuration file
