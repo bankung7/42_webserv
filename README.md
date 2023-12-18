@@ -49,6 +49,7 @@ flowchart TD
     DD -- EPOLLOUT --> D3[Prepare Response, Send];
     D3 --> E[Close];
     E --> F{o};
+    DD -- EPOLLHUP, EPOLLERR --> F;
     F --> DD;
 ```
 
