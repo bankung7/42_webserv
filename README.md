@@ -43,12 +43,13 @@ flowchart TD
     C --> D[Create Epoll Server];
     D --> DD{Start Loop};
     DD -- New --> D1[Connect, EPOLLIN];
-    D1 --> DD;
+    D1 --> F;
     DD -- EPOLLIN --> D2[Read and Parsing Request, EPOLLOUT];
-    D2 --> DD;
+    D2 --> F;
     DD -- EPOLLOUT --> D3[Prepare Response, Send];
     D3 --> E[Close];
-    E --> DD;
+    E --> F{o};
+    F --> DD;
 ```
 
 ## Configuration file
