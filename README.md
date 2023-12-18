@@ -43,6 +43,9 @@ flowchart TD
     C --> D[Create Epoll Server];
     D --> DD{Start Loop};
     DD --> D1[New Connection];
+    DD --> D2[EPOLLIN];
+    DD --> D3[EPOLLOUT];
+    DD --> D4[EPOLLHUP | EPOLL];
 ```
 
 ## Configuration file
