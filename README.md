@@ -37,7 +37,7 @@
 
 ## Flow Chart
 ```mermaid
-graph TD;
+graph TD
     A[Start]-->B[Parsing Config file];
     B-->C[Initialize Server];
     C-->D[Create Epoll Server];
