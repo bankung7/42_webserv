@@ -38,26 +38,26 @@
 ## Flow Chart
 ```mermaid
 flowchart TD
-    A[Start]-->B[Parsing Config file];
-    B-->C[Initialize Server];
-    C-->D[Create Epoll Server];
-    D-->DD[Start Loop];
-    DD-->D1[New Connection];
-    DD-->D2[EPOLLIN];
-    DD-->D3[EPOLLOUT];
-    DD-->D4[EPOLLHUP | EPOLL];
+    A[Start] --> B[Parsing Config file];
+    B --> C[Initialize Server];
+    C --> D[Create Epoll Server];
+    D --> DD[Start Loop];
+    DD --> D1[New Connection];
+    DD --> D2[EPOLLIN];
+    DD --> D3[EPOLLOUT];
+    DD --> D4[EPOLLHUP | EPOLL];
 
-    D1-->D11[Connect];
-    D11-->DD;
+    D1 --> D11[Connect];
+    D11 --> DD;
 
-    D2-->D21[Read Request];
-    D21-->D22[Process Request];
-    D22-->DD;
+    D2 --> D21[Read Request];
+    D21 --> D22[Process Request];
+    D22 --> DD;
 
-    D3-->D31[Prepare Response];
-    D31-->D32[Send];
-    D32-->D33[Close Connection];
-    D33-->DD;
+    D3 --> D31[Prepare Response];
+    D31 --> D32[Send];
+    D32 --> D33[Close Connection];
+    D33 --> DD;
 ```
 
 ## Configuration file
