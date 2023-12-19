@@ -52,7 +52,7 @@ server {
 ## Location anatomy
 ```
 https://example.org:8080/foo/bar?q=baz#bang
-```
+
 protocol - https
 hostname - example.org                    // name of device that connect to the network
 port     - 8080
@@ -61,6 +61,7 @@ origin   - https://example.org:8080
 pathname - /foo/bar
 search   - ?q=bax
 href     - https://example.org:8080/foo/bar?q=baz
+```
 
 > [!NOTE]
 > The /etc/hosts file is a plain text file used in matching a fully qualified domain name (FQDN) with the server IP hosting a specific domain. When the DNS server cannot be reached, the /etc/hosts file to resolve the domain name.
