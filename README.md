@@ -1,5 +1,24 @@
 # Webserv [EPOLL]
 
+## Requirements
+- Accept configuration file as argument, use default if not defined.
+- Must be non-blocking and use only 1 poll() for all the I/O operations (listen include).
+- poll() must check read and write at the same time.
+- Never do read or write operations without going through poll().
+- Checking the errno() is forbidden after read or write.
+- Don't need to use poll() before reading configuration file.
+- Request should never hang forever.
+- Web Broswer Compatible to any of our choice
+- Consider NGINX is HTTP 1.1, compare header and answer to this behavior.
+- HTTP response status code must be accurate.
+- Must have deault error pages, if none are provided.
+- Can't use fork for anything else than CGI.
+- Serve a fully statis website.
+- Client can upload file, and download it back.
+- Compatible with GET, POST and DELETE method
+- Stress test at lest 99.5%, never die at all cost.
+- Must be able to listen to multiple port (defined in config file). 
+
 ## PROGRESS
 ### Configuration file
 - [ ] Structure
