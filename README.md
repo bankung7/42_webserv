@@ -69,8 +69,9 @@ href     - https://example.org:8080/foo/bar?q=baz
 ## Concept
 ### Parsing Configuration file
 ### Initialize Servers
-    - If 
-
+### Polling
+### Read the Request
+### Send the Response
 
 ## Tips
 - to set the /etc/hosts in ~window~ run this powershell command 
