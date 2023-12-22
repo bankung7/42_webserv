@@ -22,6 +22,9 @@
 ## PROGRESS
 = Unknown =
 
+## Flowchart
+https://app.diagrams.net/#G1HveiOX7h5U4jHvzp7YklAA40VSXkAxFU
+
 ## Configuration file
 ```
 server {
@@ -48,6 +51,31 @@ server {
     }
 }
 ```
+
+### Location Directive
+
+```
+location location_match {
+    ...
+}
+```
+The location_match defines what it should check the request URI against. This will not take any modifier like nginx.
+This is interpreted as a prefix match. It means that the location given will be matched against the beginning of the request URI to determine the match.
+#### Example
+```
+location / {
+    root /var/www;
+    error_page 404 /site/404.html;
+}
+
+location /site {
+    root /var/www/other;
+}
+```
+
+if the request is made for /foo, the first location block will be called. it will try to find a file called "foo" in the "/var/www" directory.
+However, if a file is not found (a 404 status), an internal redirect to "/error/404.html" will occur, leading to a new location search that will land on the second block and try to find "/var/www/other/site/404.html".
+if the request is made for /site/index.html, the second location will be called. It will try to find a file called "index.html" in the /var/www/other/site/index.html" directory.
 
 ## Location anatomy
 ```

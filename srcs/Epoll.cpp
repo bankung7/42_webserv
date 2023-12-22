@@ -1,208 +1,84 @@
 #include "Webserv.hpp"
 
-// // Get the listener fd
-// int Epoll::get_listener(int i) {
-
-//     (void)i;
-    
-//     int listener;
-//     struct addrinfo hints, *ai, *p;
-
-//     // get socket
-//     memset(&hints, 0, sizeof(hints));
-//     hints.ai_family = AF_INET;
-//     hints.ai_socktype = SOCK_STREAM;
-//     hints.ai_flags = AI_PASSIVE;
-
-//     // get the info from the host and port
-//     // usage of getaddrinfo() https://linuxhint.com/c-getaddrinfo-function-usage/
-//     int rv;
-//     if ((rv = getaddrinfo(NULL, PORT, &hints, &ai)) != 0) {
-//         std::cout << "[ERROR]: getaddrinfo failed" << std::endl;
-//         return (-1);
-//     }
-
-//     // loop to find the available address and bind it
-//     for (p = ai; p != NULL; p = p->ai_next) {
-        
-//         listener = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-//         if (listener < 0)
-//             continue;
-
-//         // use for the last parameter
-//         int optval = 1;
-
-//         // set socket option to reuse the address
-//         setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int));
-        
-//         // bind the address got from above
-//         if (bind(listener, p->ai_addr, p->ai_addrlen) < 0) {
-//             close(listener);
-//             continue;
-//         }
-
-//         // got the available one, break the loop
-//         break;
-
-//     }
-
-//     // fre
-//     freeaddrinfo(ai);
-
-//     // check if there is no address available
-//     if (p == NULL)
-//         return (-1);
-    
-//     // listening, with the backlog queue
-//     if (listen(listener, BACKLOG) == -1)
-//         return (-1);
-
-//     this->_listener = listener;
-
-//     std::cout << "[DEBUG]: system listening on fd " << listener << std::endl;
-
-//     return (listener);
-// }
-
 int Webserv::polling(void) {
-
-    // create an epoll fd
+    
+    // create epoll fd
     this->_epfd = epoll_create(1);
-    if (this->_epfd == -1) {
-        std::cout << "[ERROR]: Something wrong when creating an epoll fd" << std::endl;
-        return (-1);
-    }
-
-    std::cout << "[DEBUG]: An epoll fd " << this->_epfd << " has been created" << std::endl;
-
-    // put listener to be in the epollfd
-    struct epoll_event ev, events[MAX_EVENTS];
-
-    // loop put listener to epoll_fd
-    for (int i = 0; i < _serverSize; i++) {
-
-        int fd = this->_socketList[i];
-
+    if (this->_epfd == -1)
+        throw std::runtime_error("[ERROR]: epoll_create failed");
+    
+    // add all listener to epfd
+    struct epoll_event ev;
+    for (std::set<int>::iterator it = this->_fd.begin(); it != this->_fd.end(); it++) {
         ev.events = EPOLLIN;
-        ev.data.fd = fd;
-        if (epoll_ctl(this->_epfd, EPOLL_CTL_ADD, fd, &ev) == -1) {
-            std::cout << "[ERROR]: Something wrong when epoll_ctl adding the listener" << std::endl;
-            return (-1);
-        }
-        std::cout << "[DEBUG]: the fd " << fd << " is added to the epoll_fd" << std::endl;
-
+        ev.data.fd = *it;
+        if (epoll_ctl(this->_epfd, EPOLL_CTL_ADD, *it, &ev) == -1)
+            throw std::runtime_error("[ERROR]: epoll add to epfd failed");
     }
 
-    // prepare for incoming connection
-    struct sockaddr peer_addr;
-    memset(&peer_addr, 0, sizeof(sockaddr));
-    int peer_addrlen = sizeof(peer_addr);
+    std::cout << "[DEBUG]: The server starting polling" << std::endl;
 
-    // start looping for listening
+    // loop
+    struct epoll_event events[MAX_EVENTS];
+    struct sockaddr caddr;
+    socklen_t caddrLen = sizeof(caddr);
+
     while (1) {
-
-        // epoll_wait to check any fd ready to do thing
         int nfds = epoll_wait(this->_epfd, events, MAX_EVENTS, -1);
 
-        if (nfds == -1) {
-            std::cout << "[ERROR]: Something wrong when epoll_wait" << std::endl;
-            return (-1);
-        }
+        // if error occured
+        if (nfds == -1)
+            throw std::runtime_error("[ERROR]: epoll_wait failed");
 
-        std::cout << "[DEBUG]: found " << nfds << " ready" << std::endl;
-
-        // loop through every event which available
         for (int i = 0; i < nfds; i++) {
-
+            // EPOLLIN event
             if (events[i].events & EPOLLIN) {
 
-                // check if it match any listening
-
-                // in the case of listner, create the new connection to it
-                int server_index = check_listener(events[i].data.fd);
+                // if fd, new connection
                 
-                if (server_index != -1) {
+                std::cout << "[DEBUG]: fd ready " << events[i].data.fd << std::endl;
+                if (this->_fd.find(events[i].data.fd) != this->_fd.end()) {
+                    int conn = accept(events[i].data.fd, (struct sockaddr*)&caddr, (socklen_t*)&caddrLen);
+                    if (conn == -1)
+                        throw std::runtime_error("[ERROR]: accept failed");
+                    
+                    // set nonblocking
+                    if (fcntl(conn, F_SETFL, O_NONBLOCK) == -1)
+                        throw std::runtime_error("[ERROR]: set non-blocking failed");
 
-                    // std::cout << "server index " << server_index << std::endl;
+                    std::cout << "[DEBUG]: New connection to " << conn << std::endl;
 
-                    std::cout << "[INFO]: New connection found with " << events[i].data.fd << std::endl;
+                    // set to EPOLLIN state for reading
+                    ev.events = EPOLLIN;
+                    ev.data.fd = conn;
+                    if (epoll_ctl(this->_epfd, EPOLL_CTL_ADD, conn, &ev) == -1)
+                        throw std::runtime_error("[ERROR]: epoll add to epfd failed");
 
-                    int conn = accept(events[i].data.fd, (struct sockaddr*)&peer_addr, (socklen_t*)&peer_addrlen);
-                    if (conn == -1) {
-                        std::cout << "[ERROR]: Something wrong when tryong to accept the new connection" << std::endl;
-                        continue;
-                    }
+                } else {
+                    // EPOLLIN job, reading state
+                    std::cout << "[DEBUG]: reading state" << std::endl;
 
-                    // connection success, set fd to nonblock state
-                    setnonblock(conn);
-
-                    // set it for reading state and add it to epoll fd
-                    epoll_event nevent;
-                    nevent.events = EPOLLIN | EPOLLET;
-                    nevent.data.ptr = new HttpHandler(conn);
-
-                    HttpHandler* handler = (HttpHandler*)nevent.data.ptr;
-                    // handler->set_server(this->get_server(server_index)); // no need to assign it here
-                    handler->set_server_list(this->_server); // set the server list to correct the server block after parsing request
-
-                    if (epoll_ctl(this->_epfd, EPOLL_CTL_ADD, conn, &nevent) == -1) {
-                        std::cout << "[ERROR]: Something wrong when epoll_ctl adding the listener" << std::endl;
-                        close(conn);
-                    }
-
-                    std::cout << "[DEBUG]: Connection to " << conn << " successfully" << std::endl;
-                }
-                // in case of EPOLLIN
-                else if (events[i].events & EPOLLIN) {
-
-                    HttpHandler* handler = (HttpHandler*)events[i].data.ptr;
-                    std::cout << "[DEBUG]: Epoll in state with " << handler->getfd() << std::endl;
-
-                    // TODO: reading state [HttpHandler.cpp]
-                    handler->handlingRequest();
-
-                    // reading complete, push to EPOLLOUT state
-                    epoll_event nevent;
-                    nevent.events = EPOLLOUT | EPOLLET;
-                    nevent.data.ptr = (void*)handler;
-
-                    if (epoll_ctl(this->_epfd, EPOLL_CTL_MOD, handler->getfd(), &nevent) == -1) {
-                        std::cout << "[ERROR]: Something wrong when epoll_ctl modify the fd" << handler->getfd() << std::endl;
-                    }
+                    // set to EPOLLOUT state for writing
+                    ev.events = EPOLLOUT;
+                    ev.data.fd = events[i].data.fd;
+                    if (epoll_ctl(this->_epfd, EPOLL_CTL_MOD, events[i].data.fd, &ev) == -1)
+                        throw std::runtime_error("[ERROR]: epoll mod to epfd failed");
 
                 }
-            }
-            // in case of EPOLLOUT
-            else if (events[i].events & EPOLLOUT) {
 
-                HttpHandler* handler = (HttpHandler*)events[i].data.ptr;
-                std::cout << "[DEBUG]: Epoll out state with fd " << handler->getfd() << std::endl;
+            } else if (events[i].events & EPOLLOUT) { // EPOLLOUT event
+                std::cout << "[DEBUG]: writing state" << std::endl;
 
-                Server sv = handler->get_server();
-                std::cout << "[DEBUG]: file directory is " << sv.get_root() << std::endl;
+                if (epoll_ctl(this->_epfd, EPOLL_CTL_DEL, events[i].data.fd, NULL) == -1)
+                    throw std::runtime_error("[ERROR]: epoll del to epfd failed");
 
-                // TODO: sending state [HttpHandler.cpp]
-                handler->handlingResponse();
-
-                // remove from epollfd
-                if (epoll_ctl(this->_epfd, EPOLL_CTL_DEL, handler->getfd(), NULL) == -1) {
-                    std::cout << "[ERROR]: Something wrong when epoll_ctl removing the fd" << handler->getfd() << std::endl;
-                }
-
-                std::cout << "[DEBUG]: Close the connection with fd " << handler->getfd() << std::endl;
-
-                // clear the context
-                close(handler->getfd());
-                delete handler;
-
-
+                std::cout << "[DEBUG]: close the connection" << std::endl;
+                close(events[i].data.fd);
             } else {
-                std::cout << "[ERROR]: Some other case, can not be here at all" << std::endl;
+                // not any case
             }
-
         }
-
     }
 
     return (0);
-}
+};
