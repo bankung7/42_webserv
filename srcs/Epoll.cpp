@@ -30,16 +30,12 @@ int Webserv::polling(void) {
         if (nfds == -1)
             throw std::runtime_error("[ERROR]: epoll_wait failed");
 
-        // std::cout << nfds << std::endl;
-
         for (int i = 0; i < nfds; i++) {
             
             struct epoll_event event = events[i];
 
             // EPOLLIN event
             if (events[i].events & EPOLLIN) {
-
-                // std::cout << "[INFO]: event fd " << event.data.fd << " ready" << std::endl;
 
                 // if fd, new connection
                 if (this->_fd.find(event.data.fd) != this->_fd.end()) {
@@ -55,41 +51,48 @@ int Webserv::polling(void) {
 
                     std::cout << "[DEBUG]: New connection to " << conn << std::endl;
 
-                    // set to EPOLLIN state for reading
-
-                    // create context
+                    // create context and set to EPOLLIN
                     HttpHandler* context = new HttpHandler(conn);
-                    // this->add_context(conn, context);
                     event.events = EPOLLIN;
-                    // ev.data.fd = conn;
                     event.data.ptr = (void*)context;
+                    context->set_server(this->_server);
 
                     if (epoll_ctl(this->_epfd, EPOLL_CTL_ADD, conn, &event) == -1)
                         throw std::runtime_error("[ERROR]: epoll add to epfd failed");
 
                     std::cout << "[DEBUG]: Set " << conn << " to EPOLLIN state" << std::endl;
 
-                } else {
-                    // EPOLLIN job, reading state
+                } 
+                // EPOLLIN, reading state
+                else {
+
                     std::cout << "[DEBUG]: reading state" << std::endl;
 
-                    // get context
+                    // deal with request
                     HttpHandler* context = (HttpHandler*)event.data.ptr;
+                    context->handle_request();
 
-                    // set to EPOLLOUT state for writing
-                    event.events = EPOLLOUT;
-                    event.data.ptr = (void*)context;
-                    // event.data.fd = events[i].data.fd;
-                    if (epoll_ctl(this->_epfd, EPOLL_CTL_MOD, context->get_fd(), &event) == -1)
-                        throw std::runtime_error("[ERROR]: epoll mod to epfd failed");
+                    if (context->get_status() > READING) {
+
+                        // reading complete send to EPOLLOUT
+                        event.events = EPOLLOUT;
+                        event.data.ptr = (void*)context;
+                        if (epoll_ctl(this->_epfd, EPOLL_CTL_MOD, context->get_fd(), &event) == -1)
+                            throw std::runtime_error("[ERROR]: epoll mod to epfd failed");
+
+                    } else 
+                        std::cout << "[DEBUG]: reading in progress for next buffer" << std::endl;
+
+                    // continue reading;
 
                 }
-
             } else if (event.events & EPOLLOUT) { // EPOLLOUT event
                 std::cout << "[DEBUG]: writing state" << std::endl;
 
                 // get context
                 HttpHandler* context = (HttpHandler*)event.data.ptr;
+
+                context->handle_response();
 
                 std::stringstream sres;
                 sres << "HTTP/1.1 200 OK\r\n"
@@ -101,7 +104,6 @@ int Webserv::polling(void) {
                 std::vector<char> res;
                 res.insert(res.begin(), ssres.begin(), ssres.end());
 
-                // int client_fd = event.data.fd;
                 int client_fd = context->get_fd(); // get client fd
                 if (send(client_fd, res.data(), res.size(), 0) == -1)
                     throw std::runtime_error("[ERROR]: send error");
@@ -114,6 +116,7 @@ int Webserv::polling(void) {
                 close(client_fd);
             } else {
                 // not any case
+                std::cout << "or may be this" << std::endl;
             }
         }
     }
