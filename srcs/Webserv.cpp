@@ -36,9 +36,6 @@ Webserv::~Webserv(void) {
 
 // Configuration Parsing Part
 
-/// == Test Function == ///
-
-
 // Server Structure Setup Part
 void Webserv::setup(void) {
 
@@ -51,7 +48,7 @@ void Webserv::setup(void) {
             this->_server[i].initiated(BACKLOG);
             this->add_fd(this->_server[i].get_fd());
             this->add_port(port);
-            std::cout << "[DEBUG]: Create socket for port " << port << std::endl;
+            std::cout << "[DEBUG]: Create socket fd " << this->_server[i].get_fd() << " for port " << port << std::endl;
             continue ;
         }
         std::cout << "[WARNING]: Port was duplicated " << port << std::endl;
@@ -75,4 +72,21 @@ void Webserv::add_port(int port) {
     this->_port.insert(port);
 }
 
+void Webserv::add_context(int fd, HttpHandler* context) {
+
+    if (this->_context.find(fd) != this->_context.end())\
+        throw std::runtime_error("[ERROR]: duplicated fd in context");
+    
+    this->_context[fd] = context;
+}
+
 // getter
+
+// remover
+void Webserv::remove_context(int fd) {
+    
+    std::map<int, HttpHandler*>::iterator it = this->_context.find(fd);
+
+    if (it != this->_context.end())
+        this->_context.erase(it);
+}

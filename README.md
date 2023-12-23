@@ -94,6 +94,16 @@ href     - https://example.org:8080/foo/bar?q=baz
 > [!NOTE]
 > The /etc/hosts file is a plain text file used in matching a fully qualified domain name (FQDN) with the server IP hosting a specific domain. When the DNS server cannot be reached, the /etc/hosts file to resolve the domain name.
 
+## HTTP Request
+
+## HTTP Response
+### Header
+```
+HTTP/1.1 200 OK\r\n
+Content-type: text/html\r\n
+Content-Length: 1230\r\n\r\n
+```
+
 ## Concept
 ### Parsing Configuration file
 ### Initialize Servers

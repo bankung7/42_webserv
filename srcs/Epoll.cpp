@@ -30,17 +30,24 @@ int Webserv::polling(void) {
         if (nfds == -1)
             throw std::runtime_error("[ERROR]: epoll_wait failed");
 
+        // std::cout << nfds << std::endl;
+
         for (int i = 0; i < nfds; i++) {
+            
+            struct epoll_event event = events[i];
+
             // EPOLLIN event
             if (events[i].events & EPOLLIN) {
 
+                // std::cout << "[INFO]: event fd " << event.data.fd << " ready" << std::endl;
+
                 // if fd, new connection
-                
-                std::cout << "[DEBUG]: fd ready " << events[i].data.fd << std::endl;
-                if (this->_fd.find(events[i].data.fd) != this->_fd.end()) {
-                    int conn = accept(events[i].data.fd, (struct sockaddr*)&caddr, (socklen_t*)&caddrLen);
-                    if (conn == -1)
+                if (this->_fd.find(event.data.fd) != this->_fd.end()) {
+                    int conn = accept(event.data.fd, (struct sockaddr*)&caddr, (socklen_t*)&caddrLen);
+                    if (conn == -1) {
+                        perror("failed");
                         throw std::runtime_error("[ERROR]: accept failed");
+                    }
                     
                     // set nonblocking
                     if (fcntl(conn, F_SETFL, O_NONBLOCK) == -1)
@@ -49,31 +56,62 @@ int Webserv::polling(void) {
                     std::cout << "[DEBUG]: New connection to " << conn << std::endl;
 
                     // set to EPOLLIN state for reading
-                    ev.events = EPOLLIN;
-                    ev.data.fd = conn;
-                    if (epoll_ctl(this->_epfd, EPOLL_CTL_ADD, conn, &ev) == -1)
+
+                    // create context
+                    HttpHandler* context = new HttpHandler(conn);
+                    // this->add_context(conn, context);
+                    event.events = EPOLLIN;
+                    // ev.data.fd = conn;
+                    event.data.ptr = (void*)context;
+
+                    if (epoll_ctl(this->_epfd, EPOLL_CTL_ADD, conn, &event) == -1)
                         throw std::runtime_error("[ERROR]: epoll add to epfd failed");
+
+                    std::cout << "[DEBUG]: Set " << conn << " to EPOLLIN state" << std::endl;
 
                 } else {
                     // EPOLLIN job, reading state
                     std::cout << "[DEBUG]: reading state" << std::endl;
 
+                    // get context
+                    HttpHandler* context = (HttpHandler*)event.data.ptr;
+
                     // set to EPOLLOUT state for writing
-                    ev.events = EPOLLOUT;
-                    ev.data.fd = events[i].data.fd;
-                    if (epoll_ctl(this->_epfd, EPOLL_CTL_MOD, events[i].data.fd, &ev) == -1)
+                    event.events = EPOLLOUT;
+                    event.data.ptr = (void*)context;
+                    // event.data.fd = events[i].data.fd;
+                    if (epoll_ctl(this->_epfd, EPOLL_CTL_MOD, context->get_fd(), &event) == -1)
                         throw std::runtime_error("[ERROR]: epoll mod to epfd failed");
 
                 }
 
-            } else if (events[i].events & EPOLLOUT) { // EPOLLOUT event
+            } else if (event.events & EPOLLOUT) { // EPOLLOUT event
                 std::cout << "[DEBUG]: writing state" << std::endl;
 
-                if (epoll_ctl(this->_epfd, EPOLL_CTL_DEL, events[i].data.fd, NULL) == -1)
+                // get context
+                HttpHandler* context = (HttpHandler*)event.data.ptr;
+
+                std::stringstream sres;
+                sres << "HTTP/1.1 200 OK\r\n"
+                        << "Content-type: text/html\r\n"
+                        << "Content-Length: 5\r\n\r\n"
+                        << "Hello";
+
+                std::string ssres = sres.str();
+                std::vector<char> res;
+                res.insert(res.begin(), ssres.begin(), ssres.end());
+
+                // int client_fd = event.data.fd;
+                int client_fd = context->get_fd(); // get client fd
+                if (send(client_fd, res.data(), res.size(), 0) == -1)
+                    throw std::runtime_error("[ERROR]: send error");
+
+                if (epoll_ctl(this->_epfd, EPOLL_CTL_DEL, client_fd, NULL) == -1)
                     throw std::runtime_error("[ERROR]: epoll del to epfd failed");
 
                 std::cout << "[DEBUG]: close the connection" << std::endl;
-                close(events[i].data.fd);
+                this->remove_context(client_fd);
+                close(client_fd);
             } else {
                 // not any case
             }
