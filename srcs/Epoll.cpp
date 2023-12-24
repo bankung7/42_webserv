@@ -56,6 +56,7 @@ int Webserv::polling(void) {
                     event.events = EPOLLIN;
                     event.data.ptr = (void*)context;
                     context->set_server(this->_server);
+                    context->set_host_fd(event.data.fd);
 
                     if (epoll_ctl(this->_epfd, EPOLL_CTL_ADD, conn, &event) == -1)
                         throw std::runtime_error("[ERROR]: epoll add to epfd failed");

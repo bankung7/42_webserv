@@ -24,6 +24,7 @@ class HttpHandler {
 
 private:
     int _fd;
+    int _hostfd;
     int _status;
     int _port;
 
@@ -55,16 +56,19 @@ public:
     // setter
     void set_status(int);
     void set_server(std::vector<Server>&);
+    void set_host_fd(int);
 
     // getter
     int get_fd(void) const;
     int get_status(void) const;
+    int get_host_fd(void) const;
 
     // process
     void handle_request(void);
     void parsing_request(void);
 
     void handle_response(void);
+    void assign_server_block(void);
 
     // utils
     void remove_white_space(std::string&);

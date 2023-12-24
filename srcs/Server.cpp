@@ -13,8 +13,8 @@ void Server::set_fd(int fd) {
     this->_fd = fd;
 };
 
-void Server::set_server_name(std::string name) {
-    this->_serverName = std::string(name);
+void Server::add_server_name(std::string name) {
+    this->_serverName.push_back(std::string(name));
 };
 
 void Server::set_port(int port) {
@@ -48,6 +48,14 @@ int Server::get_fd(void) const {
 
 int Server::get_port(void) const {
     return (this->_port);
+}
+
+int Server::has_server_name(std::string name) {
+    for (int i = 0; i < this->_serverName.size(); i++) {
+        if (this->_serverName[i].compare(name) == 0)
+            return (1);
+    }
+    return (0);
 }
 
 

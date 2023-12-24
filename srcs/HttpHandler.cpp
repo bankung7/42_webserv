@@ -4,7 +4,7 @@ HttpHandler::HttpHandler(void) {
 
 }
 
-HttpHandler::HttpHandler(int fd): _fd(fd), _status(READING) {
+HttpHandler::HttpHandler(int fd): _fd(fd), _status(READING), _serverIndex(-1) {
 
     this->_parameter["Host"] = std::string("");
     this->_parameter["Connection"] = std::string("");
@@ -23,6 +23,10 @@ void HttpHandler::set_server(std::vector<Server>& server) {
     this->_server = server;
 }
 
+void HttpHandler::set_host_fd(int fd) {
+    this->_hostfd = fd;
+}
+
 // getter
 int HttpHandler::get_fd(void) const {
     return (this->_fd);
@@ -30,6 +34,10 @@ int HttpHandler::get_fd(void) const {
 
 int HttpHandler::get_status(void) const {
     return (this->_status);
+}
+
+int HttpHandler::get_host_fd(void) const {
+    return (this->_hostfd);
 }
 
 // process
@@ -107,16 +115,25 @@ void HttpHandler::handle_response(void) {
     std::cout << "host: " << this->_parameter["Host"] << std::endl;
     std::cout << "port: " << this->_port << std::endl;
 
-    // std::stringstream cport(this->_host.substr(this->_host.find(":"), this->_host.size() - this->_host.find(":")));
-    // std::cout << cport.str() << std::endl;
+    // Assign server block
 
-    // match host and assign server
-    // std::vector<Server>::iterator it = this->_server.begin();
-    // for (; it != this->_server.end(); it++) {
-    //     if (this->_server[i].get_port() != )
-    // }
 
     // match location
+}
+
+void HttpHandler::assign_server_block(void) {
+
+    // loop check
+    int hostfd = this->get_host_fd();
+
+    for (int i = 0; i < this->_server.size(); i++) {
+        Server sv = this->_server[i];
+        if (sv->get_fd() == hostfd) {
+            if (this->_serverIndex == -1)
+                this->_serverIndex = i;
+        }
+    }
+
 }
 
 

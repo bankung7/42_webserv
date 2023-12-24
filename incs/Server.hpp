@@ -13,12 +13,13 @@
 // C++ library
 #include <iostream>
 #include <map>
+#include <vector>
 
 class Server {
 
 private:
     int         _fd;
-    std::string _serverName;
+    std::vector<std::string> _serverName;
     int         _port;
     std::string _defaultErrorPage;
     size_t      _maxClientBodySize;
@@ -32,7 +33,7 @@ public:
 
     // setter
     void set_fd(int);
-    void set_server_name(std::string);
+    void add_server_name(std::string);
     void set_port(int);
     void set_default_error_page(std::string);
     void set_max_client_body_size(size_t);
@@ -43,6 +44,7 @@ public:
     // getter
     int get_fd(void) const;
     int get_port(void) const;
+    int has_server_name(std::string);
 
     // general function
     void initiated(int);
