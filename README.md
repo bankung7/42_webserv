@@ -21,14 +21,14 @@
 
 ## PROGRESS
 
-[N] Parsing Configuration file
-[C] SErver setup and Initializing
-[C] Epoll Server
-[C] Handling request
-[I] handling response => [GOLF]
-[N] CGI
-[N] Error Handling
-[I] Static Web => [GOLF]
+[N] Parsing Configuration file\
+[C] SErver setup and Initializing\
+[C] Epoll Server\
+[C] Handling request\
+[I] handling response => [GOLF]\
+[N] CGI\
+[N] Error Handling\
+[I] Static Web => [GOLF]\
 
 ## Defect
 - Sometime request stuck in the epoll in and go out with nothign to read, throw error (basic_string::erase: __pos (which is 18446744073709551615) > this->size() (which is 0)).
