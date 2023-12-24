@@ -49,14 +49,13 @@ int Webserv::polling(void) {
                     if (fcntl(conn, F_SETFL, O_NONBLOCK) == -1)
                         throw std::runtime_error("[ERROR]: set non-blocking failed");
 
-                    std::cout << "[DEBUG]: New connection to " << conn << std::endl;
+                    std::cout << "\033[1;32m[DEBUG]: New connection to " << conn << " from " << event.data.fd << "\033[0m" << std::endl;
 
                     // create context and set to EPOLLIN
                     HttpHandler* context = new HttpHandler(conn);
                     event.events = EPOLLIN;
                     event.data.ptr = (void*)context;
                     context->set_server(this->_server);
-                    context->set_host_fd(event.data.fd);
 
                     if (epoll_ctl(this->_epfd, EPOLL_CTL_ADD, conn, &event) == -1)
                         throw std::runtime_error("[ERROR]: epoll add to epfd failed");
@@ -67,12 +66,14 @@ int Webserv::polling(void) {
                 // EPOLLIN, reading state
                 else {
 
-                    std::cout << "[DEBUG]: reading state" << std::endl;
-
                     // deal with request
                     HttpHandler* context = (HttpHandler*)event.data.ptr;
+
+                    std::cout << "[DEBUG]: reading state for " << context->get_fd() << std::endl;
+
                     context->handle_request();
 
+                    // in case of conection was hangup
                     if (context->get_status() > READING) {
 
                         // reading complete send to EPOLLOUT
@@ -88,33 +89,15 @@ int Webserv::polling(void) {
 
                 }
             } else if (event.events & EPOLLOUT) { // EPOLLOUT event
-                std::cout << "[DEBUG]: writing state" << std::endl;
 
                 // get context
                 HttpHandler* context = (HttpHandler*)event.data.ptr;
 
                 context->handle_response();
+                std::cout << "[DEBUG]: writing state for " << context->get_fd() << std::endl;
 
-                std::stringstream sres;
-                sres << "HTTP/1.1 200 OK\r\n"
-                        << "Content-type: text/html\r\n"
-                        << "Content-Length: 5\r\n\r\n"
-                        << "Hello";
+                close_connection(context);
 
-                std::string ssres = sres.str();
-                std::vector<char> res;
-                res.insert(res.begin(), ssres.begin(), ssres.end());
-
-                int client_fd = context->get_fd(); // get client fd
-                if (send(client_fd, res.data(), res.size(), 0) == -1)
-                    throw std::runtime_error("[ERROR]: send error");
-
-                if (epoll_ctl(this->_epfd, EPOLL_CTL_DEL, client_fd, NULL) == -1)
-                    throw std::runtime_error("[ERROR]: epoll del to epfd failed");
-
-                std::cout << "[DEBUG]: close the connection" << std::endl;
-                this->remove_context(client_fd);
-                close(client_fd);
             } else {
                 // not any case
                 std::cout << "or may be this" << std::endl;
@@ -124,3 +107,16 @@ int Webserv::polling(void) {
 
     return (0);
 };
+
+void Webserv::close_connection(HttpHandler* context) {
+
+    int client_fd = context->get_fd(); // get client fd
+
+    if (epoll_ctl(this->_epfd, EPOLL_CTL_DEL, client_fd, NULL) == -1)
+        throw std::runtime_error("[ERROR]: epoll del to epfd failed");
+
+    std::cout << "\033[;33m[DEBUG]: close the connection with " << client_fd << "\033[0m" << std::endl;
+    this->remove_context(client_fd);
+    close(client_fd);
+
+}

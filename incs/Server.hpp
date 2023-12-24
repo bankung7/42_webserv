@@ -44,6 +44,11 @@ public:
     // getter
     int get_fd(void) const;
     int get_port(void) const;
+    std::string get_server_name(std::string) const;
+    std::string get_location(std::string);
+    std::string best_match_location(std::string);
+
+    // checker
     int has_server_name(std::string);
 
     // general function
@@ -53,3 +58,11 @@ public:
 };
 
 #endif
+
+
+/// localhost:8080
+/// localhost:8080/index.html
+/// localhost:8080/sub1
+
+/// localhost:8080/sub1/
+/// localhost:8080/sub1/index.html

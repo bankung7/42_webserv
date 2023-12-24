@@ -4,7 +4,7 @@ HttpHandler::HttpHandler(void) {
 
 }
 
-HttpHandler::HttpHandler(int fd): _fd(fd), _status(READING), _serverIndex(-1) {
+HttpHandler::HttpHandler(int fd): _fd(fd), _status(READING), _serverIndex(-1), _isDirectory(0), _isAutoIndex(0), _isIndex(0) {
 
     this->_parameter["Host"] = std::string("");
     this->_parameter["Connection"] = std::string("");
@@ -23,10 +23,6 @@ void HttpHandler::set_server(std::vector<Server>& server) {
     this->_server = server;
 }
 
-void HttpHandler::set_host_fd(int fd) {
-    this->_hostfd = fd;
-}
-
 // getter
 int HttpHandler::get_fd(void) const {
     return (this->_fd);
@@ -34,10 +30,6 @@ int HttpHandler::get_fd(void) const {
 
 int HttpHandler::get_status(void) const {
     return (this->_status);
-}
-
-int HttpHandler::get_host_fd(void) const {
-    return (this->_hostfd);
 }
 
 // process
@@ -51,8 +43,18 @@ void HttpHandler::handle_request(void) {
     // seem like when the connection was close and epoll does not pick that as a event
     while (1) {
         bytesRead = recv(this->get_fd(), bf.data(), BUFFER_SIZE, 0);
-        if (bytesRead <= 0) {
+
+        // check case, defected
+        if (bytesRead == 0) {
+            std::cout << "end of file case" << std::endl;
+            this->set_status(WRITING);
+            break ;
+        }
+
+        // in case that nothing to read and error cannot separate
+        if (bytesRead < 0) {
             std::cout << "[ERROR]: The connection was closed or error occured" << std::endl;
+            this->set_status(CLOSED);
             break;
         }
         this->_req.append(bf.data(), bytesRead);
@@ -61,12 +63,16 @@ void HttpHandler::handle_request(void) {
     std::cout << "[DEBUG]: reading incoming " << bytesRead << std::endl;
     this->set_status(WRITING);
 
-    std::cout << this->_req << std::endl;
+    // std::cout << this->_req << std::endl;
 
     this->parsing_request();
 }
 
 void HttpHandler::parsing_request(void) {
+
+    // protect case
+    if (this->_status == CLOSED)
+        return ;
 
     std::stringstream ss(this->_req);
     std::string line;
@@ -91,49 +97,236 @@ void HttpHandler::parsing_request(void) {
         }
     }
 
-    std::cout << "Method: " << this->_method << std::endl;
-    std::cout << "URL: " << this->_url << std::endl;
-    std::cout << "Version: " << this->_version << std::endl;
-    std::cout << "Host: " << this->_parameter["Host"] << std::endl;
-    std::cout << "Connection: " << this->_parameter["Connection"] << std::endl;
-
-}
-
-void HttpHandler::handle_response(void) {
-
-    // TODO: case of only hostname appear
-
     // split and set hostname and port
     std::string sport(this->_parameter["Host"]);
     sport.erase(0, sport.find(":") + 1);
 
     this->_parameter["Host"].erase(this->_parameter["Host"].find(sport) - 1, sport.size() + 1);
 
-    std::stringstream ss(sport);
-    ss >> this->_port;
+    std::stringstream pss(sport);
+    pss >> this->_port;
 
-    std::cout << "host: " << this->_parameter["Host"] << std::endl;
-    std::cout << "port: " << this->_port << std::endl;
+    // std::cout << "Method: " << this->_method << std::endl;
+    // std::cout << "URL: " << this->_url << std::endl;
+    // std::cout << "Version: " << this->_version << std::endl;
+    // std::cout << "Host: " << this->_parameter["Host"] << std::endl;
+    // std::cout << "Connection: " << this->_parameter["Connection"] << std::endl;
+
+}
+
+void HttpHandler::handle_response(void) {
+
+    // protect case
+    if (this->_status == CLOSED)
+        return ;
 
     // Assign server block
-
+    assign_server_block();
+    // std::cout << "Server index: " << this->_serverIndex << std::endl;
+    // std::cout << "Server host: " << this->_server[this->_serverIndex].get_server_name(this->_parameter["Host"]) << std::endl;
+    // std::cout << "Server port: " << this->_server[this->_serverIndex].get_port() << std::endl;
 
     // match location
+    assign_location_block();
+    std::cout << "[DEBUG]: Location block was assigned to " << this->_path << std::endl;
+
+    // create response
+    create_response();
 }
 
 void HttpHandler::assign_server_block(void) {
 
-    // loop check
-    int hostfd = this->get_host_fd();
+    // loop check with port and assigned the first found for default,
+        // or if it exact match just return
+        // continue loop if found
 
-    for (int i = 0; i < this->_server.size(); i++) {
-        Server sv = this->_server[i];
-        if (sv->get_fd() == hostfd) {
-            if (this->_serverIndex == -1)
-                this->_serverIndex = i;
+    for (int i = 0; i < (int)this->_server.size(); i ++) {
+
+        // if not the same port, check by hostfd that first accept
+        if (this->_server[i].get_port() != this->_port) {
+            continue ;
+        }
+
+        // check if the server index was not assign to be default
+        if (this->_serverIndex == -1)
+            this->_serverIndex = i;
+
+        // check if the server name exact match
+        if (this->_server[i].has_server_name(this->_parameter["Host"]) == 1) {
+            this->_serverIndex = i;
+            return ;
         }
     }
+}
 
+void HttpHandler::assign_location_block(void) {
+
+    // std::cout << "checking url => " << this->_url << std::endl;
+
+    // check if there is only /, from the backward
+    if (this->_url.compare("/") == 0) {
+
+        this->_isDirectory = 1;
+
+        this->_path.append("/");
+        this->_location.append(this->_server[_serverIndex].get_location("/"));
+
+        this->_filename.append(this->_url);
+
+        // std::cout << "path: " << this->_path << std::endl;
+        // std::cout << "location: " << this->_location << std::endl;
+        // std::cout << "filename: " << this->_filename << std::endl;
+        return ;
+    }
+
+    // example just snip / -> /
+    std::string path(this->_url);
+    if (path[path.size() - 1] != '/') {
+        // std::cout << "not a directory case" << std::endl;
+        path.erase(path.rfind("/"));
+    }
+    else
+        this->_isDirectory = 1;
+
+    // TODO: in case of double directory //
+    this->_path.append(this->_server[this->_serverIndex].best_match_location(path));
+    this->_filename.append(this->_url);
+
+    // std::cout << "paht to check [" << this->_path << "] " << path << std::endl;
+
+    if (this->_path.size() == 1)
+        this->_filename.erase(0, this->_path.size() - 1);
+    else
+        this->_filename.erase(0, this->_path.size());
+
+    this->_location.append(this->_server[this->_serverIndex].get_location(this->_path));
+
+    // std::cout << "path: " << this->_path << std::endl;
+    // std::cout << "location: " << this->_location << std::endl;
+    // std::cout << "filename: " << this->_filename << std::endl;
+
+}
+
+void HttpHandler::create_response(void) {
+
+    int startIndex, length;
+
+    std::string attribute;
+
+    // check method request == MANDATORY
+    startIndex = this->_location.find("allowedMethod:");
+    length = this->_location.find(";", startIndex + 1) - startIndex + 1;
+    attribute = std::string( this->_location.substr(startIndex, length));
+
+    // std::cout << "Request Method " << this->_method << std::endl;
+    // std::cout << "Allowed Method " << attribute << std::endl;
+
+    if (attribute.find(this->_method.c_str(), startIndex) == std::string::npos) {
+        std::cout << "\033[1;31mRequest " << this->_method << " method is not allowed\033[0m" << std::endl;
+        return;
+    }
+
+    // check if redirection == OPTIONAL
+    if (this->_location.find("return:") != std::string::npos) {
+        std::cout << "\033[4;33mRedirection case\033[0m" << std::endl;
+        return;
+    }
+
+    // for CGI == OPTIONAL =======================>
+
+    // set root == MANDATORY
+    startIndex = this->_location.find("root:");
+    length = this->_location.find(";", startIndex + 1) - startIndex;
+    this->_filepath.append(this->_location.substr(startIndex + 5, length - 5));
+    // std::cout << "current filename : " << this->_filename << std::endl;
+
+    // put the filename in the path
+    if (this->_filename.size() > 0)
+        this->_filepath.append(this->_filename);
+
+    // is directory == OPTIONAL
+    if (this->_isDirectory == 1) {
+
+        // std::cout << "\033[0;31mDIRECTORY\033[0;0m" << std::endl;
+
+        // is autoindex == OPTIONAL
+        if (this->_location.find("autoIndex:") != std::string::npos) {
+            this->_isAutoIndex = 1;
+            // std::cout << "Index Page requested" << std::endl;
+            this->_filepath.append("/indexpage.html");
+            // this->_isDirectory = 0;
+        }
+
+        // if index page accepted == OPTIONAL
+        else if (this->_location.find("index:") != std::string::npos && this->_filename.size() == 1) {
+            this->_isIndex = 1;
+            startIndex = this->_location.find("index:");
+            length = this->_location.find(";", startIndex + 1) - startIndex;
+            std::string indexPage(this->_location.substr(startIndex + 6, length - 6));
+            // std::cout << indexPage << " is provided for this request" << std::endl;
+            this->_filepath.append(indexPage);
+            // this->_isDirectory = 0;
+        }
+        else {
+            // in case of directory is not authorized
+            return ;
+        }
+
+    }
+
+    // remove first /
+    this->_filepath.erase(0, 1);
+    // std::cout << "\033[;32mFinal file name => " << this->_filepath << "\033[0m" << std::endl;
+
+    // try open the file for sending
+    if (this->_isDirectory)
+    file_handle();
+
+}
+
+void HttpHandler::file_handle(void) {
+
+    // block case to handle later
+
+    std::ifstream file;
+    if (this->_isDirectory != 1 || this->_isAutoIndex != 1 || this->_isIndex != 1)
+        file.open(this->_filepath.c_str(), std::ios::in);
+    else
+        std::cout << "[WARNING]: file not open" << std::endl;
+
+    int fileSize = 0;
+    std::string fileData("");
+
+    if (!file) {
+        perror("file open: ");
+        std::cout << "\033[;31m" << "[ERROR]: file => " << this->_filepath << " can't be open" << "\033[0m" << std::endl;
+    } else {
+        fileData = std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+        fileSize = fileData.size();
+        this->_resStatusCode = 200;
+        this->_resStatusText = std::string("OK");
+    }
+
+    // create response header
+    std::stringstream ss;
+    ss << "HTTP/1.1 200 OK\r\n"
+        << "Content-type: text/html \r\n"
+        << "Content-Length: " << fileSize << "\r\n\r\n"
+        << fileData;
+
+    std::string res(ss.str());
+    std::vector<char> msg;
+    msg.insert(msg.begin(), res.begin(), res.end());
+
+    int totalByte = msg.size();
+    int sentByte = send(this->_fd, msg.data(), totalByte, 0);
+
+    if (sentByte == -1)
+        std::cout << "\033[;31m" << "[ERROR]: Something wrong while sending" << "\033[0m" << std::endl;
+    else if (totalByte != sentByte)
+        std::cout << "\033[;31m" << "[ERROR]: Sendin not whole file" << "\033[0m" << std::endl;
+    else
+        std::cout << "\033[;32m" << "[ERROR]: Send completed " << totalByte << "\033[0m" << std::endl;
 }
 
 

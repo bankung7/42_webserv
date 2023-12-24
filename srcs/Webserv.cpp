@@ -6,20 +6,24 @@ Webserv::Webserv(void): _backlog(20) {
 
     // Manually create the server block
     Server sv1, sv2, sv3;
-    sv1.add_server_name("webserv1");
-    sv1.add_server_name("webserv11");
+    // sv1.add_server_name("webserv1");
     sv1.set_port(8080);
-    sv1.set_location("/", "allowedMethod:GET;return:;root:/sites/www1;directoryListing:;index:index.html;");
+    sv1.set_location("/", "allowedMethod:GET;root:/sites/www1;index:index.html;");
+    sv1.set_location("/sub1", "allowedMethod:GET;root:/sites/www1/subb1;");
+    sv1.set_location("/sub2", "allowedMethod:POST;root:/sites/www2/;");
+    sv1.set_location("/sub1/", "allowedMethod:GET;root:/sites/www1/subb1index;autoIndex:on;");
+    sv1.set_location("/sub1/sub1", "allowedMethod:GET;root:/sites/www1/subb1index;");
     add_server(sv1);
 
-    sv2.add_server_name("webserv2");
+    sv2.add_server_name("webserv11");
+    sv2.add_server_name("webserv111");
     sv2.set_port(8080);
-    sv2.set_location("/", "allowedMethod:GET;return:;root:/sites/www2;directoryListing:;index:index.html;");
+    sv2.set_location("/", "allowedMethod:GET;root:/sites/www2;index:index.html;");
     add_server(sv2);
 
-    sv3.add_server_name("webserv3");
+    sv3.add_server_name("webserv2");
     sv3.set_port(8081);
-    sv3.set_location("/", "allowedMethod:GET;return:;root:/sites/www3;directoryListing:;index:index.html;");
+    sv3.set_location("/", "allowedMethod:GET;root:/sites/www3;index:index.html;");
     add_server(sv3);
 
     // setup the server and initiated

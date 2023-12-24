@@ -53,6 +53,7 @@ public:
 
     // Epoll.cpp
     int polling(void);
+    void close_connection(HttpHandler*);
 
     // remover
     void remove_context(int);

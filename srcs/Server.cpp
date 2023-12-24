@@ -50,12 +50,63 @@ int Server::get_port(void) const {
     return (this->_port);
 }
 
-int Server::has_server_name(std::string name) {
-    for (int i = 0; i < this->_serverName.size(); i++) {
+std::string Server::get_server_name(std::string name) const{
+    for (int i = 0; i < (int)this->_serverName.size(); i++) {
         if (this->_serverName[i].compare(name) == 0)
+            return (std::string(this->_serverName[i]));
+    }
+    return (std::string(""));
+}
+
+std::string Server::get_location(std::string loc) {
+
+    if (this->_location.find(loc) != this->_location.end())
+        return (std::string(this->_location[loc]));
+    return (std::string(""));
+}
+
+// checker
+int Server::has_server_name(std::string name) {
+    for (int i = 0; i < (int)this->_serverName.size(); i++) {
+        if (this->_serverName[i].compare(name) == 0) {
             return (1);
+        }
     }
     return (0);
+}
+
+std::string Server::best_match_location(std::string loc) {
+
+    std::map<std::string, std::string>::iterator it = this->_location.begin();
+
+    // try to exact match
+    if (this->_location.find(loc) != this->_location.end()) {
+        return (std::string(loc));
+    }
+
+    std::string output;
+    int mostIndex = -1;
+    for (; it != this->_location.end(); it++) {
+        int index = 0;
+
+        std::string key = it->first;
+        int i = 0;
+        for (; i < (int)key.size(); i++, index++) {
+            if (loc[i] != key[i])
+                break ;
+        }
+
+        if ((i == (int)key.size() && (i == (int)loc.size() || loc[i] == '/')) && index > mostIndex) {
+            mostIndex = index;
+            output = it->first;
+        }
+    }
+
+    // in case does not found any most match, return /
+    if (mostIndex == -1)
+        return (std::string("/"));
+
+    return (std::string(output));
 }
 
 

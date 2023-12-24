@@ -7,14 +7,17 @@
 #define READING 1
 #define WRITING 2
 #define COMPLETED 3
+#define CLOSED 9
 
 // C
 #include <stdio.h>
 #include <unistd.h>
+#include <stdlib.h> // for system
 
 // C++
 #include <sstream>
 #include <iostream>
+#include <fstream>
 #include <vector>
 
 // Custom
@@ -24,7 +27,6 @@ class HttpHandler {
 
 private:
     int _fd;
-    int _hostfd;
     int _status;
     int _port;
 
@@ -32,8 +34,7 @@ private:
     std::string _method;
     std::string _url;
     std::string _version;
-    // std::string _host;
-    // std::string _connection;
+    std::string _reqContentType;
     std::string _body;
 
     std::map<std::string, std::string> _parameter;
@@ -42,10 +43,18 @@ private:
     int _serverIndex;
 
     std::string _location;
+    std::string _path;
+    std::string _filename;
+    std::string _filepath; // for testing
+    std::string _root;
+    int _isDirectory;
+    int _isAutoIndex;
+    int _isIndex;
 
     std::string _res;
-    std::string _root;
-    std::string _filename;
+    int _resStatusCode;
+    std::string _resStatusText;
+    std::string _resContentType;
 
     HttpHandler(void);
     
@@ -56,12 +65,10 @@ public:
     // setter
     void set_status(int);
     void set_server(std::vector<Server>&);
-    void set_host_fd(int);
 
     // getter
     int get_fd(void) const;
     int get_status(void) const;
-    int get_host_fd(void) const;
 
     // process
     void handle_request(void);
@@ -69,6 +76,9 @@ public:
 
     void handle_response(void);
     void assign_server_block(void);
+    void assign_location_block(void);
+    void create_response(void);
+    void file_handle(void);
 
     // utils
     void remove_white_space(std::string&);
@@ -88,3 +98,22 @@ public:
 // Sec-Fetch-Dest: document
 // Sec-Fetch-Mode: navigate
 // Sec-Fetch-Site: cross-site
+
+// weird case, can't reproduce
+// [DEBUG]: New connection to 6
+// [DEBUG]: Set 6 to EPOLLIN state
+// [DEBUG]: reading state
+// [ERROR]: The connection was closed or error occured
+// [DEBUG]: reading incoming 0
+// basic_string::erase: __pos (which is 18446744073709551615) > this->size() (which is 0)
+
+
+// Black: 30
+// Red: 31
+// Green: 32
+// Yellow: 33
+// Blue: 34
+// Magenta: 35
+// Cyan: 36
+// White: 37
+// Reset: 0
