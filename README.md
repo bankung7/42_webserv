@@ -20,7 +20,21 @@
 - Must be able to listen to multiple port (defined in config file). 
 
 ## PROGRESS
-= Unknown =
+
+[N] Parsing Configuration file
+[C] SErver setup and Initializing
+[C] Epoll Server
+[C] Handling request
+[I] handling response => [GOLF]
+[N] CGI
+[N] Error Handling
+[I] Static Web => [GOLF]
+
+## Defect
+- Sometime request stuck in the epoll in and go out with nothign to read, throw error (basic_string::erase: __pos (which is 18446744073709551615) > this->size() (which is 0)).
+- when try to open the directory that not authorized in the route, throw error (basic_filebuf::underflow error reading the file: Is a directory)
+
+#### update: 24/12/23 22:27
 
 ## Flowchart
 https://app.diagrams.net/#G1HveiOX7h5U4jHvzp7YklAA40VSXkAxFU

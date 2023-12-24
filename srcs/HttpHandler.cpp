@@ -46,21 +46,21 @@ void HttpHandler::handle_request(void) {
 
         // check case, defected
         if (bytesRead == 0) {
-            std::cout << "end of file case" << std::endl;
+            // std::cout << "end of file case" << std::endl;
             this->set_status(WRITING);
             break ;
         }
 
         // in case that nothing to read and error cannot separate
         if (bytesRead < 0) {
-            std::cout << "[ERROR]: The connection was closed or error occured" << std::endl;
+            // std::cout << "[ERROR]: The connection was closed or error occured" << std::endl;
             this->set_status(CLOSED);
             break;
         }
         this->_req.append(bf.data(), bytesRead);
     }
 
-    std::cout << "[DEBUG]: reading incoming " << bytesRead << std::endl;
+    // std::cout << "[DEBUG]: reading incoming " << bytesRead << std::endl;
     this->set_status(WRITING);
 
     // std::cout << this->_req << std::endl;
@@ -211,6 +211,12 @@ void HttpHandler::create_response(void) {
 
     int startIndex, length;
 
+    // set root == MANDATORY
+    startIndex = this->_location.find("root:");
+    length = this->_location.find(";", startIndex + 1) - startIndex;
+    this->_lroot = std::string(this->_location.substr(startIndex + 5, length - 5)); // set lroot for error page
+    this->_filepath.append(this->_location.substr(startIndex + 5, length - 5));
+
     std::string attribute;
 
     // check method request == MANDATORY
@@ -223,6 +229,8 @@ void HttpHandler::create_response(void) {
 
     if (attribute.find(this->_method.c_str(), startIndex) == std::string::npos) {
         std::cout << "\033[1;31mRequest " << this->_method << " method is not allowed\033[0m" << std::endl;
+        this->_filepath.append("/error/405.html");
+        file_handle();
         return;
     }
 
@@ -234,26 +242,23 @@ void HttpHandler::create_response(void) {
 
     // for CGI == OPTIONAL =======================>
 
-    // set root == MANDATORY
-    startIndex = this->_location.find("root:");
-    length = this->_location.find(";", startIndex + 1) - startIndex;
-    this->_filepath.append(this->_location.substr(startIndex + 5, length - 5));
-    // std::cout << "current filename : " << this->_filename << std::endl;
 
     // put the filename in the path
     if (this->_filename.size() > 0)
         this->_filepath.append(this->_filename);
 
+    // std::cout << "current filename : " << this->_filepath << std::endl;
+
     // is directory == OPTIONAL
     if (this->_isDirectory == 1) {
 
-        // std::cout << "\033[0;31mDIRECTORY\033[0;0m" << std::endl;
+        std::cout << "\033[0;31mDIRECTORY\033[0;0m" << std::endl;
 
         // is autoindex == OPTIONAL
         if (this->_location.find("autoIndex:") != std::string::npos) {
             this->_isAutoIndex = 1;
             // std::cout << "Index Page requested" << std::endl;
-            this->_filepath.append("/indexpage.html");
+            this->_filepath.append("/indexofpage.html");
             // this->_isDirectory = 0;
         }
 
@@ -275,11 +280,9 @@ void HttpHandler::create_response(void) {
     }
 
     // remove first /
-    this->_filepath.erase(0, 1);
     // std::cout << "\033[;32mFinal file name => " << this->_filepath << "\033[0m" << std::endl;
 
     // try open the file for sending
-    if (this->_isDirectory)
     file_handle();
 
 }
@@ -287,6 +290,9 @@ void HttpHandler::create_response(void) {
 void HttpHandler::file_handle(void) {
 
     // block case to handle later
+
+    this->_filepath.erase(0, 1);
+    std::cout << "Current filepath: " << this->_filepath << std::endl;
 
     std::ifstream file;
     if (this->_isDirectory != 1 || this->_isAutoIndex != 1 || this->_isIndex != 1)
@@ -300,17 +306,21 @@ void HttpHandler::file_handle(void) {
     if (!file) {
         perror("file open: ");
         std::cout << "\033[;31m" << "[ERROR]: file => " << this->_filepath << " can't be open" << "\033[0m" << std::endl;
+        error_page_set(404, "NOT FOUND"); 
+        file.open(this->_filepath.c_str(), std::ios::in);
     } else {
-        fileData = std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
-        fileSize = fileData.size();
-        this->_resStatusCode = 200;
-        this->_resStatusText = std::string("OK");
+        set_res_status(200, "OK");
+        // this->_resStatusCode = 200;
+        // this->_resStatusText = std::string("OK");
     }
+
+    fileData = std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+    fileSize = fileData.size();
 
     // create response header
     std::stringstream ss;
-    ss << "HTTP/1.1 200 OK\r\n"
-        << "Content-type: text/html \r\n"
+    ss << "HTTP/1.1 " << this->_resStatusCode << " " << this->_resStatusText << "\r\n"
+        << "Content-type: text/html\r\n"
         << "Content-Length: " << fileSize << "\r\n\r\n"
         << fileData;
 
@@ -329,6 +339,22 @@ void HttpHandler::file_handle(void) {
         std::cout << "\033[;32m" << "[ERROR]: Send completed " << totalByte << "\033[0m" << std::endl;
 }
 
+void HttpHandler::set_res_status(int code, std::string text) {
+    this->_resStatusCode = code;
+    this->_resStatusText = std::string(text);
+}
+
+// errorpage set
+void HttpHandler::error_page_set(int error, std::string text) {
+    set_res_status(error, text);
+    this->_filepath.clear();
+    this->_filepath.append(this->_lroot);
+    this->_filepath.append("/error/");
+    this->_filepath.append(int_to_string(error));
+    this->_filepath.append(".html");
+    this->_filepath.erase(0, 1);
+    std::cout << "error path " << this->_filepath << std::endl;
+}
 
 // Utils
 void HttpHandler::remove_white_space(std::string& input) {
@@ -341,4 +367,20 @@ void HttpHandler::remove_white_space(std::string& input) {
         else
             break;
     }
+}
+
+int HttpHandler::string_to_int(std::string str) {
+    std::stringstream ss(str);
+    int output;
+
+    ss >> output;
+
+    return (output);
+}
+
+std::string HttpHandler::int_to_string(int n) {
+    std::stringstream ss;
+    ss << n;
+    std::string output(ss.str());
+    return (std::string(output));
 }

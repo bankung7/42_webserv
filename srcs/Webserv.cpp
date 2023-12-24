@@ -9,10 +9,9 @@ Webserv::Webserv(void): _backlog(20) {
     // sv1.add_server_name("webserv1");
     sv1.set_port(8080);
     sv1.set_location("/", "allowedMethod:GET;root:/sites/www1;index:index.html;");
-    sv1.set_location("/sub1", "allowedMethod:GET;root:/sites/www1/subb1;");
-    sv1.set_location("/sub2", "allowedMethod:POST;root:/sites/www2/;");
-    sv1.set_location("/sub1/", "allowedMethod:GET;root:/sites/www1/subb1index;autoIndex:on;");
-    sv1.set_location("/sub1/sub1", "allowedMethod:GET;root:/sites/www1/subb1index;");
+    sv1.set_location("/html", "allowedMethod:GET;root:/sites/www1/html;");
+    sv1.set_location("/html/", "allowedMethod:GET;root:/sites/www1/html;autoIndex:on");
+    sv1.set_location("/post", "allowedMethod:POST;root:/sites/www1/html;");
     add_server(sv1);
 
     sv2.add_server_name("webserv11");

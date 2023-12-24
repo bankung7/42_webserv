@@ -47,6 +47,7 @@ private:
     std::string _filename;
     std::string _filepath; // for testing
     std::string _root;
+    std::string _lroot;
     int _isDirectory;
     int _isAutoIndex;
     int _isIndex;
@@ -79,9 +80,15 @@ public:
     void assign_location_block(void);
     void create_response(void);
     void file_handle(void);
+    void set_res_status(int, std::string);
+
+    // error handle
+    void error_page_set(int, std::string);
 
     // utils
     void remove_white_space(std::string&);
+    int string_to_int(std::string);
+    std::string int_to_string(int);
 
 };
 
