@@ -9,6 +9,13 @@
 #define COMPLETED 3
 #define CLOSED 9
 
+#define POST_READ_PHASE 1
+#define FIND_CONFIG_PHASE 2
+#define REWRITE_PHASE 3
+#define TRY_FILE_PHASE 4
+#define CONTENT_PHASE 5
+#define COMPLETE_PHASE 6
+
 // C
 #include <stdio.h>
 #include <unistd.h>
@@ -49,13 +56,17 @@ private:
     std::string _root;
     std::string _lroot;
     int _isDirectory;
+    int _isRedirection;
     int _isAutoIndex;
     int _isIndex;
+    int _isCGI;
 
     std::string _res;
+    std::ifstream _file;
     int _resStatusCode;
     std::string _resStatusText;
     std::string _resContentType;
+    int _tryFileStatus;
 
     HttpHandler(void);
     
@@ -79,10 +90,11 @@ public:
     void assign_server_block(void);
     void assign_location_block(void);
     void create_response(void);
-    void file_handle(void);
-    void set_res_status(int, std::string);
+    void try_file(void);
+    void content_builder(void);
 
-    // error handle
+    // res handle
+    void set_res_status(int, std::string);
     void error_page_set(int, std::string);
 
     // utils

@@ -74,7 +74,7 @@ int Webserv::polling(void) {
                     context->handle_request();
 
                     // in case of conection was hangup
-                    if (context->get_status() > READING) {
+                    if (context->get_status() == WRITING) {
 
                         // reading complete send to EPOLLOUT
                         event.events = EPOLLOUT;
@@ -82,7 +82,13 @@ int Webserv::polling(void) {
                         if (epoll_ctl(this->_epfd, EPOLL_CTL_MOD, context->get_fd(), &event) == -1)
                             throw std::runtime_error("[ERROR]: epoll mod to epfd failed");
 
-                    } else 
+                    } 
+                    // in case the connection was closed from client
+                    else if (context->get_status() == CLOSED) {
+                        std::cout << "[DEBUG]: Connection was closed from client" << std::endl;
+                        close_connection(context);
+                    } 
+                    else 
                         std::cout << "[DEBUG]: reading in progress for next buffer" << std::endl;
 
                     // continue reading;

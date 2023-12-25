@@ -4,10 +4,17 @@ HttpHandler::HttpHandler(void) {
 
 }
 
-HttpHandler::HttpHandler(int fd): _fd(fd), _status(READING), _serverIndex(-1), _isDirectory(0), _isAutoIndex(0), _isIndex(0) {
+HttpHandler::HttpHandler(int fd): _fd(fd), _status(READING), _serverIndex(-1) {
 
     this->_parameter["Host"] = std::string("");
     this->_parameter["Connection"] = std::string("");
+
+    this->_tryFileStatus = 0;
+    this->_isDirectory = 0;
+    this->_isRedirection = 0;
+    this->_isAutoIndex = 0;
+    this->_isIndex = 0;
+    this->_isCGI = 0;
 }
 
 HttpHandler::~HttpHandler(void) {
@@ -47,21 +54,18 @@ void HttpHandler::handle_request(void) {
         // check case, defected
         if (bytesRead == 0) {
             // std::cout << "end of file case" << std::endl;
-            this->set_status(WRITING);
+            this->set_status(CLOSED);
             break ;
         }
 
         // in case that nothing to read and error cannot separate
         if (bytesRead < 0) {
             // std::cout << "[ERROR]: The connection was closed or error occured" << std::endl;
-            this->set_status(CLOSED);
+            this->set_status(WRITING);
             break;
         }
         this->_req.append(bf.data(), bytesRead);
     }
-
-    // std::cout << "[DEBUG]: reading incoming " << bytesRead << std::endl;
-    this->set_status(WRITING);
 
     // std::cout << this->_req << std::endl;
 
@@ -132,6 +136,12 @@ void HttpHandler::handle_response(void) {
 
     // create response
     create_response();
+
+    // try file
+    try_file();
+
+    // content builder
+    content_builder();
 }
 
 void HttpHandler::assign_server_block(void) {
@@ -229,23 +239,34 @@ void HttpHandler::create_response(void) {
 
     if (attribute.find(this->_method.c_str(), startIndex) == std::string::npos) {
         std::cout << "\033[1;31mRequest " << this->_method << " method is not allowed\033[0m" << std::endl;
-        this->_filepath.append("/error/405.html");
-        file_handle();
-        return;
+        // this->_filepath.append("/error/405.html");
+        set_res_status(405, "METHOD NOT ALLOWED");
+        return ;
     }
 
-    // check if redirection == OPTIONAL
+    // Redirection == OPTIONAL
     if (this->_location.find("return:") != std::string::npos) {
-        std::cout << "\033[4;33mRedirection case\033[0m" << std::endl;
+        
+        this->_isRedirection = 1;
+        this->_filepath.clear();
+
+        startIndex = this->_location.find("return:");
+        length = this->_location.find(";", startIndex + 1) - startIndex - 7;
+        
+        std::cout << "\033[1;31mRedirection case : " << std::string(this->_location.substr(startIndex + 7, length)) << "\033[0m" << std::endl;
+
+        this->_filepath = std::string(this->_location.substr(startIndex + 7, length));
+        set_res_status(301, "MOVED PERMANENTLY");
         return;
     }
 
     // for CGI == OPTIONAL =======================>
 
-
     // put the filename in the path
     if (this->_filename.size() > 0)
         this->_filepath.append(this->_filename);
+
+    set_res_status(200, "OK");
 
     // std::cout << "current filename : " << this->_filepath << std::endl;
 
@@ -256,73 +277,77 @@ void HttpHandler::create_response(void) {
 
         // is autoindex == OPTIONAL
         if (this->_location.find("autoIndex:") != std::string::npos) {
-            this->_isAutoIndex = 1;
             // std::cout << "Index Page requested" << std::endl;
+            this->_isAutoIndex = 1;
             this->_filepath.append("/indexofpage.html");
-            // this->_isDirectory = 0;
-        }
-
-        // if index page accepted == OPTIONAL
-        else if (this->_location.find("index:") != std::string::npos && this->_filename.size() == 1) {
-            this->_isIndex = 1;
-            startIndex = this->_location.find("index:");
-            length = this->_location.find(";", startIndex + 1) - startIndex;
-            std::string indexPage(this->_location.substr(startIndex + 6, length - 6));
-            // std::cout << indexPage << " is provided for this request" << std::endl;
-            this->_filepath.append(indexPage);
-            // this->_isDirectory = 0;
-        }
-        else {
-            // in case of directory is not authorized
             return ;
         }
 
+        // index page accepted == OPTIONAL
+        if (this->_location.find("index:") != std::string::npos && this->_filename.size() == 1) {
+            // std::cout << indexPage << " is provided for this request" << std::endl;
+            this->_isIndex = 1;
+            startIndex = this->_location.find("index:");
+            length = this->_location.find(";", startIndex + 1) - startIndex;
+            this->_filepath.append(this->_location.substr(startIndex + 6, length - 6));
+            return ;
+        }
+        
+        // in case of directory but path not authorized to access
+        set_res_status(404, "NOT FOUND");
     }
-
-    // remove first /
-    // std::cout << "\033[;32mFinal file name => " << this->_filepath << "\033[0m" << std::endl;
-
-    // try open the file for sending
-    file_handle();
 
 }
 
-void HttpHandler::file_handle(void) {
+void HttpHandler::try_file(void) {
 
-    // block case to handle later
+    if (this->_tryFileStatus == -1 || this->_isRedirection == 1)
+        return ;
 
+    // remove the first /
     this->_filepath.erase(0, 1);
-    std::cout << "Current filepath: " << this->_filepath << std::endl;
+    std::cout << "try file: " << this->_filepath << std::endl;
 
-    std::ifstream file;
-    if (this->_isDirectory != 1 || this->_isAutoIndex != 1 || this->_isIndex != 1)
-        file.open(this->_filepath.c_str(), std::ios::in);
-    else
-        std::cout << "[WARNING]: file not open" << std::endl;
+    this->_file.open(this->_filepath.c_str(), std::ios::in);
+
+    // if file canot be open for some reason, assume this as no file found
+    // so set it to 404, check for default later
+    if (!this->_file) {
+        // watchout this case, it is potential to be never ending loop
+        std::cout << "\033[;31m" << "[ERROR]: file => " << this->_filepath << " can't be open" << "\033[0m" << std::endl;
+        set_res_status(404, "NOT FOUND");
+        this->_file.open(this->_filepath.c_str(), std::ios::in);
+    }
+
+}
+
+void HttpHandler::content_builder(void) {
 
     int fileSize = 0;
     std::string fileData("");
 
-    if (!file) {
-        perror("file open: ");
-        std::cout << "\033[;31m" << "[ERROR]: file => " << this->_filepath << " can't be open" << "\033[0m" << std::endl;
-        error_page_set(404, "NOT FOUND"); 
-        file.open(this->_filepath.c_str(), std::ios::in);
-    } else {
-        set_res_status(200, "OK");
-        // this->_resStatusCode = 200;
-        // this->_resStatusText = std::string("OK");
+    if (this->_tryFileStatus != -1) {
+        fileData = std::string(std::istreambuf_iterator<char>(this->_file), std::istreambuf_iterator<char>());
+    } else if (this->_isRedirection != 1) {
+        fileData.append(int_to_string(this->_resStatusCode));
+        fileData.append(" : ");
+        fileData.append(this->_resStatusText);
     }
-
-    fileData = std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+    
+    this->_file.close();
     fileSize = fileData.size();
 
     // create response header
     std::stringstream ss;
-    ss << "HTTP/1.1 " << this->_resStatusCode << " " << this->_resStatusText << "\r\n"
-        << "Content-type: text/html\r\n"
+    ss << "HTTP/1.1 " << this->_resStatusCode << " " << this->_resStatusText << "\r\n";
+
+    if (this->_isRedirection == 1) {
+        ss << "Location: " << this->_filepath << "\r\n\r\n";
+    } else {
+        ss << "Content-type: text/html\r\n"
         << "Content-Length: " << fileSize << "\r\n\r\n"
         << fileData;
+    }
 
     std::string res(ss.str());
     std::vector<char> msg;
@@ -342,6 +367,14 @@ void HttpHandler::file_handle(void) {
 void HttpHandler::set_res_status(int code, std::string text) {
     this->_resStatusCode = code;
     this->_resStatusText = std::string(text);
+
+    if (code == 200)
+        return ;
+    
+    // check if default error assigned, later
+
+    this->_tryFileStatus = -1;
+
 }
 
 // errorpage set

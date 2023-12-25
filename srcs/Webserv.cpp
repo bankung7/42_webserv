@@ -12,6 +12,8 @@ Webserv::Webserv(void): _backlog(20) {
     sv1.set_location("/html", "allowedMethod:GET;root:/sites/www1/html;");
     sv1.set_location("/html/", "allowedMethod:GET;root:/sites/www1/html;autoIndex:on");
     sv1.set_location("/post", "allowedMethod:POST;root:/sites/www1/html;");
+    sv1.set_location("/test/", "allowedMethod:GET;root:/sites/www1/html;");
+    sv1.set_location("/return/google", "allowedMethod:GET;return:http://www.google.com;");
     add_server(sv1);
 
     sv2.add_server_name("webserv11");
