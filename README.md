@@ -39,8 +39,16 @@
 [REPRODUCE]-> browser webserv1:8080/test/
 [TESTING]
 
-- the browser keep it cache, some test must clear the cache before (redirection)
+- routing not expected,
+   when no modifier, will match most char in every routing.
+   when = modifier, will match exacty in every routing
+= the root will be appended by uri like 
+   root /var/www;
+   uri 127.0.0.1/test1/index.html
+   routing /test1
+== output: /var/www/test1/index.html
 
+- the browser keep it cache, some test must clear the cache before (redirection)
 
 #### update: 24/12/23 22:27
 
@@ -99,6 +107,8 @@ if the request is made for /foo, the first location block will be called. it wil
 However, if a file is not found (a 404 status), an internal redirect to "/error/404.html" will occur, leading to a new location search that will land on the second block and try to find "/var/www/other/site/404.html".
 if the request is made for /site/index.html, the second location will be called. It will try to find a file called "index.html" in the /var/www/other/site/index.html" directory.
 
+This project will apply to non-modifier only!!!!.
+
 ## Location anatomy
 ```
 https://example.org:8080/foo/bar?q=baz#bang
@@ -115,6 +125,9 @@ href     - https://example.org:8080/foo/bar?q=baz
 
 > [!NOTE]
 > The /etc/hosts file is a plain text file used in matching a fully qualified domain name (FQDN) with the server IP hosting a specific domain. When the DNS server cannot be reached, the /etc/hosts file to resolve the domain name.
+
+### Directory Listing
+This use autoindex directive to show. The webserv will try to display a directory listing when a particular URL path ends with a /. Example, the url is /assets/css/, it will look in the folder /css/ to see if it can find an index.html file. if the autoindex is not active and there is no index.html exist, it will return 404.
 
 ## HTTP Request
 

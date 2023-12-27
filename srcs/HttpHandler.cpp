@@ -171,28 +171,23 @@ void HttpHandler::assign_server_block(void) {
 
 void HttpHandler::assign_location_block(void) {
 
-    // std::cout << "checking url => " << this->_url << std::endl;
+    // loop check the find the longest match, only support for no-modifier
 
     // check if there is only /, from the backward
-    if (this->_url.compare("/") == 0) {
-
-        this->_isDirectory = 1;
-
-        this->_path.append("/");
-        this->_location.append(this->_server[_serverIndex].get_location("/"));
-
-        this->_filename.append(this->_url);
-
-        // std::cout << "path: " << this->_path << std::endl;
-        // std::cout << "location: " << this->_location << std::endl;
-        // std::cout << "filename: " << this->_filename << std::endl;
-        return ;
-    }
+    // if (this->_url.compare("/") == 0) {
+    //     this->_isDirectory = 1;
+    //     this->_path.append("/");
+    //     this->_location.append(this->_server[_serverIndex].get_location("/"));
+    //     this->_filename.append(this->_url);
+    //     // std::cout << "path: " << this->_path << std::endl;
+    //     // std::cout << "location: " << this->_location << std::endl;
+    //     // std::cout << "filename: " << this->_filename << std::endl;
+    //     return ;
+    // }
 
     // example just snip / -> /
     std::string path(this->_url);
     if (path[path.size() - 1] != '/') {
-        // std::cout << "not a directory case" << std::endl;
         path.erase(path.rfind("/"));
     }
     else
@@ -234,12 +229,11 @@ void HttpHandler::create_response(void) {
     length = this->_location.find(";", startIndex + 1) - startIndex + 1;
     attribute = std::string( this->_location.substr(startIndex, length));
 
-    // std::cout << "Request Method " << this->_method << std::endl;
-    // std::cout << "Allowed Method " << attribute << std::endl;
 
     if (attribute.find(this->_method.c_str(), startIndex) == std::string::npos) {
+        // std::cout << "Request Method " << this->_method << std::endl;
+        // std::cout << "Allowed Method " << attribute << std::endl;
         std::cout << "\033[1;31mRequest " << this->_method << " method is not allowed\033[0m" << std::endl;
-        // this->_filepath.append("/error/405.html");
         set_res_status(405, "METHOD NOT ALLOWED");
         return ;
     }
@@ -342,8 +336,10 @@ void HttpHandler::content_builder(void) {
     ss << "HTTP/1.1 " << this->_resStatusCode << " " << this->_resStatusText << "\r\n";
 
     if (this->_isRedirection == 1) {
+        ss << "Cache-Control: no-store\r\n";
         ss << "Location: " << this->_filepath << "\r\n\r\n";
     } else {
+        ss << "Cache-Control: no-store\r\n";
         ss << "Content-type: text/html\r\n"
         << "Content-Length: " << fileSize << "\r\n\r\n"
         << fileData;
