@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h> // for system
+#include <sys/stat.h> // stat
 
 // C++
 #include <sstream>
@@ -61,6 +62,7 @@ private:
     int _isAutoIndex;
     int _isIndex;
     int _isCGI;
+    size_t _fileSize;
 
     std::string _res;
     std::ifstream _file;
@@ -82,6 +84,7 @@ public:
     // getter
     int get_fd(void) const;
     int get_status(void) const;
+    std::string get_connection_type(void);
 
     // process
     void handle_request(void);
@@ -94,9 +97,11 @@ public:
     void try_file(void);
     void content_builder(void);
 
+
     // res handle
     void set_res_status(int, std::string);
     void error_page_set(int, std::string);
+    int check_connection_type(std::string);
 
     // utils
     void remove_white_space(std::string&);

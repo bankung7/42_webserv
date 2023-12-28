@@ -8,10 +8,10 @@ Webserv::Webserv(void): _backlog(20) {
     Server sv1, sv2, sv3;
     // sv1.add_server_name("webserv1");
     sv1.set_port(8080);
-    sv1.set_location("/", "allowedMethod:GET;root:/sites/www1;index:index.html;");
-    sv1.set_location("/html","allowedMethod:GET;root:/sites/www1;index:subindex.html");
-    sv1.set_location("/index","allowedMethod:GET;root:/sites/www1;autoIndex:on;");
-    sv1.set_location("/google", "allowedMethod:GET;return:https://www.google.co.th;");
+    sv1.set_location("/", "allowedMethod:GET;root:/sites/www1;"); // default index
+    sv1.set_location("/html","allowedMethod:GET;root:/sites/www1;index:defined.html"); // defined index 
+    sv1.set_location("/files","allowedMethod:GET;root:/sites/www1;autoIndex:on;"); // autoindex, if defined index, it would be index
+    sv1.set_location("/google", "allowedMethod:GET;return:https://www.google.co.th;"); // for redirection
     add_server(sv1);
 
     sv2.add_server_name("webserv11");

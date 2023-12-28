@@ -18,6 +18,7 @@
 class Server {
 
 private:
+    int         _duplicated;
     int         _fd;
     std::vector<std::string> _serverName;
     int         _port;

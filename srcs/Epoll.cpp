@@ -116,6 +116,27 @@ int Webserv::polling(void) {
 
 void Webserv::close_connection(HttpHandler* context) {
 
+    // TODO:
+    std::cout << context->get_connection_type() << std::endl;
+
+    // // dealing with connection that was not closed yet
+    // // TODO: dont let be there forever
+    // if (context->get_connection_type().compare("keep-alive\r") == 0) {
+
+    //     std::cout << "yes keep this alive" << std::endl;
+
+    //     context->set_status(COMPLETED);
+
+    //     struct epoll_event event;
+    //     event.events = EPOLLIN;
+    //     event.data.ptr = (void*)context;
+        
+    //     if (epoll_ctl(this->_epfd, EPOLL_CTL_MOD, context->get_fd(), &event) == -1)
+    //         throw std::runtime_error("[ERROR]: epoll del to epfd failed");
+
+    //     return ;
+    // }
+
     int client_fd = context->get_fd(); // get client fd
 
     if (epoll_ctl(this->_epfd, EPOLL_CTL_DEL, client_fd, NULL) == -1)

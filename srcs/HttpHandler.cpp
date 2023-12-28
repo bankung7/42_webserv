@@ -15,6 +15,7 @@ HttpHandler::HttpHandler(int fd): _fd(fd), _status(READING), _serverIndex(-1) {
     this->_isAutoIndex = 0;
     this->_isIndex = 0;
     this->_isCGI = 0;
+    this->_fileSize = 0;
 }
 
 HttpHandler::~HttpHandler(void) {
@@ -37,6 +38,10 @@ int HttpHandler::get_fd(void) const {
 
 int HttpHandler::get_status(void) const {
     return (this->_status);
+}
+
+std::string HttpHandler::get_connection_type(void) {
+    return (this->_parameter["Connection"]);
 }
 
 // process
@@ -121,7 +126,7 @@ void HttpHandler::parsing_request(void) {
 void HttpHandler::handle_response(void) {
 
     // protect case
-    if (this->_status == CLOSED)
+    if (this->_status >= COMPLETED)
         return ;
 
     // Assign server block
@@ -132,7 +137,7 @@ void HttpHandler::handle_response(void) {
 
     // match location
     assign_location_block();
-    std::cout << "[DEBUG]: Location block was assigned to " << this->_path << std::endl;
+    std::cout << "[DEBUG]: Location block was assigned to " << this->_loc << std::endl;
 
     // create response
     create_response();
@@ -175,8 +180,8 @@ void HttpHandler::assign_location_block(void) {
     this->_loc.append(this->_server[this->_serverIndex].best_match_location(this->_url));
     this->_location.append(this->_server[this->_serverIndex].get_location(this->_loc));
 
-    std::cout << this->_loc << std::endl;
-    std::cout << this->_location << std::endl;
+    // std::cout << this->_loc << std::endl;
+    // std::cout << this->_location << std::endl;
 
 }
 
@@ -228,15 +233,23 @@ void HttpHandler::create_response(void) {
 
     // for CGI == OPTIONAL =======================>
 
+
     // check if directory or not
-    std::ifstream fileDir(this->_filepath.c_str());
-    fileDir.seekg(0, std::ios::end);
-    std::cout << "test file " << this->_filepath << std::endl;
-    if (!fileDir.good()) {
-        std::cout << "the url is directory" << std::endl;
-        this->_isDirectory = 1;
-    } else {
-        std::cout << "the url is not directory" << std::endl;
+    struct stat sb;
+    stat(this->_filepath.c_str(), &sb);
+    // perror("stat");
+
+    switch (sb.st_mode & S_IFMT) {
+        // if url is the directory
+        case S_IFDIR:
+            this->_isDirectory = 1;
+            break;
+        case S_IFREG:
+            this->_fileSize = sb.st_size;
+            break;
+        default:
+            std::cout << "not support or file not found" << std::endl;
+            break;
     }
 
     // is directory == OPTIONAL
@@ -244,8 +257,12 @@ void HttpHandler::create_response(void) {
 
         std::cout << "\033[0;31mDIRECTORY\033[0;0m" << std::endl;
 
+        // in case match location is directory but not / at the end
+        if (this->_filepath[this->_filepath.size() - 1] != '/')
+            this->_filepath.append("/");
+
         // index page accepted == OPTIONAL
-        if (this->_location.find("index:") != std::string::npos && this->_filename.size() == 1) {
+        if (this->_location.find("index:") != std::string::npos) {
             // std::cout << indexPage << " is provided for this request" << std::endl;
             this->_isIndex = 1;
             startIndex = this->_location.find("index:");
@@ -267,23 +284,18 @@ void HttpHandler::create_response(void) {
         this->_filepath.append("index.html");
     }
 
-    set_res_status(200, "OK");
-
 }
 
 void HttpHandler::try_file(void) {
 
     // TODO: if the file read is directory
-    // basic_filebuf::underflow error reading the file: Is a directory // defect
 
-    std::cout << "filepath: => " << this->_filepath << std::endl;
+    // std::cout << "filepath: => " << this->_filepath << std::endl;
 
     if (this->_tryFileStatus == -1 || this->_isRedirection == 1)
         return ;
 
-    // remove the first /
-    // this->_filepath.erase(0, 1);
-    std::cout << "try file: " << this->_filepath << std::endl;
+    std::cout << "[DEBUG]: try file: " << this->_filepath << std::endl;
 
     this->_file.open(this->_filepath.c_str(), std::ios::in);
 
@@ -295,12 +307,13 @@ void HttpHandler::try_file(void) {
         set_res_status(404, "NOT FOUND");
         this->_file.open(this->_filepath.c_str(), std::ios::in);
     }
+    else
+        set_res_status(200, "OK");
 
 }
 
 void HttpHandler::content_builder(void) {
 
-    int fileSize = 0;
     std::string fileData("");
 
     if (this->_tryFileStatus != -1) {
@@ -312,7 +325,10 @@ void HttpHandler::content_builder(void) {
     }
     
     this->_file.close();
-    fileSize = fileData.size();
+    if (this->_fileSize == 0)
+        this->_fileSize = fileData.size();
+    
+    // std::cout << "file size: " << this->_fileSize << std::endl;
 
     // create response header
     std::stringstream ss;
@@ -324,13 +340,16 @@ void HttpHandler::content_builder(void) {
     } else {
         ss << "Cache-Control: no-store\r\n";
         ss << "Content-type: text/html\r\n"
-        << "Content-Length: " << fileSize << "\r\n\r\n"
+        << "Content-Length: " << this->_fileSize << "\r\n\r\n"
         << fileData;
     }
+
 
     std::string res(ss.str());
     std::vector<char> msg;
     msg.insert(msg.begin(), res.begin(), res.end());
+
+    // std::cout << msg.data() << std::endl;
 
     int totalByte = msg.size();
     int sentByte = send(this->_fd, msg.data(), totalByte, 0);
@@ -340,7 +359,7 @@ void HttpHandler::content_builder(void) {
     else if (totalByte != sentByte)
         std::cout << "\033[;31m" << "[ERROR]: Sendin not whole file" << "\033[0m" << std::endl;
     else
-        std::cout << "\033[;32m" << "[ERROR]: Send completed " << totalByte << "\033[0m" << std::endl;
+        std::cout << "\033[;32m" << "[DEBUG]: Send completed " << totalByte << "\033[0m" << std::endl;
 }
 
 void HttpHandler::set_res_status(int code, std::string text) {
@@ -375,10 +394,20 @@ void HttpHandler::remove_white_space(std::string& input) {
         if (input[i] == ' ') {
             input.erase(i, 1);
             i--;
+            len = input.size();
         }
         else
             break;
     }
+
+    for (int i = input.size() - 1; i < 0; i--) {
+        if (input[i] == ' ' || input[i] == '\r') {
+            input.erase(i, 1);
+        }
+        else
+            break;
+    }
+
 }
 
 int HttpHandler::string_to_int(std::string str) {
