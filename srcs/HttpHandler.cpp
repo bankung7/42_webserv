@@ -7,7 +7,10 @@ HttpHandler::HttpHandler(void) {
 HttpHandler::HttpHandler(int fd): _fd(fd), _status(READING), _serverIndex(-1) {
 
     this->_parameter["Host"] = std::string("");
+    this->_parameter["Content-Length"] = std::string("");
     this->_parameter["Connection"] = std::string("");
+
+    this->_reqContentLength = 0;
 
     this->_tryFileStatus = 0;
     this->_isDirectory = 0;
@@ -92,7 +95,7 @@ void HttpHandler::handle_request(void) {
     }
 
     // TODO : POST and DELETE method
-    std::cout << this->_req << std::endl;
+    // std::cout << this->_req << std::endl;
 
     this->parsing_request();
 }
@@ -264,13 +267,9 @@ void HttpHandler::create_response(void) {
     // perror("stat");
 
     switch (this->_fileInfo.st_mode & S_IFMT) {
-        // if url is the directory
         case S_IFDIR: // if it is the directory
             this->_isDirectory = 1;
             break;
-        // case S_IFREG: // if it is the file
-        //     this->_fileSize = sb.st_size;
-        //     break;
         default: // if nothing else
             // std::cout << "not support or file not found" << std::endl;
             break;
@@ -358,11 +357,12 @@ void HttpHandler::try_file(void) {
         // if (stats.st_mode & R_OK)
         //     printf("read ");
 
-        // if DELETE METHOD
-        if (this->_isDirectory == 0 && this->_method.compare("DELETE") == 0) {
+        // TODO: DELETE METHOD
+        if (this->_method.compare("DELETE") == 0) {
             std::cout << "delete method" << std::endl;
             std::remove(this->_filepath.c_str());
             set_res_status(200, "OK");
+            this->_tryFileStatus = -1; // if code can be default
             return ;
         }
 

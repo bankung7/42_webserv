@@ -21,7 +21,7 @@
 #include "HttpHandler.hpp"
 
 // define
-#define MAX_EVENTS 25
+#define MAX_EVENTS 1024
 #define BACKLOG 20
 
 class Webserv {

@@ -27,6 +27,8 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <algorithm>
+#include <string>
 
 // Custom
 #include "Server.hpp"
@@ -43,6 +45,7 @@ private:
     std::string _url;
     std::string _version;
     std::string _reqContentType;
+    std::size_t _reqContentLength;
     std::string _body;
 
     std::map<std::string, std::string> _parameter;

@@ -10,56 +10,56 @@
         .flex {
             display: flex;
         }
-
+        
         .justify-center {
             justify-content: center;
         }
-
+        
         .block {
             display: block;
         }
-
+        
         .p5 {
             padding: 5px;
         }
-
+        
         .m5 {
             margin: 5px;
         }
-
+        
         .text-center {
             text-align: center;
         }
-
+        
         .text-bold {
             text-decoration: solid;
         }
-
+        
         ul {
             padding: 5px 0;
             margin: 0;
         }
-
+        
         li {
             list-style-type: none;
         }
-
+        
         a {
             text-decoration: none;
         }
-
+        
         a:hover {
             color: red;
         }
-
+        
         a:active {
             color: black;
         }
-
+        
         .border-solid-black {
             border: 1px solid black;
         }
-
+        
         .btn-submit {
             border: 1px solid black;
             border-radius: 3px;
@@ -67,7 +67,7 @@
             color: black;
             background-color: white;
         }
-
+        
         .btn-submit:hover {
             color: white;
             background-color: blue;
@@ -96,10 +96,10 @@
                 </ul>
             </div>
 
-            <div class="flex">
+            <!-- <div class="flex">
                 <img style="width: 50%;" src="/images/panda.jpeg" alt="panda">
                 <img style="width: 50%;" src="/images/panda1.jpeg" alt="panda1">
-            </div>
+            </div> -->
 
             <div class="border-solid-black p5 m5">
                 <div><strong>Auto Index</strong></div>
@@ -127,15 +127,11 @@
                 <div>
                     <p>Idea: Answer the question</p>
                 </div>
-                <div>
-                    <p>What is right answer?</p>
-                    <form action="/html/post" method="POST">
-                        <input type="text" name="postValue">
-                        <input class="btn-submit" type="submit" value="Submit">
-                    </form>
-                </div>
                 <div class="m5 p5">
-                    <a href="/html/post">Access POST allowed with GET</a>
+                    <form action="/box/index.html" method="POST">
+                        <input type="hidden" name="path" value="index.html">
+                        <input class="btn-submit" type="submit" value="Go with POST">
+                    </form>
                 </div>
             </div>
 
@@ -143,18 +139,11 @@
             <div class="border-solid-black p5 m5">
                 <div><strong>DELETE</strong></div>
                 <div>
-                    <p>Idea: may be remove the prepared page</p>
+                    <p>Idea: use curl in the terminal to try</p>
+                    <p>curl -X "DELETE" 127.0.0.1:8080/box/index.html</p>
                 </div>
                 <div>
-                    <p>Will you remove the page 2, it cannot be restore anymore?</p>
-                    <form action="/images" method="DELETE">
-                        <ul>
-                            <li>
-                                <input type="submit" value="Delete">
-                            </li>
-                        </ul>
-                    </form>
-                    <a href="#" class="btn-submit">Yes, I don't care about it!</a>
+                    <a href="/box/index.html">Index</a>
                 </div>
             </div>
 
@@ -164,9 +153,9 @@
                     <div>
                         <div><strong>Upload</strong></div>
                         <div>
-                            <form name="upload" method="POST" enctype="multipart/form-data" action="/upload">
+                            <form name="upload" method="POST" action="/uploads" enctype="multipart/form-data">
                                 <p>Try to input something here</p>
-                                <input type="file" name="uploadFile">
+                                <input type="file" name="uploadFile" value="file">
                                 <input type="submit" value="Upload">
                             </form>
                         </div>
@@ -184,6 +173,15 @@
                             </li>
                         </ul>
                     </div>
+                </div>
+            </div>
+
+            <!-- Stress test -->
+            <div class="flex border-solid-black p5 m5">
+                <div>
+                    <div><strong>Stress Test</strong></div>
+                    <p>Put this in the terminal to test</p>
+                    <p>siege 127.0.0.1:8080 -c255 -t10S -b</p>
                 </div>
             </div>
 
