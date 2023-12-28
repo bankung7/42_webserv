@@ -10,52 +10,56 @@
         .flex {
             display: flex;
         }
-        
+
         .justify-center {
             justify-content: center;
         }
-        
+
+        .block {
+            display: block;
+        }
+
         .p5 {
             padding: 5px;
         }
-        
+
         .m5 {
             margin: 5px;
         }
-        
+
         .text-center {
             text-align: center;
         }
-        
+
         .text-bold {
             text-decoration: solid;
         }
-        
+
         ul {
             padding: 5px 0;
             margin: 0;
         }
-        
+
         li {
             list-style-type: none;
         }
-        
+
         a {
             text-decoration: none;
         }
-        
+
         a:hover {
             color: red;
         }
-        
+
         a:active {
             color: black;
         }
-        
+
         .border-solid-black {
             border: 1px solid black;
         }
-        
+
         .btn-submit {
             border: 1px solid black;
             border-radius: 3px;
@@ -63,7 +67,7 @@
             color: black;
             background-color: white;
         }
-        
+
         .btn-submit:hover {
             color: white;
             background-color: blue;
@@ -90,6 +94,11 @@
                     <li><a href="/html">html - defined index, exist</a></li>
                     <li><a href="/html1">html - defined index, not exist</a></li>
                 </ul>
+            </div>
+
+            <div class="flex">
+                <img style="width: 50%;" src="/images/panda.jpeg" alt="panda">
+                <img style="width: 50%;" src="/images/panda1.jpeg" alt="panda1">
             </div>
 
             <div class="border-solid-black p5 m5">
@@ -138,6 +147,13 @@
                 </div>
                 <div>
                     <p>Will you remove the page 2, it cannot be restore anymore?</p>
+                    <form action="/images" method="DELETE">
+                        <ul>
+                            <li>
+                                <input type="submit" value="Delete">
+                            </li>
+                        </ul>
+                    </form>
                     <a href="#" class="btn-submit">Yes, I don't care about it!</a>
                 </div>
             </div>
@@ -148,18 +164,25 @@
                     <div>
                         <div><strong>Upload</strong></div>
                         <div>
-                            <p>Try to input something here</p>
-                            <input type="file" name="uploadFile">
-                            <input type="submit" value="Upload">
+                            <form name="upload" method="POST" enctype="multipart/form-data" action="/upload">
+                                <p>Try to input something here</p>
+                                <input type="file" name="uploadFile">
+                                <input type="submit" value="Upload">
+                            </form>
                         </div>
                     </div>
                 </div>
                 <div class="border-solid-black p5 m5">
                     <div>
                         <div><strong>Download</strong></div>
-                        <div>
-                            <input type="button" value="Download">
-                        </div>
+                        <ul>
+                            <li class="block">
+                                <a href="/images/panda.jpeg">Panda 1</a>
+                            </li>
+                            <li class="block">
+                                <a href="/images/panda1.jpeg">Panda 2</a>
+                            </li>
+                        </ul>
                     </div>
                 </div>
             </div>

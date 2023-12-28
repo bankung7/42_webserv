@@ -44,6 +44,7 @@
 [N] DELETE request \
 [N] Uploading file \
 [N] Downloading file \
+[N] Connection keep-alive \
 
 ## Defect
 - Sometime request stuck in the epoll in and go out with nothign to read, throw error (basic_string::erase: __pos (which is 18446744073709551615) > this->size() (which is 0)).

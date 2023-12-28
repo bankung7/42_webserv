@@ -33,6 +33,23 @@ void HttpHandler::set_server(std::vector<Server>& server) {
     this->_server = server;
 }
 
+void HttpHandler::set_res_content_type() {
+    std::size_t startIndex, len;
+    std::string type;
+
+    startIndex = this->_filepath.rfind(".");
+    if (startIndex != std::string::npos) {
+        len = this->_filepath.size() - startIndex;
+        type = std::string(this->_filepath.substr(startIndex, len));
+
+        if (type.compare(".jpeg") == 0 || type.compare(".png") == 0 || type.compare(".jpg") == 0)
+            this->_resContentType = std::string("image/*");
+       
+        return ;
+    }
+    this->_resContentType = std::string("text/html");
+}
+
 // getter
 int HttpHandler::get_fd(void) const {
     return (this->_fd);
@@ -74,7 +91,8 @@ void HttpHandler::handle_request(void) {
         this->_req.append(bf.data(), bytesRead);
     }
 
-    // std::cout << this->_req << std::endl;
+    // TODO : POST and DELETE method
+    std::cout << this->_req << std::endl;
 
     this->parsing_request();
 }
@@ -116,12 +134,6 @@ void HttpHandler::parsing_request(void) {
 
     std::stringstream pss(sport);
     pss >> this->_port;
-
-    // std::cout << "Method: " << this->_method << std::endl;
-    // std::cout << "URL: " << this->_url << std::endl;
-    // std::cout << "Version: " << this->_version << std::endl;
-    // std::cout << "Host: " << this->_parameter["Host"] << std::endl;
-    // std::cout << "Connection: " << this->_parameter["Connection"] << std::endl;
 
 }
 
@@ -248,11 +260,10 @@ void HttpHandler::create_response(void) {
     // for CGI == OPTIONAL =======================>
 
     // check if directory or not
-    struct stat sb;
-    stat(this->_filepath.c_str(), &sb);
+    stat(this->_filepath.c_str(), &this->_fileInfo);
     // perror("stat");
 
-    switch (sb.st_mode & S_IFMT) {
+    switch (this->_fileInfo.st_mode & S_IFMT) {
         // if url is the directory
         case S_IFDIR: // if it is the directory
             this->_isDirectory = 1;
@@ -320,9 +331,8 @@ void HttpHandler::set_res_status(int code, std::string text) {
         this->_filepath.append(this->_errorCode[code]);
 
         // check if the custom error page is exist
-        struct stat sb;
-        stat(this->_filepath.c_str(), &sb);
-        if ((sb.st_mode & S_IFMT) == S_IFREG)
+        stat(this->_filepath.c_str(), &this->_fileInfo);
+        if ((this->_fileInfo.st_mode & S_IFMT) == S_IFREG)
             return ;
         this->_tryFileStatus = -1;
         // std::cout << "error filepath: " << this->_filepath << std::endl;
@@ -339,14 +349,26 @@ void HttpHandler::try_file(void) {
 
     std::cout << "[DEBUG]: try file: " << this->_filepath << std::endl;
 
-    struct stat sb;
-    stat(this->_filepath.c_str(), &sb);
+    stat(this->_filepath.c_str(), &this->_fileInfo);
 
     // if file exist
-    if ((sb.st_mode & S_IFMT) == S_IFREG) {
-        // std::cout << "file exist" << std::endl;
+    if ((this->_fileInfo.st_mode & S_IFMT) == S_IFREG) {
+
+        // TODO: check file is permitted to read
+        // if (stats.st_mode & R_OK)
+        //     printf("read ");
+
+        // if DELETE METHOD
+        if (this->_isDirectory == 0 && this->_method.compare("DELETE") == 0) {
+            std::cout << "delete method" << std::endl;
+            std::remove(this->_filepath.c_str());
+            set_res_status(200, "OK");
+            return ;
+        }
+
         this->_file.open(this->_filepath.c_str(), std::ios::in);
-        this->_fileSize = sb.st_size;
+        this->_fileSize = this->_fileInfo.st_size;
+        set_res_content_type();
         if (this->_resStatusCode == 0)
             set_res_status(200, "OK");
         return ;
@@ -365,8 +387,6 @@ void HttpHandler::try_file(void) {
 void HttpHandler::content_builder(void) {
 
     std::string fileData("");
-
-    std::cout << "build  content " << std::endl;
 
     if (this->_tryFileStatus != -1) {
         fileData = std::string(std::istreambuf_iterator<char>(this->_file), std::istreambuf_iterator<char>());
@@ -391,7 +411,7 @@ void HttpHandler::content_builder(void) {
         ss << "Location: " << this->_filepath << "\r\n\r\n";
     } else {
         ss << "Cache-Control: no-store\r\n";
-        ss << "Content-type: text/html\r\n"
+        ss << "Content-type: " << this->_resContentType << "\r\n"
         << "Content-Length: " << this->_fileSize << "\r\n\r\n"
         << fileData;
     }

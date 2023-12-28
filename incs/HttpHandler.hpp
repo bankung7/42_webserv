@@ -55,6 +55,7 @@ private:
     std::string _path;
     std::string _filename;
     std::string _filepath; // for root + url
+    struct stat _fileInfo; // file info
     std::string _root; // root
     std::string _droot; // root directive from server block
     int _isDirectory;
@@ -82,6 +83,7 @@ public:
     // setter
     void set_status(int);
     void set_server(std::vector<Server>&);
+    void set_res_content_type(void);
 
     // getter
     int get_fd(void) const;
