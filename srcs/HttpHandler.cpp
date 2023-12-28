@@ -171,44 +171,12 @@ void HttpHandler::assign_server_block(void) {
 
 void HttpHandler::assign_location_block(void) {
 
-    // loop check the find the longest match, only support for no-modifier
+    // get the location block
+    this->_loc.append(this->_server[this->_serverIndex].best_match_location(this->_url));
+    this->_location.append(this->_server[this->_serverIndex].get_location(this->_loc));
 
-    // check if there is only /, from the backward
-    // if (this->_url.compare("/") == 0) {
-    //     this->_isDirectory = 1;
-    //     this->_path.append("/");
-    //     this->_location.append(this->_server[_serverIndex].get_location("/"));
-    //     this->_filename.append(this->_url);
-    //     // std::cout << "path: " << this->_path << std::endl;
-    //     // std::cout << "location: " << this->_location << std::endl;
-    //     // std::cout << "filename: " << this->_filename << std::endl;
-    //     return ;
-    // }
-
-    // example just snip / -> /
-    std::string path(this->_url);
-    if (path[path.size() - 1] != '/') {
-        path.erase(path.rfind("/"));
-    }
-    else
-        this->_isDirectory = 1;
-
-    // TODO: in case of double directory //
-    this->_path.append(this->_server[this->_serverIndex].best_match_location(path));
-    this->_filename.append(this->_url);
-
-    // std::cout << "paht to check [" << this->_path << "] " << path << std::endl;
-
-    if (this->_path.size() == 1)
-        this->_filename.erase(0, this->_path.size() - 1);
-    else
-        this->_filename.erase(0, this->_path.size());
-
-    this->_location.append(this->_server[this->_serverIndex].get_location(this->_path));
-
-    // std::cout << "path: " << this->_path << std::endl;
-    // std::cout << "location: " << this->_location << std::endl;
-    // std::cout << "filename: " << this->_filename << std::endl;
+    std::cout << this->_loc << std::endl;
+    std::cout << this->_location << std::endl;
 
 }
 
@@ -219,16 +187,16 @@ void HttpHandler::create_response(void) {
     // set root == MANDATORY
     startIndex = this->_location.find("root:");
     length = this->_location.find(";", startIndex + 1) - startIndex;
-    this->_lroot = std::string(this->_location.substr(startIndex + 5, length - 5)); // set lroot for error page
-    this->_filepath.append(this->_location.substr(startIndex + 5, length - 5));
+    this->_root = std::string(this->_location.substr(startIndex + 5, length - 5)); // set root
+    this->_root.erase(0, 1); // remnove the first "/"
+    this->_filepath.append(this->_root);
 
     std::string attribute;
 
     // check method request == MANDATORY
     startIndex = this->_location.find("allowedMethod:");
     length = this->_location.find(";", startIndex + 1) - startIndex + 1;
-    attribute = std::string( this->_location.substr(startIndex, length));
-
+    attribute = std::string(this->_location.substr(startIndex, length));
 
     if (attribute.find(this->_method.c_str(), startIndex) == std::string::npos) {
         // std::cout << "Request Method " << this->_method << std::endl;
@@ -237,6 +205,10 @@ void HttpHandler::create_response(void) {
         set_res_status(405, "METHOD NOT ALLOWED");
         return ;
     }
+
+    // put the filename in the path
+    // so the filepath should be root + url
+    this->_filepath.append(this->_url);
 
     // Redirection == OPTIONAL
     if (this->_location.find("return:") != std::string::npos) {
@@ -256,26 +228,21 @@ void HttpHandler::create_response(void) {
 
     // for CGI == OPTIONAL =======================>
 
-    // put the filename in the path
-    if (this->_filename.size() > 0)
-        this->_filepath.append(this->_filename);
-
-    set_res_status(200, "OK");
-
-    // std::cout << "current filename : " << this->_filepath << std::endl;
+    // check if directory or not
+    std::ifstream fileDir(this->_filepath.c_str());
+    fileDir.seekg(0, std::ios::end);
+    std::cout << "test file " << this->_filepath << std::endl;
+    if (!fileDir.good()) {
+        std::cout << "the url is directory" << std::endl;
+        this->_isDirectory = 1;
+    } else {
+        std::cout << "the url is not directory" << std::endl;
+    }
 
     // is directory == OPTIONAL
     if (this->_isDirectory == 1) {
 
         std::cout << "\033[0;31mDIRECTORY\033[0;0m" << std::endl;
-
-        // is autoindex == OPTIONAL
-        if (this->_location.find("autoIndex:") != std::string::npos) {
-            // std::cout << "Index Page requested" << std::endl;
-            this->_isAutoIndex = 1;
-            this->_filepath.append("/indexofpage.html");
-            return ;
-        }
 
         // index page accepted == OPTIONAL
         if (this->_location.find("index:") != std::string::npos && this->_filename.size() == 1) {
@@ -286,20 +253,36 @@ void HttpHandler::create_response(void) {
             this->_filepath.append(this->_location.substr(startIndex + 6, length - 6));
             return ;
         }
-        
-        // in case of directory but path not authorized to access
-        set_res_status(404, "NOT FOUND");
+
+        // is autoindex == OPTIONAL, if off, don't set this in the structure
+        // this might use cgi to generate the file into prepared folder
+        if (this->_location.find("autoIndex:") != std::string::npos) {
+            // std::cout << "Index Page requested" << std::endl;
+            this->_isAutoIndex = 1;
+            this->_filepath.append("indexofpage.html");
+            return ;
+        }
+
+        // in case of no index and autoindex, set index.html as default
+        this->_filepath.append("index.html");
     }
+
+    set_res_status(200, "OK");
 
 }
 
 void HttpHandler::try_file(void) {
 
+    // TODO: if the file read is directory
+    // basic_filebuf::underflow error reading the file: Is a directory // defect
+
+    std::cout << "filepath: => " << this->_filepath << std::endl;
+
     if (this->_tryFileStatus == -1 || this->_isRedirection == 1)
         return ;
 
     // remove the first /
-    this->_filepath.erase(0, 1);
+    // this->_filepath.erase(0, 1);
     std::cout << "try file: " << this->_filepath << std::endl;
 
     this->_file.open(this->_filepath.c_str(), std::ios::in);
@@ -377,7 +360,7 @@ void HttpHandler::set_res_status(int code, std::string text) {
 void HttpHandler::error_page_set(int error, std::string text) {
     set_res_status(error, text);
     this->_filepath.clear();
-    this->_filepath.append(this->_lroot);
+    this->_filepath.append(this->_root);
     this->_filepath.append("/error/");
     this->_filepath.append(int_to_string(error));
     this->_filepath.append(".html");

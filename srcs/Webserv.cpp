@@ -9,11 +9,9 @@ Webserv::Webserv(void): _backlog(20) {
     // sv1.add_server_name("webserv1");
     sv1.set_port(8080);
     sv1.set_location("/", "allowedMethod:GET;root:/sites/www1;index:index.html;");
-    sv1.set_location("/html", "allowedMethod:GET;root:/sites/www1/html;");
-    sv1.set_location("/html/", "allowedMethod:GET;root:/sites/www1/html;autoIndex:on");
-    sv1.set_location("/post", "allowedMethod:POST;root:/sites/www1/html;");
-    sv1.set_location("/test/", "allowedMethod:GET;root:/sites/www1/html;");
-    sv1.set_location("/google", "allowedMethod:GET;return:http://www.google.com;");
+    sv1.set_location("/html","allowedMethod:GET;root:/sites/www1;index:subindex.html");
+    sv1.set_location("/index","allowedMethod:GET;root:/sites/www1;autoIndex:on;");
+    sv1.set_location("/google", "allowedMethod:GET;return:https://www.google.co.th;");
     add_server(sv1);
 
     sv2.add_server_name("webserv11");
@@ -46,7 +44,7 @@ Webserv::~Webserv(void) {
 void Webserv::setup(void) {
 
     std::cout << "[DEBUG]: Setting up the server" << std::endl;
-
+    
     // loop read the _server to initiated
     for (int i = 0; i < (int)this->_server.size(); i++) {
         int port = this->_server[i].get_port();
@@ -82,7 +80,7 @@ void Webserv::add_context(int fd, HttpHandler* context) {
 
     if (this->_context.find(fd) != this->_context.end())\
         throw std::runtime_error("[ERROR]: duplicated fd in context");
-
+    
     this->_context[fd] = context;
 }
 
@@ -90,7 +88,7 @@ void Webserv::add_context(int fd, HttpHandler* context) {
 
 // remover
 void Webserv::remove_context(int fd) {
-
+    
     std::map<int, HttpHandler*>::iterator it = this->_context.find(fd);
 
     if (it != this->_context.end())

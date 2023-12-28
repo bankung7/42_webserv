@@ -49,12 +49,13 @@ private:
     std::vector<Server> _server;
     int _serverIndex;
 
-    std::string _location;
+    std::string _loc; // location name
+    std::string _location; // location block
     std::string _path;
     std::string _filename;
-    std::string _filepath; // for testing
-    std::string _root;
-    std::string _lroot;
+    std::string _filepath; // for root + url
+    std::string _root; // root
+    std::string _droot; // root directive from server block
     int _isDirectory;
     int _isRedirection;
     int _isAutoIndex;

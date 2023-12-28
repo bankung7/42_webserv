@@ -79,35 +79,55 @@ std::string Server::best_match_location(std::string loc) {
 
     std::map<std::string, std::string>::iterator it = this->_location.begin();
 
-    // try to exact match
-    if (this->_location.find(loc) != this->_location.end()) {
-        return (std::string(loc));
-    }
-
+    int mostMatch = 0;
     std::string output;
-    int mostIndex = -1;
+
     for (; it != this->_location.end(); it++) {
-        int index = 0;
-
-        std::string key = it->first;
-        int i = 0;
-        for (; i < (int)key.size(); i++, index++) {
-            if (loc[i] != key[i])
-                break ;
-        }
-
-        if ((i == (int)key.size() && (i == (int)loc.size() || loc[i] == '/')) && index > mostIndex) {
-            mostIndex = index;
-            output = it->first;
+        int size = it->first.size();
+        if (loc.compare(0, it->first.size(), it->first) == 0 && size >= mostMatch) {
+            // std::cout << "most match found => " << it->first << std::endl;
+            mostMatch = size;
+            output = std::string(it->first);
         }
     }
-
-    // in case does not found any most match, return /
-    if (mostIndex == -1)
-        return (std::string("/"));
 
     return (std::string(output));
 }
+
+// old style
+// std::string Server::best_match_location(std::string loc) {
+
+//     std::map<std::string, std::string>::iterator it = this->_location.begin();
+
+//     // try to exact match
+//     if (this->_location.find(loc) != this->_location.end()) {
+//         return (std::string(loc));
+//     }
+
+//     std::string output;
+//     int mostIndex = -1;
+//     for (; it != this->_location.end(); it++) {
+//         int index = 0;
+
+//         std::string key = it->first;
+//         int i = 0;
+//         for (; i < (int)key.size(); i++, index++) {
+//             if (loc[i] != key[i])
+//                 break ;
+//         }
+
+//         if ((i == (int)key.size() && (i == (int)loc.size() || loc[i] == '/')) && index > mostIndex) {
+//             mostIndex = index;
+//             output = it->first;
+//         }
+//     }
+
+//     // in case does not found any most match, return /
+//     if (mostIndex == -1)
+//         return (std::string("/"));
+
+//     return (std::string(output));
+// }
 
 
 // general
