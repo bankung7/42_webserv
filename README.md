@@ -25,10 +25,25 @@
 [C] Server setup and Initializing\
 [C] Epoll Server\
 [C] Handling request\
-[I] handling response => [GOLF]\
+[I] Handling response => [GOLF]\
 [N] CGI\
 [N] Error Handling\
 [I] Static Web => [GOLF]\
+
+### Specifications
+[C] root directive \
+[C] allowedMethod directive \
+[C] autoIndex directive \
+[C] index directive \
+[C] return directive \
+[C] Location Directive \
+[N] maxClientBodyLimit directive \
+[C] error_page directive \
+[C] GET request \
+[N] POST request \
+[N] DELETE request \
+[N] Uploading file \
+[N] Downloading file \
 
 ## Defect
 - Sometime request stuck in the epoll in and go out with nothign to read, throw error (basic_string::erase: __pos (which is 18446744073709551615) > this->size() (which is 0)).
@@ -47,10 +62,13 @@
    uri 127.0.0.1/test1/index.html
    routing /test1
 == output: /var/www/test1/index.html
+[SOLVED]
 
 - the browser keep it cache, some test must clear the cache before (redirection)
 
-#### update: 24/12/23 22:27
+- the server cannot process the keep-alive connection.
+
+#### update: 28/12/23 15:27
 
 ## Flowchart
 https://app.diagrams.net/#G1HveiOX7h5U4jHvzp7YklAA40VSXkAxFU

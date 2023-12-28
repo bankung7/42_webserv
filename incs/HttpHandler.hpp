@@ -64,6 +64,8 @@ private:
     int _isCGI;
     size_t _fileSize;
 
+    std::map<int, std::string> _errorCode;
+
     std::string _res;
     std::ifstream _file;
     int _resStatusCode;
@@ -101,7 +103,7 @@ public:
     // res handle
     void set_res_status(int, std::string);
     void error_page_set(int, std::string);
-    int check_connection_type(std::string);
+    void parsing_error_code(std::string);
 
     // utils
     void remove_white_space(std::string&);

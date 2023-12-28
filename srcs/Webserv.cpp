@@ -9,7 +9,7 @@ Webserv::Webserv(void): _backlog(20) {
     // sv1.add_server_name("webserv1");
     sv1.set_port(8080);
     sv1.set_location("/", "allowedMethod:GET;root:/sites/www1;"); // default index
-    sv1.set_location("/html","allowedMethod:GET;root:/sites/www1;index:defined.html"); // defined index 
+    sv1.set_location("/html","allowedMethod:GET;root:/sites/www1;index:defined.html;error_page: 500 501 501 505 /error_50x.html;error_page: 404 /error_404.html;error_page: 405 /error_405.html;"); // defined index 
     sv1.set_location("/files","allowedMethod:GET;root:/sites/www1;autoIndex:on;"); // autoindex, if defined index, it would be index
     sv1.set_location("/google", "allowedMethod:GET;return:https://www.google.co.th;"); // for redirection
     add_server(sv1);

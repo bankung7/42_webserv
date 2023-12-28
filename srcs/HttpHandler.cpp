@@ -16,6 +16,8 @@ HttpHandler::HttpHandler(int fd): _fd(fd), _status(READING), _serverIndex(-1) {
     this->_isIndex = 0;
     this->_isCGI = 0;
     this->_fileSize = 0;
+    this->_resStatusCode = 0;
+    this->_resStatusText = std::string("");
 }
 
 HttpHandler::~HttpHandler(void) {
@@ -187,7 +189,19 @@ void HttpHandler::assign_location_block(void) {
 
 void HttpHandler::create_response(void) {
 
-    int startIndex, length;
+    std::size_t startIndex, length;
+
+    startIndex = 0;
+    // Set errorcode into the map
+    while (1) {
+        startIndex = this->_location.find("error_page:");
+        if (startIndex == std::string::npos)
+            break ;
+
+        length = this->_location.find(";", startIndex + 1) - startIndex;
+        parsing_error_code(std::string(this->_location.substr(startIndex + 11, length - 11)));
+        this->_location.insert(startIndex + 10, "R");
+    }
 
     // set root == MANDATORY
     startIndex = this->_location.find("root:");
@@ -233,7 +247,6 @@ void HttpHandler::create_response(void) {
 
     // for CGI == OPTIONAL =======================>
 
-
     // check if directory or not
     struct stat sb;
     stat(this->_filepath.c_str(), &sb);
@@ -241,14 +254,14 @@ void HttpHandler::create_response(void) {
 
     switch (sb.st_mode & S_IFMT) {
         // if url is the directory
-        case S_IFDIR:
+        case S_IFDIR: // if it is the directory
             this->_isDirectory = 1;
             break;
-        case S_IFREG:
-            this->_fileSize = sb.st_size;
-            break;
-        default:
-            std::cout << "not support or file not found" << std::endl;
+        // case S_IFREG: // if it is the file
+        //     this->_fileSize = sb.st_size;
+        //     break;
+        default: // if nothing else
+            // std::cout << "not support or file not found" << std::endl;
             break;
     }
 
@@ -286,35 +299,74 @@ void HttpHandler::create_response(void) {
 
 }
 
+void HttpHandler::set_res_status(int code, std::string text) {
+    this->_resStatusCode = code;
+    this->_resStatusText = std::string(text);
+
+    if (code == 200)
+        return ;
+
+    // TODO: check if default error assigned, later
+    std::map<int, std::string>::iterator it = this->_errorCode.find(code);
+    if (it == this->_errorCode.end())
+        this->_tryFileStatus = -1; // this will return system error page
+    else {
+
+        // guaruntee that custom error_page is exist before try_file
+
+        std::cout << "the default error page was setup" << std::endl;
+        this->_filepath.clear();
+        this->_filepath.append(this->_root);
+        this->_filepath.append(this->_errorCode[code]);
+
+        // check if the custom error page is exist
+        struct stat sb;
+        stat(this->_filepath.c_str(), &sb);
+        if ((sb.st_mode & S_IFMT) == S_IFREG)
+            return ;
+        this->_tryFileStatus = -1;
+        // std::cout << "error filepath: " << this->_filepath << std::endl;
+    }
+
+}
+
 void HttpHandler::try_file(void) {
 
-    // TODO: if the file read is directory
+    // this step is reached when the filepath isset, even in the error code
 
-    // std::cout << "filepath: => " << this->_filepath << std::endl;
-
-    if (this->_tryFileStatus == -1 || this->_isRedirection == 1)
+    if (this->_isRedirection == 1 || this->_tryFileStatus == -1)
         return ;
 
     std::cout << "[DEBUG]: try file: " << this->_filepath << std::endl;
 
-    this->_file.open(this->_filepath.c_str(), std::ios::in);
+    struct stat sb;
+    stat(this->_filepath.c_str(), &sb);
 
-    // if file canot be open for some reason, assume this as no file found
-    // so set it to 404, check for default later
-    if (!this->_file) {
-        // watchout this case, it is potential to be never ending loop
-        std::cout << "\033[;31m" << "[ERROR]: file => " << this->_filepath << " can't be open" << "\033[0m" << std::endl;
-        set_res_status(404, "NOT FOUND");
+    // if file exist
+    if ((sb.st_mode & S_IFMT) == S_IFREG) {
+        // std::cout << "file exist" << std::endl;
         this->_file.open(this->_filepath.c_str(), std::ios::in);
+        this->_fileSize = sb.st_size;
+        if (this->_resStatusCode == 0)
+            set_res_status(200, "OK");
+        return ;
     }
-    else
-        set_res_status(200, "OK");
 
+    if (this->_resStatusCode == 0) {
+        set_res_status(404, "NOT FOUND");
+        try_file();
+        return ;
+    }
+
+    // std::cout << "page not found " << this->_resStatusCode << std::endl;
+ 
 }
 
 void HttpHandler::content_builder(void) {
 
     std::string fileData("");
+
+    std::cout << "build  content " << std::endl;
 
     if (this->_tryFileStatus != -1) {
         fileData = std::string(std::istreambuf_iterator<char>(this->_file), std::istreambuf_iterator<char>());
@@ -324,7 +376,7 @@ void HttpHandler::content_builder(void) {
         fileData.append(this->_resStatusText);
     }
     
-    this->_file.close();
+    this->_file.close(); // close the file
     if (this->_fileSize == 0)
         this->_fileSize = fileData.size();
     
@@ -362,18 +414,6 @@ void HttpHandler::content_builder(void) {
         std::cout << "\033[;32m" << "[DEBUG]: Send completed " << totalByte << "\033[0m" << std::endl;
 }
 
-void HttpHandler::set_res_status(int code, std::string text) {
-    this->_resStatusCode = code;
-    this->_resStatusText = std::string(text);
-
-    if (code == 200)
-        return ;
-    
-    // check if default error assigned, later
-
-    this->_tryFileStatus = -1;
-
-}
 
 // errorpage set
 void HttpHandler::error_page_set(int error, std::string text) {
@@ -385,6 +425,28 @@ void HttpHandler::error_page_set(int error, std::string text) {
     this->_filepath.append(".html");
     this->_filepath.erase(0, 1);
     std::cout << "error path " << this->_filepath << std::endl;
+}
+
+void HttpHandler::parsing_error_code(std::string str) {
+
+    remove_white_space(str);
+
+    // cut form the backside to get the filename first
+    int start, len;
+
+    start = str.rfind(" ");
+    len = str.size() - start;
+    std::string name(str.substr(start + 1, len - 1));
+    str.erase(start, len);
+
+    // std::cout << name << " " << name.size() << std::endl;
+
+    std::stringstream ss(str);
+    std::string attr;
+    while (std::getline(ss, attr, ' ')) {
+        int code = string_to_int(attr);
+        this->_errorCode[code] = std::string(name);
+    }
 }
 
 // Utils
