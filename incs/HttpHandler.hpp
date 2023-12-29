@@ -45,8 +45,10 @@ private:
     std::string _url;
     std::string _version;
     std::string _reqContentType;
-    std::size_t _reqContentLength;
+    std::size_t _reqContentLength; // content-length
+    std::size_t _bodyLength;        // actual body length
     std::string _body;
+    int _isContinueRead;
 
     std::map<std::string, std::string> _parameter;
 
@@ -92,6 +94,7 @@ public:
     int get_fd(void) const;
     int get_status(void) const;
     std::string get_connection_type(void);
+    int get_continue_read(void) const;
 
     // process
     void handle_request(void);
@@ -106,9 +109,11 @@ public:
 
 
     // res handle
+    void uploading_task(void);
     void set_res_status(int, std::string);
     void error_page_set(int, std::string);
     void parsing_error_code(std::string);
+
 
     // utils
     void remove_white_space(std::string&);

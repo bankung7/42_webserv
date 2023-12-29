@@ -7,10 +7,14 @@ HttpHandler::HttpHandler(void) {
 HttpHandler::HttpHandler(int fd): _fd(fd), _status(READING), _serverIndex(-1) {
 
     this->_parameter["Host"] = std::string("");
-    this->_parameter["Content-Length"] = std::string("");
+    this->_parameter["Content-Length"] = std::string("0");
     this->_parameter["Connection"] = std::string("");
 
     this->_reqContentLength = 0;
+
+    this->_body = std::string("");
+    this->_bodyLength = 0;
+    this->_isContinueRead = 0;
 
     this->_tryFileStatus = 0;
     this->_isDirectory = 0;
@@ -66,6 +70,10 @@ std::string HttpHandler::get_connection_type(void) {
     return (this->_parameter["Connection"]);
 }
 
+int HttpHandler::get_continue_read(void) const {
+    return (this->_isContinueRead);
+}
+
 // process
 void HttpHandler::handle_request(void) {
 
@@ -91,7 +99,11 @@ void HttpHandler::handle_request(void) {
             this->set_status(WRITING);
             break;
         }
-        this->_req.append(bf.data(), bytesRead);
+        // if body is reached, put to the body
+        if (this->_isContinueRead == READING)
+            this->_body.append(bf.data(), bytesRead);
+        else
+            this->_req.append(bf.data(), bytesRead);
     }
 
     // TODO : POST and DELETE method
@@ -106,37 +118,76 @@ void HttpHandler::parsing_request(void) {
     if (this->_status == CLOSED)
         return ;
 
-    std::stringstream ss(this->_req);
-    std::string line;
+    if (this->_isContinueRead == NOTSTART) {
 
-    // get status line
-    std::getline(ss, line, '\n');
-    std::stringstream lss(line);
-    std::getline(lss, this->_method, ' ');
-    std::getline(lss, this->_url, ' ');
-    std::getline(lss, this->_version);
+        std::stringstream ss(this->_req);
+        std::string line;
 
-    // loop for other attribute
-    while (std::getline(ss, line, '\n')) {
+        // get status line
+        std::getline(ss, line, '\n');
         std::stringstream lss(line);
-        std::string attr;
-        std::getline(lss, attr, ':');
-        if (this->_parameter.find(attr) != this->_parameter.end()) {
-            std::string value;
-            std::getline(lss, value);
-            this->remove_white_space(value);
-            this->_parameter[attr] = std::string(value);
+        std::getline(lss, this->_method, ' ');
+        std::getline(lss, this->_url, ' ');
+        std::getline(lss, this->_version);
+
+        // loop for other attribute
+        while (std::getline(ss, line, '\n')) {
+            std::stringstream lss(line);
+
+            // check if the body exist
+            if (line.compare("\r") == 0 && this->_parameter["Content-Length"].compare("0") != 0) {
+
+                // move this to body
+                std::getline(ss, line, '\n');
+                this->_body.append(this->_req.substr(this->_req.find(line)));
+
+                std::cout << "current size: " << this->_body.size() << "/" << this->_reqContentLength << std::endl;
+                
+                // =============
+                if (this->_body.size() < this->_reqContentLength) {
+                    this->_isContinueRead = READING;
+                    return ;
+                }
+
+                break ;
+            }
+
+            // This is for header
+            std::string attr;
+            std::getline(lss, attr, ':');
+            if (this->_parameter.find(attr) != this->_parameter.end()) {
+                // std::cout << attr << std::endl;
+                std::string value;
+                std::getline(lss, value);
+                this->remove_white_space(value);
+                this->_parameter[attr] = std::string(value);
+            
+                // set content-length
+                if (attr.compare("Content-Length") == 0 && this->_reqContentLength == 0) {
+                    this->_reqContentLength = string_to_int(value);
+                    // std::cout << this->_reqContentLength << std::endl;
+                }
+            }
         }
     }
 
-    // split and set hostname and port
-    std::string sport(this->_parameter["Host"]);
-    sport.erase(0, sport.find(":") + 1);
+    // if reading the body
+    if (this->_isContinueRead == READING && (this->_body.size() < this->_reqContentLength)) {
+        return ;
+    }
+    
+    if (this->_body.size() == this->_reqContentLength) {
+        std::cout << "=== received all body message : " << this->_body.size() << std::endl;
 
-    this->_parameter["Host"].erase(this->_parameter["Host"].find(sport) - 1, sport.size() + 1);
-
-    std::stringstream pss(sport);
-    pss >> this->_port;
+        this->_isContinueRead = COMPLETED;
+        // split and set hostname and port
+        std::string sport(this->_parameter["Host"]);
+        sport.erase(0, sport.find(":") + 1);
+        this->_parameter["Host"].erase(this->_parameter["Host"].find(sport) - 1, sport.size() + 1);
+        std::stringstream pss(sport);
+        pss >> this->_port;
+        return ;
+    }
 
 }
 
@@ -260,6 +311,13 @@ void HttpHandler::create_response(void) {
         return;
     }
 
+    // file upload
+    if (this->_location.find("allowedFileUpload:yes;") != std::string::npos) {
+        uploading_task();
+        set_res_status("200", "OK");
+        return ;
+    }
+
     // for CGI == OPTIONAL =======================>
 
     // check if directory or not
@@ -296,7 +354,7 @@ void HttpHandler::create_response(void) {
 
         // is autoindex == OPTIONAL, if off, don't set this in the structure
         // this might use cgi to generate the file into prepared folder
-        if (this->_location.find("autoIndex:") != std::string::npos) {
+        if (this->_location.find("autoIndex:on;") != std::string::npos) {
             // std::cout << "Index Page requested" << std::endl;
             this->_isAutoIndex = 1;
             this->_filepath.append("indexofpage.html");
@@ -306,6 +364,11 @@ void HttpHandler::create_response(void) {
         // in case of no index and autoindex, set index.html as default
         this->_filepath.append("index.html");
     }
+
+}
+
+void HttpHandler::uploading_task(void) {
+    // loop find each boundary to get name="uploadFile"
 
 }
 

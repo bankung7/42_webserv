@@ -13,7 +13,7 @@ Webserv::Webserv(void): _backlog(20) {
     sv1.set_location("/files","allowedMethod:GET;root:/sites/www1;autoIndex:on;"); // autoindex, if defined index, it would be index
     sv1.set_location("/google", "allowedMethod:GET;return:https://www.google.co.th;"); // for redirection
     sv1.set_location("/box/index.html", "allowedMethod:GET,POST,DELETE;root:/sites/www1;"); // for DELETE
-    sv1.set_location("/uploads", "allowedMethod:POST;root:/sites/www1;"); // for uploads
+    sv1.set_location("/uploads", "allowedMethod:POST;root:/sites/www1;allowedFileUpload:yes;"); // for uploads
     add_server(sv1);
 
     sv2.add_server_name("webserv11");
