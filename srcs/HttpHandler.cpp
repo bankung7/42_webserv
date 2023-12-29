@@ -9,12 +9,15 @@ HttpHandler::HttpHandler(int fd): _fd(fd), _status(READING), _serverIndex(-1) {
     this->_parameter["Host"] = std::string("");
     this->_parameter["Content-Length"] = std::string("0");
     this->_parameter["Connection"] = std::string("");
+    this->_parameter["boundary"] = std::string("");
+    this->_parameter["Content-Type"] = std::string("");
 
     this->_reqContentLength = 0;
 
     this->_body = std::string("");
     this->_bodyLength = 0;
     this->_isContinueRead = 0;
+    this->_postType = 0;
 
     this->_tryFileStatus = 0;
     this->_isDirectory = 0;
@@ -139,10 +142,12 @@ void HttpHandler::parsing_request(void) {
 
                 // move this to body
                 std::getline(ss, line, '\n');
-                this->_body.append(this->_req.substr(this->_req.find(line)));
+                // window case, it seem like it not send some part of the body in header when splited
+                // macos, some part of the request is push into the first time read
+                if (line.size() != 0) {
+                    this->_body.append(this->_req.substr(this->_req.find(line)));
+                }
 
-                std::cout << "current size: " << this->_body.size() << "/" << this->_reqContentLength << std::endl;
-                
                 // =============
                 if (this->_body.size() < this->_reqContentLength) {
                     this->_isContinueRead = READING;
@@ -165,17 +170,20 @@ void HttpHandler::parsing_request(void) {
                 // set content-length
                 if (attr.compare("Content-Length") == 0 && this->_reqContentLength == 0) {
                     this->_reqContentLength = string_to_int(value);
-                    // std::cout << this->_reqContentLength << std::endl;
+                    std::cout << "Content-Length: " << this->_reqContentLength << std::endl;
                 }
+
             }
         }
     }
 
     // if reading the body
     if (this->_isContinueRead == READING && (this->_body.size() < this->_reqContentLength)) {
+        std::cout << "current size: " << this->_body.size() << "/" << this->_reqContentLength << std::endl;
         return ;
     }
     
+    // read completed
     if (this->_body.size() == this->_reqContentLength) {
         std::cout << "=== received all body message : " << this->_body.size() << std::endl;
 
@@ -186,7 +194,35 @@ void HttpHandler::parsing_request(void) {
         this->_parameter["Host"].erase(this->_parameter["Host"].find(sport) - 1, sport.size() + 1);
         std::stringstream pss(sport);
         pss >> this->_port;
+
+        std::cout << "Content-Type: " << this->_parameter["Content-Type"] << std::endl;
+
+        // check content type and set
+        if (this->_parameter["Content-Type"].find("application/x-www-form-urlencoded") != std::string::npos) {
+            this->_postType = URLENCODED;
+            return ;
+        }
+
+        if (this->_parameter["Content-Type"].find("multipart/form-data") != std::string::npos) {
+            this->_postType = FORMDATA;
+            // set boundary
+            std::size_t index = (this->_parameter["Content-Type"]).find("boundary=");
+            this->_parameter["boundary"] = std::string((this->_parameter["Content-Type"]).substr(index + 9));
+            // std::cout << "set boudnary " << this->_parameter["boundary"] << std::endl;
+            return ;
+        }
+
+
+        // std::cout << this->_body << std::endl;
+        // std::cout << this->_req << std::endl;
         return ;
+    }
+
+    // protect overreading case
+    if (this->_body.size() > this->_reqContentLength) {
+        std::cout << "[WARNING]: Over reading" << std::endl;
+        this->_isContinueRead = COMPLETED;
+        set_res_status(404, "OVER READING");
     }
 
 }
@@ -314,7 +350,6 @@ void HttpHandler::create_response(void) {
     // file upload
     if (this->_location.find("allowedFileUpload:yes;") != std::string::npos) {
         uploading_task();
-        set_res_status("200", "OK");
         return ;
     }
 
@@ -369,6 +404,28 @@ void HttpHandler::create_response(void) {
 
 void HttpHandler::uploading_task(void) {
     // loop find each boundary to get name="uploadFile"
+
+    std::cout << this->_body << std::endl;
+    std::cout << "the boundary is " << this->_parameter["boundary"] << std::endl;
+
+    //////////////////////// ============================= here
+    // loop with boundary to find the filename
+
+    // std::size_t index = -1, length;
+    // while (1) {
+    //     index = this->_body.find(this->_parameter["boundary"]);
+    //     if (index == std::string::npos)
+    //         break ;
+        
+    //     length = this->_body.find(this->_parameter["boundary"], index + 1) - index;
+
+    //     if (length != std::string::npos) {
+    //         std::cout << this->_body.substr(index, length) << std::endl;
+    //     }
+
+    // }
+
+    set_res_status(200, "OK");
 
 }
 

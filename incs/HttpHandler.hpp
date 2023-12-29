@@ -16,6 +16,9 @@
 #define CONTENT_PHASE 5
 #define COMPLETE_PHASE 6
 
+#define URLENCODED 11
+#define FORMDATA 12
+
 // C
 #include <stdio.h>
 #include <unistd.h>
@@ -49,6 +52,7 @@ private:
     std::size_t _bodyLength;        // actual body length
     std::string _body;
     int _isContinueRead;
+    int _postType; // url or formdata
 
     std::map<std::string, std::string> _parameter;
 
