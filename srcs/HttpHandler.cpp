@@ -54,7 +54,7 @@ void HttpHandler::set_res_content_type() {
 
         if (type.compare(".jpeg") == 0 || type.compare(".png") == 0 || type.compare(".jpg") == 0)
             this->_resContentType = std::string("image/*");
-       
+
         return ;
     }
     this->_resContentType = std::string("text/html");
@@ -166,7 +166,7 @@ void HttpHandler::parsing_request(void) {
                 std::getline(lss, value);
                 this->remove_white_space(value);
                 this->_parameter[attr] = std::string(value);
-            
+
                 // set content-length
                 if (attr.compare("Content-Length") == 0 && this->_reqContentLength == 0) {
                     this->_reqContentLength = string_to_int(value);
@@ -179,13 +179,13 @@ void HttpHandler::parsing_request(void) {
 
     // if reading the body
     if (this->_isContinueRead == READING && (this->_body.size() < this->_reqContentLength)) {
-        std::cout << "current size: " << this->_body.size() << "/" << this->_reqContentLength << std::endl;
+        // std::cout << "current size: " << this->_body.size() << "/" << this->_reqContentLength << std::endl;
         return ;
     }
-    
+
     // read completed
     if (this->_body.size() == this->_reqContentLength) {
-        std::cout << "=== received all body message : " << this->_body.size() << std::endl;
+        // std::cout << "=== received all body message : " << this->_body.size() << std::endl;
 
         this->_isContinueRead = COMPLETED;
         // split and set hostname and port
@@ -208,7 +208,10 @@ void HttpHandler::parsing_request(void) {
             // set boundary
             std::size_t index = (this->_parameter["Content-Type"]).find("boundary=");
             this->_parameter["boundary"] = std::string((this->_parameter["Content-Type"]).substr(index + 9));
+            remove_white_space(this->_parameter["boundary"]);
+            this->_parameter["boundary"].insert(0, "--"); // inset the -- in front of boundary
             // std::cout << "set boudnary " << this->_parameter["boundary"] << std::endl;
+
             return ;
         }
 
@@ -333,13 +336,13 @@ void HttpHandler::create_response(void) {
 
     // Redirection == OPTIONAL
     if (this->_location.find("return:") != std::string::npos) {
-        
+
         this->_isRedirection = 1;
         this->_filepath.clear();
 
         startIndex = this->_location.find("return:");
         length = this->_location.find(";", startIndex + 1) - startIndex - 7;
-        
+
         std::cout << "\033[1;31mRedirection case : " << std::string(this->_location.substr(startIndex + 7, length)) << "\033[0m" << std::endl;
 
         this->_filepath = std::string(this->_location.substr(startIndex + 7, length));
@@ -348,7 +351,12 @@ void HttpHandler::create_response(void) {
     }
 
     // file upload
-    if (this->_location.find("allowedFileUpload:yes;") != std::string::npos) {
+    if (this->_location.find("allowedFileUpload:") != std::string::npos) {
+        if (this->_location.find("allowedFileUpload:yes;") == std::string::npos) {
+            std::cout << "\033[1;31Uploadfile is not allowed : " << std::string(this->_location.substr(startIndex + 7, length)) << "\033[0m" << std::endl;
+            set_res_status(403, "Forbidden");
+            return ;
+        }
         uploading_task();
         return ;
     }
@@ -367,6 +375,8 @@ void HttpHandler::create_response(void) {
             // std::cout << "not support or file not found" << std::endl;
             break;
     }
+
+    // other post method begin here =========================
 
     // is directory == OPTIONAL
     if (this->_isDirectory == 1) {
@@ -403,29 +413,95 @@ void HttpHandler::create_response(void) {
 }
 
 void HttpHandler::uploading_task(void) {
-    // loop find each boundary to get name="uploadFile"
-
-    std::cout << this->_body << std::endl;
-    std::cout << "the boundary is " << this->_parameter["boundary"] << std::endl;
 
     //////////////////////// ============================= here
-    // loop with boundary to find the filename
 
-    // std::size_t index = -1, length;
-    // while (1) {
-    //     index = this->_body.find(this->_parameter["boundary"]);
-    //     if (index == std::string::npos)
-    //         break ;
-        
-    //     length = this->_body.find(this->_parameter["boundary"], index + 1) - index;
+    // check if formdata process
+    if (this->_postType == FORMDATA) {
 
-    //     if (length != std::string::npos) {
-    //         std::cout << this->_body.substr(index, length) << std::endl;
-    //     }
+        // read each boundary
+        // std::getline() does not work as expected, fall to manual read by index
+        // expected that payload was completed
 
-    // }
+        // std::cout << "============== start of body ==============" << std::endl;
+        // std::cout << this->_body << std::endl;
+        // std::cout << "============== end of body ==============" << std::endl;
+
+        std::size_t sindex = 0, eindex = 0, length = 0;
+        std::string boundary(this->_parameter["boundary"]);
+
+        while (1) {
+
+            // grab each block first
+            sindex = this->_body.find(boundary, sindex);
+            if (sindex == std::string::npos)
+                break ;
+            
+            eindex = this->_body.find(boundary, sindex + boundary.size()); // eindex cant change as it would set the next position
+            if (eindex == std::string::npos)
+                break ;
+
+            length = eindex - sindex - boundary.size();
+
+            // std::cout << "end of start line: " << (int)this->_body[sindex + boundary.size() + 1] << std::endl;
+            // std::cout << "end of end line: " << (int)this->_body[eindex - 2] << std::endl;
+
+            std::string block(this->_body.substr(sindex + 2 + boundary.size(), length - 4)); // minus \r\n at the end of first line
+            // std::cout << "============== start of block ==============" << std::endl;
+            // std::cout << block << std::endl;
+            // std::cout << "============== end of block ==============" << std::endl;
+
+            // after we get the block, check the content-disposition and find the filename
+
+            sindex = block.find("Content-Disposition:");
+            
+            if (sindex == std::string::npos) // =================== in case no disposition attiribute
+                continue ;
+
+            length = block.find("\r\n", sindex + 1) - sindex;
+            std::string disposition(block.substr(sindex, length));
+            // std::cout << disposition << std::endl;
+
+            sindex = disposition.find("filename=\"");
+            if (sindex == std::string::npos) // =================== in case no filename attribute
+                continue ;
+
+            length = disposition.find("\"", sindex + 10) - sindex - 10; // 1 from the from and 1 from the back
+            std::string filename(disposition, sindex + 10, length);
+            std::cout << "filename: " << filename << std::endl;
+
+            // get the file data
+            sindex = block.find("\r\n\r\n");
+            if (sindex == std::string::npos) // ==================== in case of not found \r\n\r\n // imposible case
+                continue ;
+
+            // std::cout << block.substr(sindex + 4) << std::endl;
+
+            // open the file and write to it
+            filename.insert(0, "/");
+            filename.insert(0, this->_root);
+            std::ofstream file(filename.c_str(), std::ios::binary);
+
+            if (!file) { //================ cannot open the file
+                std::cout << "[ERROR]: Something wrong when trying to open the file for writing" << std::endl;
+                continue ;
+            }
+
+            file << block.substr(sindex + 4);
+            file.close();
+            std::cout << "[DEBUG]: File save successfully" << std::endl;
+            set_res_status(200, "OK file saved");
+
+            sindex = eindex - 1; // return back 1 char
+            // to next block
+        }
+
+
+        return ;
+    }
 
     set_res_status(200, "OK");
+    // return to the page before submit
 
 }
 
@@ -501,7 +577,7 @@ void HttpHandler::try_file(void) {
     }
 
     // std::cout << "page not found " << this->_resStatusCode << std::endl;
- 
+
 }
 
 void HttpHandler::content_builder(void) {
@@ -515,11 +591,11 @@ void HttpHandler::content_builder(void) {
         fileData.append(" : ");
         fileData.append(this->_resStatusText);
     }
-    
+
     this->_file.close(); // close the file
     if (this->_fileSize == 0)
         this->_fileSize = fileData.size();
-    
+
     // std::cout << "file size: " << this->_fileSize << std::endl;
 
     // create response header
@@ -602,8 +678,9 @@ void HttpHandler::remove_white_space(std::string& input) {
             break;
     }
 
-    for (int i = input.size() - 1; i < 0; i--) {
-        if (input[i] == ' ' || input[i] == '\r') {
+    // this line was wrong for a while, must check if any output is weird
+    for (int i = input.size() - 1; i >= 0; i--) {
+        if (input[i] == ' ' || input[i] == '\r' || input[i] == '\n') {
             input.erase(i, 1);
         }
         else

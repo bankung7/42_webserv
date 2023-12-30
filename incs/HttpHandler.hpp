@@ -73,6 +73,7 @@ private:
     int _isIndex;
     int _isCGI;
     size_t _fileSize;
+    std::string _temp; // for fileupload
 
     std::map<int, std::string> _errorCode;
 

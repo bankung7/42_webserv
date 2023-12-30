@@ -158,6 +158,27 @@ Content-type: text/html\r\n
 Content-Length: 1230\r\n\r\n
 ```
 
+### POST Method
+#### Form-Data
+each "input" tag in html will be splited by boundary. The boundary is in the request header => Content-Type
+```
+------WebKitFormBoundary95ZYculdXgPumcMP
+Content-Disposition: form-data; name="uploadFile"; filename="12.txt"
+Content-Type: text/plain
+
+TEST for /test1/index.html
+
+------WebKitFormBoundary95ZYculdXgPumcMP
+Content-Disposition: form-data; name="option1"
+
+value1
+------WebKitFormBoundary95ZYculdXgPumcMP
+Content-Disposition: form-data; name="option2"
+
+value2
+------WebKitFormBoundary95ZYculdXgPumcMP--
+```
+
 ## Concept
 ### Parsing Configuration file
 ### Initialize Servers
