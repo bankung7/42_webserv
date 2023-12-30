@@ -22,6 +22,7 @@ class Conf {
         void readfile(); 
         bool checkbraces();
         void checkserverconf(std::string);
+        void checklocation(Server&);
 };
 
 #endif
