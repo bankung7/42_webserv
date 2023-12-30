@@ -141,9 +141,17 @@
                 <div>
                     <p>Idea: use curl in the terminal to try</p>
                     <p>curl -X "DELETE" 127.0.0.1:8080/box/index.html</p>
+                    <p>curl -X "DELETE" 127.0.0.1:8080/box/deleted.html</p>
                 </div>
                 <div>
-                    <a href="/box/index.html">Index</a>
+                    <ul>
+                        <li>
+                            <a href="/box/deleted.html">Can be deleted</a>
+                        </li>
+                        <li>
+                            <a href="/box/index.html">Can't be deleted</a>
+                        </li>
+                    </ul>
                 </div>
             </div>
 
@@ -153,7 +161,7 @@
                     <div>
                         <div><strong>Upload</strong></div>
                         <div>
-                            <form name="upload" method="POST" action="/uploads">
+                            <form name="upload" method="POST" action="/uploads" enctype="multipart/form-data">
                                 <p>Try to input something here</p>
                                 <input type="file" name="uploadFile" value="file1">
                                 <input type="submit" value="Upload">

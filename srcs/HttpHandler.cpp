@@ -468,7 +468,7 @@ void HttpHandler::uploading_task(void) {
 
             length = disposition.find("\"", sindex + 10) - sindex - 10; // 1 from the from and 1 from the back
             std::string filename(disposition, sindex + 10, length);
-            std::cout << "filename: " << filename << std::endl;
+            // std::cout << "filename: " << filename << std::endl;
 
             // get the file data
             sindex = block.find("\r\n\r\n");
@@ -483,7 +483,8 @@ void HttpHandler::uploading_task(void) {
             std::ofstream file(filename.c_str(), std::ios::binary);
 
             if (!file) { //================ cannot open the file
-                std::cout << "[ERROR]: Something wrong when trying to open the file for writing" << std::endl;
+                // std::cout << filename << std::endl;
+                std::cout << "[ERROR]: " << strerror(errno) << std::endl;
                 continue ;
             }
 
@@ -496,7 +497,7 @@ void HttpHandler::uploading_task(void) {
             // to next block
         }
 
-
+        this->_tryFileStatus = -1;
         return ;
     }
 
@@ -549,14 +550,18 @@ void HttpHandler::try_file(void) {
     // if file exist
     if ((this->_fileInfo.st_mode & S_IFMT) == S_IFREG) {
 
-        // TODO: check file is permitted to read
-        // if (stats.st_mode & R_OK)
-        //     printf("read ");
-
-        // TODO: DELETE METHOD
+        // TODO: DELETE METHOD =========================
         if (this->_method.compare("DELETE") == 0) {
-            std::cout << "delete method" << std::endl;
-            std::remove(this->_filepath.c_str());
+            
+            // std::cout << "delete method" << std::endl;
+            // std::cout << this->_req << std::endl;
+
+            int status = std::remove(this->_filepath.c_str());
+            if (status != 0) { // ==================== thing wend wrong for macos, it ask for permission to deleted
+                std::cout << "[ERROR]: Permission denied" << std::endl;
+                set_res_status(403, "NO PERMISSION");
+                return ;
+            }
             set_res_status(200, "OK");
             this->_tryFileStatus = -1; // if code can be default
             return ;

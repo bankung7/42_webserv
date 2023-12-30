@@ -24,6 +24,8 @@
 #include <unistd.h>
 #include <stdlib.h> // for system
 #include <sys/stat.h> // stat
+#include <errno.h> // errno
+#include <string.h> // strerror
 
 // C++
 #include <sstream>
