@@ -6,13 +6,13 @@
 #include <string>
 #include <vector>
 #include "Server.hpp"
+#include "Webserv.hpp"
 #include "StrUtils.hpp"
 
 class Conf {
     private:
         std::string _filename;
         std::string _filedata;
-        std::vector< std::vector<std::string> > _result;        
         int _n_server;
 
     public:
@@ -20,9 +20,24 @@ class Conf {
         Conf(std::string);
         ~Conf();
         void readfile(); 
-        bool checkbraces();
-        void checkserverconf(std::string);
-        void checklocation(Server&);
+        bool checkconf();
+        
+        // Check each directive
+        bool checkroot(std::vector<std::string>);
+        bool checkmaxclientsize(std::vector<std::string>);
+        bool checkport(std::vector<std::string>);
+        bool checkservername(std::vector<std::string>);
+        bool checkemptyline(std::vector<std::string>);
+        bool checkallowedmethods(std::vector<std::string>);
+        bool checkerrorpage(std::vector<std::string>);
+        bool checkclosebraces(std::vector<std::string>);
+        bool checkreturn(std::vector<std::string>);
+        bool checkallowfileupload(std::vector<std::string>);
+        bool checkautoindex(std::vector<std::string>);
+        bool checkserver(std::vector<std::string>);
+        bool checklocation(std::vector<std::string>);
+        bool checkindex(std::vector<std::string>);
+
 };
 
 #endif
