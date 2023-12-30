@@ -5,10 +5,10 @@
 #include <vector>
 
 std::vector<std::string> split(std::string &, char);
-std::string ltrim(const std::string& str);
-std::string rtrim(const std::string& str);
+std::string ltrim(const std::string& str, std::string);
+std::string rtrim(const std::string& str, std::string);
 std::string removeNewlines(const std::string& str);
 int isvalidport(const std::string&);
-int ft_stoi(const std::string&);
+size_t ft_stoi(const std::string&);
 
 #endif
