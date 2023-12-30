@@ -73,10 +73,6 @@ size_t Server::get_max_client_body_size(void) const {
     return (this->_maxClientBodySize);
 }
 
-std::string Server::get_root(void) const {
-    return (this->_root);
-}
-
 // checker
 int Server::has_server_name(std::string name) {
     for (int i = 0; i < (int)this->_serverName.size(); i++) {
