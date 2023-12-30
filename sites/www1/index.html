@@ -15,6 +15,10 @@
             justify-content: center;
         }
         
+        .block {
+            display: block;
+        }
+        
         .p5 {
             padding: 5px;
         }
@@ -92,6 +96,11 @@
                 </ul>
             </div>
 
+            <!-- <div class="flex">
+                <img style="width: 50%;" src="/images/panda.jpeg" alt="panda">
+                <img style="width: 50%;" src="/images/panda1.jpeg" alt="panda1">
+            </div> -->
+
             <div class="border-solid-black p5 m5">
                 <div><strong>Auto Index</strong></div>
                 <div>
@@ -118,15 +127,11 @@
                 <div>
                     <p>Idea: Answer the question</p>
                 </div>
-                <div>
-                    <p>What is right answer?</p>
-                    <form action="/html/post" method="POST">
-                        <input type="text" name="postValue">
-                        <input class="btn-submit" type="submit" value="Submit">
-                    </form>
-                </div>
                 <div class="m5 p5">
-                    <a href="/html/post">Access POST allowed with GET</a>
+                    <form action="/box/index.html" method="POST">
+                        <input type="hidden" name="path" value="index.html">
+                        <input class="btn-submit" type="submit" value="Go with POST">
+                    </form>
                 </div>
             </div>
 
@@ -134,11 +139,11 @@
             <div class="border-solid-black p5 m5">
                 <div><strong>DELETE</strong></div>
                 <div>
-                    <p>Idea: may be remove the prepared page</p>
+                    <p>Idea: use curl in the terminal to try</p>
+                    <p>curl -X "DELETE" 127.0.0.1:8080/box/index.html</p>
                 </div>
                 <div>
-                    <p>Will you remove the page 2, it cannot be restore anymore?</p>
-                    <a href="#" class="btn-submit">Yes, I don't care about it!</a>
+                    <a href="/box/index.html">Index</a>
                 </div>
             </div>
 
@@ -148,19 +153,36 @@
                     <div>
                         <div><strong>Upload</strong></div>
                         <div>
-                            <p>Try to input something here</p>
-                            <input type="file" name="uploadFile">
-                            <input type="submit" value="Upload">
+                            <form name="upload" method="POST" action="/uploads" enctype="multipart/form-data">
+                                <p>Try to input something here</p>
+                                <input type="file" name="uploadFile" value="file1">
+                                <input type="submit" value="Upload">
+                                <input type="hidden" name="option2" value="value2">
+                            </form>
                         </div>
                     </div>
                 </div>
                 <div class="border-solid-black p5 m5">
                     <div>
                         <div><strong>Download</strong></div>
-                        <div>
-                            <input type="button" value="Download">
-                        </div>
+                        <ul>
+                            <li class="block">
+                                <a href="/images/panda.jpeg">Panda 1</a>
+                            </li>
+                            <li class="block">
+                                <a href="/images/panda1.jpeg">Panda 2</a>
+                            </li>
+                        </ul>
                     </div>
+                </div>
+            </div>
+
+            <!-- Stress test -->
+            <div class="flex border-solid-black p5 m5">
+                <div>
+                    <div><strong>Stress Test</strong></div>
+                    <p>Put this in the terminal to test</p>
+                    <p>siege 127.0.0.1:8080 -c255 -t10S -b</p>
                 </div>
             </div>
 

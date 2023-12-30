@@ -73,6 +73,12 @@ int Webserv::polling(void) {
 
                     context->handle_request();
 
+                    // continue read, watch out for never ending loop
+                    if (context->get_continue_read() == 1) {
+                        // std::cout << "still have thing to read" << std::endl;
+                        continue;
+                    }
+
                     // in case of conection was hangup
                     if (context->get_status() == WRITING) {
 

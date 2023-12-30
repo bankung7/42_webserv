@@ -16,6 +16,9 @@
 #define CONTENT_PHASE 5
 #define COMPLETE_PHASE 6
 
+#define URLENCODED 11
+#define FORMDATA 12
+
 // C
 #include <stdio.h>
 #include <unistd.h>
@@ -27,6 +30,8 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <algorithm>
+#include <string>
 
 // Custom
 #include "Server.hpp"
@@ -43,7 +48,11 @@ private:
     std::string _url;
     std::string _version;
     std::string _reqContentType;
+    std::size_t _reqContentLength; // content-length
+    std::size_t _bodyLength;        // actual body length
     std::string _body;
+    int _isContinueRead;
+    int _postType; // url or formdata
 
     std::map<std::string, std::string> _parameter;
 
@@ -55,6 +64,7 @@ private:
     std::string _path;
     std::string _filename;
     std::string _filepath; // for root + url
+    struct stat _fileInfo; // file info
     std::string _root; // root
     std::string _droot; // root directive from server block
     int _isDirectory;
@@ -63,6 +73,7 @@ private:
     int _isIndex;
     int _isCGI;
     size_t _fileSize;
+    std::string _temp; // for fileupload
 
     std::map<int, std::string> _errorCode;
 
@@ -82,11 +93,13 @@ public:
     // setter
     void set_status(int);
     void set_server(std::vector<Server>&);
+    void set_res_content_type(void);
 
     // getter
     int get_fd(void) const;
     int get_status(void) const;
     std::string get_connection_type(void);
+    int get_continue_read(void) const;
 
     // process
     void handle_request(void);
@@ -101,9 +114,11 @@ public:
 
 
     // res handle
+    void uploading_task(void);
     void set_res_status(int, std::string);
     void error_page_set(int, std::string);
     void parsing_error_code(std::string);
+
 
     // utils
     void remove_white_space(std::string&);
