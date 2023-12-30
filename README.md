@@ -23,7 +23,7 @@
 
 [N] Parsing Configuration file\
 [C] Server setup and Initializing\
-[C] Epoll Server\
+[I] Epoll Server\
 [C] Handling request\
 [I] Handling response => [GOLF]\
 [N] CGI\
@@ -41,10 +41,11 @@
 [C] error_page directive \
 [C] GET request \
 [N] POST request \
-[N] DELETE request \
-[N] Uploading file \
-[N] Downloading file \
+[C] DELETE request \
+[C] Uploading file \
+[I] Downloading file \
 [N] Connection keep-alive \
+[N] Response Code checking \
 
 ## Defect
 - Sometime request stuck in the epoll in and go out with nothign to read, throw error (basic_string::erase: __pos (which is 18446744073709551615) > this->size() (which is 0)).
