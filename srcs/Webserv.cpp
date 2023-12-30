@@ -2,38 +2,42 @@
 
 Webserv::Webserv(void): _backlog(20) {
 
-    std::cout << "[DEBUG]: Webserv initiated" << std::endl;
+    // std::cout << "[DEBUG]: Webserv initiated" << std::endl;
+    Conf cf;
+    // // Manually create the server block
+    // Server sv1, sv2, sv3;
+    // // sv1.add_server_name("webserv1");
+    // sv1.set_port(8080);
+    // sv1.set_location("/", "allowedMethod:GET;root:/sites/www1;"); // default index
+    // sv1.set_location("/html","allowedMethod:GET;root:/sites/www1;index:defined.html;error_page: 500 501 501 505 /error_50x.html;error_page: 404 /error_404.html;error_page: 405 /error_405.html;"); // defined index 
+    // sv1.set_location("/files","allowedMethod:GET;root:/sites/www1;autoIndex:on;"); // autoindex, if defined index, it would be index
+    // sv1.set_location("/google", "allowedMethod:GET;return:https://www.google.co.th;"); // for redirection
+    // sv1.set_location("/box/index.html", "allowedMethod:GET,POST,DELETE;root:/sites/www1;"); // for DELETE
+    // sv1.set_location("/uploads", "allowedMethod:POST;root:/sites/www1/temp;allowedFileUpload:yes;"); // for uploads, so use the root to tell where to save
+    // add_server(sv1);
 
-    // Manually create the server block
-    Server sv1, sv2, sv3;
-    // sv1.add_server_name("webserv1");
-    sv1.set_port(8080);
-    sv1.set_location("/", "allowedMethod:GET;root:/sites/www1;"); // default index
-    sv1.set_location("/html","allowedMethod:GET;root:/sites/www1;index:defined.html;error_page: 500 501 501 505 /error_50x.html;error_page: 404 /error_404.html;error_page: 405 /error_405.html;"); // defined index 
-    sv1.set_location("/files","allowedMethod:GET;root:/sites/www1;autoIndex:on;"); // autoindex, if defined index, it would be index
-    sv1.set_location("/google", "allowedMethod:GET;return:https://www.google.co.th;"); // for redirection
-    sv1.set_location("/box/index.html", "allowedMethod:GET,POST,DELETE;root:/sites/www1;"); // for DELETE
-    sv1.set_location("/uploads", "allowedMethod:POST;root:/sites/www1/temp;allowedFileUpload:yes;"); // for uploads, so use the root to tell where to save
-    add_server(sv1);
+    // sv2.add_server_name("webserv11");
+    // sv2.add_server_name("webserv111");
+    // sv2.set_port(8080);
+    // sv2.set_location("/", "allowedMethod:GET;root:/sites/www2;index:index.html;");
+    // add_server(sv2);
 
-    sv2.add_server_name("webserv11");
-    sv2.add_server_name("webserv111");
-    sv2.set_port(8080);
-    sv2.set_location("/", "allowedMethod:GET;root:/sites/www2;index:index.html;");
-    add_server(sv2);
-
-    sv3.add_server_name("webserv2");
-    sv3.set_port(8081);
-    sv3.set_location("/", "allowedMethod:GET;root:/sites/www3;index:index.html;");
-    add_server(sv3);
+    // sv3.add_server_name("webserv2");
+    // sv3.set_port(8081);
+    // sv3.set_location("/", "allowedMethod:GET;root:/sites/www3;index:index.html;");
+    // add_server(sv3);
 
     // setup the server and initiated
-    try {
-        setup();
-        polling();
-    } catch (std::exception &e) {
-        std::cerr << e.what() << std::endl;
-    }
+    // try {
+    //     setup();
+    //     polling();
+    // } catch (std::exception &e) {
+    //     std::cerr << e.what() << std::endl;
+    // }
+}
+
+Webserv::Webserv(std::string filename){
+    Conf cf(filename);
 }
 
 Webserv::~Webserv(void) {

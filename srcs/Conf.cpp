@@ -7,7 +7,6 @@ Conf::Conf(void) : _filename("./config/default.conf"), _filedata(""), _n_server(
 
 Conf::Conf(std::string filename) : _filename(filename), _filedata(""), _n_server(0) {
 	readfile();
-	std::cout << _filedata << std::endl;
 }
 
 Conf::~Conf(void) {
@@ -29,8 +28,8 @@ void Conf::readfile(void) {
 				if (!isspace(*it))
 				{
 					_filedata.append(it, line.end());
+					_filedata = trim(_filedata, " \n\t\r");
 					_filedata.push_back('\n');
-					_filedata = ltrim(rtrim(_filedata, " \t\r"), " \t\r");
 					break;
 				}
 			}
@@ -39,48 +38,90 @@ void Conf::readfile(void) {
 	}
 	else
 		std::cout << "Error: configuration file not found." << std::endl;
-	std::cout << _filedata << std::endl;
-	if (!(this->checkbraces()))
-		std::cout << "Error: Invalid configuration file - Incorrect braces" << std::endl;
+	if (!(this->checkconf()))
+		std::cout << "Error: Invalid configuration file" << std::endl;
+	else
+		std::cout << "OK" << std::endl;
 }
 
-bool Conf::checkbraces(void) {
+bool Conf::checkconf(void) {
 	int n_brace = 0;
 	bool location_flag = false;
-	std::string location = "";
+	bool server_flag = false;
 	std::vector<std::string> lines = split(_filedata, '\n');
 	for (size_t i = 0; i < lines.size(); i++)
 	{
-		if (!location_flag)
+		if (!server_flag)
 		{
 			std::vector<std::string> words = split(lines[i], ' ');
-			if (words[0] == "location" && words[2] == "{" && words.size() == 3) // location / {
+			if (checkserver(words))
 			{
-				location_flag = true;
-				location = words[1];
-			}	
-			else if (words[0] == "server" && words[1] == "{" && words.size() == 2) // server {
+				server_flag = true;
 				n_brace++;
-			else if (words[0] == "}" && words.size() == 1) // } for server block
-			{ 
-				n_brace--;
-				if (n_brace < 0)
-					std::cout << "Error: wrong braces" << std::endl;
-				else if (n_brace == 0)
-					_n_server++;
+			}
+			else if (checkemptyline(words)) {;}
+			else
+			{
+				_n_server = 0;
+				return false;
 			}
 		}
 		else
 		{
-			if (lines[i] == "}") // } for location block
-			{	
-				location = "";
-				location_flag = false;	
+			if (!location_flag)
+			{
+				std::vector<std::string> words = split(lines[i], ' ');
+				if (checklocation(words)) // location / {
+				{
+					location_flag = true;
+					n_brace++;
+				}	
+				else if (checkmaxclientsize(words)){;}
+				else if (checkservername(words)) {;}
+				else if (checkerrorpage(words)) {;}
+				else if (checkport(words)) {;}
+				else if (checkroot(words)) {;}
+				else if (checkclosebraces(words)) {
+					n_brace--;
+					server_flag = false;
+					if (n_brace < 0)
+					{
+						_n_server = 0;
+						return false;
+					}
+				}
+				else if (checkemptyline(words)) {;}
+				else
+				{
+					_n_server = 0;
+					return false;
+				}
 			}
 			else
 			{
-
-			}
+				std::vector<std::string> words = split(lines[i], ':');
+				if (checkclosebraces(words)) // } for location block
+				{
+					n_brace--;
+					if (n_brace < 0)
+					{
+						_n_server = 0;
+						return false;
+					}
+					location_flag = false;	
+				}
+				else if (checkallowedmethods(words)) {;}
+				else if (checkroot(words)) {;}
+				else if (checkreturn(words)) {;}
+				else if (checkallowfileupload(words)) {;}
+				else if (checkautoindex(words)) {;}
+				else if (checkindex(words)) {;}
+				else
+				{
+					_n_server = 0;
+					return false;
+				}
+			}	
 		}	
 	}
 	if (n_brace != 0)
@@ -91,8 +132,105 @@ bool Conf::checkbraces(void) {
 	return true;
 }
 
-void Conf::checkserverconf(std::string sv_conf) {
-	std::cout << sv_conf << std::endl;
+bool Conf::checkroot(std::vector<std::string> words) {
+	return (words[0] == "root" && words.size() == 2);
+}
+
+bool Conf::checkmaxclientsize(std::vector<std::string> words) {
+	return (words[0] == "client_max_body_size" && words.size() == 2 && ft_stoi(words[1]) > 0);
+}
+
+bool Conf::checkport(std::vector<std::string> words) {
+	return (words[0] == "listen" && words.size() == 2 && isvalidport(words[1]));
+}
+
+bool Conf::checkservername(std::vector<std::string> words) {
+	return (words[0] == "server_name" && words.size() > 1);
+}
+
+bool Conf::checkemptyline(std::vector<std::string> words){
+	return (words[0] == "" && words.size() == 1);
+}
+
+bool Conf::checkallowedmethods(std::vector<std::string> words){
+	if (words[0] == "allowedMethod" && words.size() > 1)
+	{
+		words[1] = trim(words[1], ";");
+		std::vector<std::string> methods = split(words[1], ',');
+		for (size_t i = 0; i < methods.size(); i++)
+		{
+			if (methods[i] == "GET" || methods[i] == "POST" || methods[i] == "DELETE")
+				return true;
+			else
+				return false;
+		}
+		return false;
+	}
+	else
+		return false;
+}
+
+bool Conf::checkerrorpage(std::vector<std::string> words){
+	if (words[0] == "error_page" && words.size() > 2) {
+		for (size_t i = 1; i < words.size() - 1; i++)
+		{
+			if (!isvalidstatuscode(words[i]))
+			{
+				_n_server = 0;
+				return false;
+			}
+		}
+	}
+	else
+		return false;
+	return true;
+}
+
+bool Conf::checkclosebraces(std::vector<std::string> words){
+	return (words[0] == "}" && words.size() == 1);
+}
+
+bool Conf::checkreturn(std::vector<std::string> words) {
+	return ((words[0] == "return" && words.size() == 2));
+}
+
+bool Conf::checkallowfileupload(std::vector<std::string> words) {
+	if (words[0] == "allowedFileUpload" && words.size() == 2) {
+		if (words[1] == "yes;" || words[1] == "no;")
+			return true;
+		else	
+			return false;
+	}
+	else
+		return false;
+}
+
+bool Conf::checkautoindex(std::vector<std::string> words) {
+	if (words[0] == "autoindex" && words.size() == 2) {
+		if (trim(words[1], " ;\t\n\r") == "on" || trim(words[1], " ;\t\n\r") == "off")
+			return true;
+		else
+			return false;
+	}
+	else
+		return false;
+}
+
+bool Conf::checkserver(std::vector<std::string> words) {
+	return (words[0] == "server" && words[1] == "{" && words.size() == 2);
+}
+
+bool Conf::checklocation(std::vector<std::string> words) {
+	return (words[0] == "location" && words[2] == "{" && words.size() == 3);
+}
+
+bool Conf::checkindex(std::vector<std::string> words) {
+	return(words[0] == "index" && words.size() == 2);
+}
+
+
+// void Conf::checkserverconf(std::string sv_conf) {
+// 	std::cout << sv_conf << std::endl;
 	// Server sv;
 	// std::vector<std::string> lines = split(sv_conf, ';');
 	// for (size_t i = 0; i < lines.size(); i++) {
@@ -132,8 +270,4 @@ void Conf::checkserverconf(std::string sv_conf) {
 	// 		std::cout << "root: " << sv.get_root() << std::endl;
 	// 	}
     // }
-}
-
-// void Conf::checklocation(Server& sv) {
-	
 // }

@@ -20,6 +20,7 @@
 #include "Server.hpp"
 #include "HttpHandler.hpp"
 #include "Conf.hpp"
+#include "StrUtils.hpp"
 
 // define
 #define MAX_EVENTS 1024
@@ -38,6 +39,7 @@ private:
 
 public:
     Webserv(void);
+    Webserv(std::string);
     ~Webserv(void);
 
     // setter
