@@ -21,7 +21,7 @@ class Conf {
         ~Conf();
         void readfile(); 
         bool checkbraces();
-        bool checkdirectives();
+        void checkserverconf(std::string);
 };
 
 #endif
