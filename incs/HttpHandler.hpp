@@ -34,6 +34,7 @@
 #include <vector>
 #include <algorithm>
 #include <string>
+#include <limits> // numeric_limit
 
 // Custom
 #include "Server.hpp"
@@ -55,6 +56,7 @@ private:
     std::string _body;
     int _isContinueRead;
     int _postType; // url or formdata
+    std::size_t _maxClientBodySize; // limit body size
 
     std::map<std::string, std::string> _parameter;
 
@@ -125,6 +127,7 @@ public:
     // utils
     void remove_white_space(std::string&);
     int string_to_int(std::string);
+    std::size_t string_to_size(std::string);
     std::string int_to_string(int);
 
 };

@@ -50,6 +50,10 @@ int Server::get_port(void) const {
     return (this->_port);
 }
 
+std::string Server::get_root(void) const {
+    return (std::string(this->_root));
+}
+
 std::string Server::get_server_name(std::string name) const{
     for (int i = 0; i < (int)this->_serverName.size(); i++) {
         if (this->_serverName[i].compare(name) == 0)

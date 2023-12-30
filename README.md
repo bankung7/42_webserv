@@ -37,12 +37,15 @@
 [C] index directive \
 [C] return directive \
 [C] Location Directive \
-[N] maxClientBodyLimit directive \
+[C] maxClientBodyLimit directive \
 [C] error_page directive \
 [C] GET request \
-[N] POST request \
+[I] POST request \
+[C] POST with form-data \
+[N] POST with text/plain \
+[N] POST with urlencoded \
 [C] DELETE request \
-[C] Uploading file \
+[C] Uploading file (Window/WSL only) \
 [I] Downloading file \
 [N] Connection keep-alive \
 [N] Response Code checking \
@@ -65,6 +68,13 @@
    routing /test1
 == output: /var/www/test1/index.html
 [SOLVED]
+
+- Multiple file upload, protect case.
+[SOLVED]-> reloop the payload part
+
+- For macos, when try to uplaod the file or delete the file by curl. the system does not permit to do.
+
+- When testing with Macos by VM, it does no support this test method. Use window with wsl only.
 
 - the browser keep it cache, some test must clear the cache before (redirection)
 

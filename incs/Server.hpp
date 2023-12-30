@@ -45,6 +45,7 @@ public:
     // getter
     int get_fd(void) const;
     int get_port(void) const;
+    std::string get_root(void) const;
     std::string get_server_name(std::string) const;
     std::string get_location(std::string);
     std::string best_match_location(std::string);

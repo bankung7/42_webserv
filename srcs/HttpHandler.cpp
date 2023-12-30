@@ -18,6 +18,7 @@ HttpHandler::HttpHandler(int fd): _fd(fd), _status(READING), _serverIndex(-1) {
     this->_bodyLength = 0;
     this->_isContinueRead = 0;
     this->_postType = 0;
+    this->_maxClientBodySize = std::numeric_limits<std::size_t>::max(); // if not specified
 
     this->_tryFileStatus = 0;
     this->_isDirectory = 0;
@@ -215,7 +216,6 @@ void HttpHandler::parsing_request(void) {
             return ;
         }
 
-
         // std::cout << this->_body << std::endl;
         // std::cout << this->_req << std::endl;
         return ;
@@ -310,8 +310,13 @@ void HttpHandler::create_response(void) {
 
     // set root == MANDATORY
     startIndex = this->_location.find("root:");
-    length = this->_location.find(";", startIndex + 1) - startIndex;
-    this->_root = std::string(this->_location.substr(startIndex + 5, length - 5)); // set root
+    if (startIndex == std::string::npos) { // ================ this will fall down from the server itself
+        this->_root = std::string(this->_server[this->_serverIndex].get_root()); // set root
+    } else {
+        length = this->_location.find(";", startIndex + 1) - startIndex;
+        this->_root = std::string(this->_location.substr(startIndex + 5, length - 5)); // set root
+    }
+
     this->_root.erase(0, 1); // remnove the first "/"
     this->_filepath.append(this->_root);
 
@@ -328,6 +333,24 @@ void HttpHandler::create_response(void) {
         std::cout << "\033[1;31mRequest " << this->_method << " method is not allowed\033[0m" << std::endl;
         set_res_status(405, "METHOD NOT ALLOWED");
         return ;
+    }
+
+    // check client limit
+    startIndex = this->_location.find("client_max_body_size:");
+    length = this->_location.find(";", startIndex + 1) - startIndex - 21;
+
+    // std::cout << this->_location.substr(startIndex + 21, length) << std::endl;
+
+    if (startIndex != std::string::npos) {
+        this->_maxClientBodySize = string_to_size(this->_location.substr(startIndex + 21, length));
+        // std::cout << "max size: " << this->_maxClientBodySize << std::endl;
+        // std::cout << "body legnth: " << this->_reqContentLength << std::endl;
+        if (this->_maxClientBodySize < this->_reqContentLength) {
+            std::cout << "\033[1;33m[WARNING]: File is too large than server limit " << this->_maxClientBodySize << "\033[0m" << std::endl;
+            set_res_status(413, "Content Too Large");
+            // this->_tryFileStatus = -1;
+            return ;
+        }
     }
 
     // put the filename in the path
@@ -358,6 +381,7 @@ void HttpHandler::create_response(void) {
             return ;
         }
         uploading_task();
+        // this->_tryFileStatus = -1;
         return ;
     }
 
@@ -479,12 +503,24 @@ void HttpHandler::uploading_task(void) {
 
             // open the file and write to it
             filename.insert(0, "/");
-            filename.insert(0, this->_root);
+            std::size_t uindex = this->_location.find("uploadPath:");
+            if (uindex == std::string::npos) // ============= if no uploadPathh found, use fall back to root
+                filename.insert(0, this->_root);
+            else { // ===== found
+                length = this->_location.find(";", uindex + 1) - uindex - 11;
+                filename.insert(0, this->_location.substr(uindex + 11, length));
+                filename.erase(0, 1); // remove first /
+            }
+            std::cout << "filename: " << filename << std::endl;
+
+
             std::ofstream file(filename.c_str(), std::ios::binary);
 
             if (!file) { //================ cannot open the file
                 // std::cout << filename << std::endl;
                 std::cout << "[ERROR]: " << strerror(errno) << std::endl;
+                set_res_status(403, "FOBIDDEN");
+                sindex = eindex - 1; // return back 1 char
                 continue ;
             }
 
@@ -492,12 +528,12 @@ void HttpHandler::uploading_task(void) {
             file.close();
             std::cout << "[DEBUG]: File save successfully" << std::endl;
             set_res_status(200, "OK file saved");
+            this->_tryFileStatus = 2;
 
             sindex = eindex - 1; // return back 1 char
             // to next block
         }
 
-        this->_tryFileStatus = -1;
         return ;
     }
 
@@ -539,11 +575,12 @@ void HttpHandler::set_res_status(int code, std::string text) {
 void HttpHandler::try_file(void) {
 
     // this step is reached when the filepath isset, even in the error code
+    std::cout << "[DEBUG]: try file: " << this->_filepath << std::endl;
+    std::cout << "try file status " << this->_tryFileStatus << std::endl;
 
     if (this->_isRedirection == 1 || this->_tryFileStatus == -1)
         return ;
 
-    std::cout << "[DEBUG]: try file: " << this->_filepath << std::endl;
 
     stat(this->_filepath.c_str(), &this->_fileInfo);
 
@@ -694,12 +731,18 @@ void HttpHandler::remove_white_space(std::string& input) {
 
 }
 
+
 int HttpHandler::string_to_int(std::string str) {
     std::stringstream ss(str);
     int output;
-
     ss >> output;
+    return (output);
+}
 
+std::size_t HttpHandler::string_to_size(std::string str) {
+    std::stringstream ss(str);
+    std::size_t output;
+    ss >> output;
     return (output);
 }
 
