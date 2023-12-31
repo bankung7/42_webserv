@@ -138,6 +138,8 @@ void HttpHandler::parsing_request(void) {
         while (std::getline(ss, line, '\n')) {
             std::stringstream lss(line);
 
+            // std::cout << line << std::endl;
+
             // check if the body exist
             if (line.compare("\r") == 0 && this->_parameter["Content-Length"].compare("0") != 0) {
 
@@ -162,7 +164,7 @@ void HttpHandler::parsing_request(void) {
             std::string attr;
             std::getline(lss, attr, ':');
             if (this->_parameter.find(attr) != this->_parameter.end()) {
-                // std::cout << attr << std::endl;
+                // std::cout << "[DEBUG]: found " << attr << std::endl;
                 std::string value;
                 std::getline(lss, value);
                 this->remove_white_space(value);
@@ -196,7 +198,7 @@ void HttpHandler::parsing_request(void) {
         std::stringstream pss(sport);
         pss >> this->_port;
 
-        std::cout << "Content-Type: " << this->_parameter["Content-Type"] << std::endl;
+        // std::cout << "Content-Type: " << this->_parameter["Content-Type"] << std::endl;
 
         // check content type and set
         if (this->_parameter["Content-Type"].find("application/x-www-form-urlencoded") != std::string::npos) {
@@ -235,6 +237,8 @@ void HttpHandler::handle_response(void) {
     // protect case
     if (this->_status >= COMPLETED)
         return ;
+
+    // std::cout << this->_req << std::endl;
 
     // Assign server block
     assign_server_block();
@@ -335,7 +339,7 @@ void HttpHandler::create_response(void) {
         return ;
     }
 
-    // check client limit
+    // check client limit == OPTIONAL
     startIndex = this->_location.find("client_max_body_size:");
     length = this->_location.find(";", startIndex + 1) - startIndex - 21;
 
@@ -353,25 +357,58 @@ void HttpHandler::create_response(void) {
         }
     }
 
+    // Redirection == OPTIONAL
+    if (this->_location.find("return:") != std::string::npos) {
+
+        startIndex = this->_location.find("return: ");
+        length = this->_location.find(";", startIndex + 1) - startIndex - 8;
+
+        std::cout << "\033[1;31mRedirection case : " << this->_location.substr(startIndex + 8, length) << "\033[0m" << std::endl;
+        
+        // split to code and url or text
+        std::stringstream redirection(this->_location.substr(startIndex + 8, length));
+        std::string attr;
+
+
+        // get the status code
+        std::getline(redirection, attr, ' ');
+        int code = string_to_int(attr);
+        std::cout << attr << std::endl;
+
+        // relocation, get url
+        if (code >= 300 && code <= 399) {
+
+            this->_isRedirection = 1;
+            this->_filepath.clear();
+
+            std::getline(redirection, attr);
+            this->_filepath = std::string(attr);
+            set_res_status(code, "MOVED");
+            return ;
+        }
+
+        // other get text to set response
+        std::getline(redirection, attr);
+        attr.erase(0, 1); // remove "
+        attr.erase(attr.size() - 1); // remove "
+        set_res_status(code, attr);
+        return;
+    }
+
     // put the filename in the path
     // so the filepath should be root + url
     this->_filepath.append(this->_url);
 
-    // Redirection == OPTIONAL
-    if (this->_location.find("return:") != std::string::npos) {
-
-        this->_isRedirection = 1;
-        this->_filepath.clear();
-
-        startIndex = this->_location.find("return:");
-        length = this->_location.find(";", startIndex + 1) - startIndex - 7;
-
-        std::cout << "\033[1;31mRedirection case : " << std::string(this->_location.substr(startIndex + 7, length)) << "\033[0m" << std::endl;
-
-        this->_filepath = std::string(this->_location.substr(startIndex + 7, length));
-        set_res_status(301, "MOVED PERMANENTLY");
-        return;
+    // get and post that has payload
+    std::cout << "method: " << this->_method << std::endl;
+    std::cout << "Content-Type: " << this->_parameter["Content-Type"] << std::endl;
+    std::cout << "Content-Length: " << this->_reqContentLength << std::endl;
+    if (this->_reqContentLength != 0) {
+        std::cout << "============ BODY =============" << std::endl;
+        std::cout << this->_body << std::endl;
     }
+
+    // for CGI == OPTIONAL =======================>
 
     // file upload
     if (this->_location.find("allowedFileUpload:") != std::string::npos) {
@@ -384,8 +421,6 @@ void HttpHandler::create_response(void) {
         // this->_tryFileStatus = -1;
         return ;
     }
-
-    // for CGI == OPTIONAL =======================>
 
     // check if directory or not
     stat(this->_filepath.c_str(), &this->_fileInfo);
@@ -438,9 +473,13 @@ void HttpHandler::create_response(void) {
 
 void HttpHandler::uploading_task(void) {
 
-    //////////////////////// ============================= here
+    // protect case // not support other entype
+    if (this->_postType != FORMDATA) {
+        set_res_status(403, "NOT ALLOWED");
+        return ;
+    }
 
-    // check if formdata process
+    // only formdata accepted
     if (this->_postType == FORMDATA) {
 
         // read each boundary

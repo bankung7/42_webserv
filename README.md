@@ -72,6 +72,9 @@
 - Multiple file upload, protect case.
 [SOLVED]-> reloop the payload part
 
+- redirection: return only for location
+[SOLVED]-> it can use url for code 3xx and text for other code
+
 - For macos, when try to uplaod the file or delete the file by curl. the system does not permit to do.
 
 - When testing with Macos by VM, it does no support this test method. Use window with wsl only.
@@ -169,10 +172,31 @@ Content-type: text/html\r\n
 Content-Length: 1230\r\n\r\n
 ```
 
+### GET Method
+This method does not send the payload in body part but it put all the payload as query parameter to its URL, even we use form tag.
+
+```
+<form action="/goto/" method="GET" enctype="...">
+    <input type="hidden" name="username" value="test">
+    <input type="hidden" name="password" value="test">
+    <input class="btn-submit" type="submit" value="form-data">
+</form>
+
+http://webserv1:8080/goto/?username=test&password=test
+```
+
 ### POST Method
+This section will use the form tag in html.
+
 #### Form-Data
 each "input" tag in html will be splited by boundary. The boundary is in the request header => Content-Type
 ```
+<form action="/goto/" method="POST" enctype="multipart/form-data">
+    <input type="hidden" name="username" value="test">
+    <input type="hidden" name="password" value="test">
+    <input class="btn-submit" type="submit" value="form-data">
+</form>
+
 ------WebKitFormBoundary95ZYculdXgPumcMP
 Content-Disposition: form-data; name="uploadFile"; filename="12.txt"
 Content-Type: text/plain
@@ -188,6 +212,43 @@ Content-Disposition: form-data; name="option2"
 
 value2
 ------WebKitFormBoundary95ZYculdXgPumcMP--
+```
+
+#### urlencoded
+```
+<form action="/goto/" method="POST" enctype="application/x-www-form-urlencoded">
+    <input type="hidden" name="username" value="test">
+    <input type="hidden" name="password" value="test">
+    <input class="btn-submit" type="submit" value="urlencoded">
+</form>
+
+username=test&password=test
+```
+
+#### text/plain
+```
+<form action="/goto/" method="POST" enctype="text/plain">
+    <input type="hidden" name="username" value="test">
+    <input type="hidden" name="password" value="test">
+    <input class="btn-submit" type="submit" value="text/plain">
+</form>
+
+username=test
+password=test
+
+```
+
+### Redirection
+[DONE]
+
+for 300 series
+```
+return (301 | 302 | 303 | 307) url;
+```
+
+for other series
+```
+return (1XX | 2XX | 4XX | 5XX) ["text"];
 ```
 
 ## Concept
