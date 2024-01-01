@@ -494,61 +494,83 @@ void HttpHandler::create_response(void) {
 
 void HttpHandler::handle_cgi(void) {
 
-    std::cout << "Testing CGI: " << this->_url << std::endl;
+    std::cout << "Processing CGI: " << this->_url << std::endl;
 
-    // fork and execve
-    pid_t pid = 0;
+    // create the environment
+    std::vector<const char*> env;
+    env.push_back("PATH=/bin");
+    std::string content_length("CONTENT_LENGTH=");
+    env.push_back(content_length.append(int_to_string(this->_body.size())).c_str());
+
+    env.push_back("CONTENT_TYPE=text/html");
+    env.push_back("GATEWAT_INTERFACE=CGI/1.1");
+
+    std::string path_info("PATH_INFO=");
+    env.push_back(path_info.append(this->_url).c_str());
+
+    std::string query_string("QUERY_STRING=");
+    env.push_back(query_string.append(this->_body).c_str());
+    env.push_back(NULL);
 
     int fd[2];
-    if (pipe(fd) < 0) {
-        perror("pipe: ");
+    if (pipe(fd) == -1) {
+        perror("pipe");
+        set_res_status(500, "Failed to pipe");
         return ;
     }
 
-    pid = fork();
+    pid_t pid = fork();
+    if (pid < 0) {
+        // error case
+        perror("fork");
+        set_res_status(500, "failed to fork");
+        return ;
+    } else if (pid == 0) {
 
-    if (pid == 0) {
-
-        close(fd[0]);
-        dup2(this->_fd, STDOUT_FILENO);
-        // std::cout << "[CGI]: I'm in child for => " << this->_fd << std::endl;
-        // std::cout << this->_body << std::endl; // plan to use urlencoded
+        // in child process
         
-        // child process
-
-        // try execve with null
-        std::vector<const char *> argv;
-        argv.push_back("/bin/python3");
-        argv.push_back("listing.py");
-        argv.push_back(NULL);
-
-        // env for path
-        std::vector<const char *> env;
-        env.push_back("PATH=/bin");
-        env.push_back("HOME=/home/golf");
-        env.push_back(NULL);
-
-        // change directory to where cgi file is
-        if (chdir("/mnt/d/Golf/42_project/42_webserv/cgi-bin") != 0) {
-            perror("chdir");
-            exit(1);
+        // close(this->_fd); // close the server fd // not sure
+        for (int i = 0; i < (int)this->_server.size(); i++) {
+            if (this->_server[i].get_fd() > 0)
+                close(this->_server[i].get_fd());
         }
 
+        close(fd[0]); // close unused read end pipe
+
+        dup2(fd[1], STDOUT_FILENO); // redirect to write end pipe
+        close(fd[1]); // close the write end pipe
+
+        // create parameter for execve
+        std::vector<const char*> argv;
+        argv.push_back("/bin/python3");
+        argv.push_back("/mnt/d/Golf/42_project/42_webserv/cgi-bin/listing.py");
+        argv.push_back(NULL);
+        
+        // execve
         execve(argv[0], const_cast<char* const*>(argv.data()), const_cast<char* const*>(env.data()));
-        std::perror("execve failed");
+        perror("execve");
 
-        exit(0);
-    } else if (pid == -1) {
-        perror("fork failed");
+
     } else {
-        // parent
-        std::cout << "[CGI]: I'm a parent" << std::endl;
 
+        // in parent process
 
+        close(fd[1]); // close unused write end pipe
 
-        wait(NULL);
+        std::vector<char> bf(BUFFER_SIZE);
+        int bytesRead;
+
+        while ((bytesRead = read(fd[0], bf.data(), BUFFER_SIZE)) > 0) {
+            std::cout << "reading : " << bytesRead << std::endl;
+            send(this->_fd, bf.data(), bytesRead, 0);
+        }
+
+        close(fd[0]); // close read end pipe when completed
+
+        waitpid(pid, NULL, 0); // wait for child to finish
+        set_res_status(200, "CGI OK");
+        this->_tryFileStatus = -1;
     }
-
 
 }
 

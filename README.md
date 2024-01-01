@@ -25,7 +25,7 @@
 [I] Epoll Server\
 [C] Handling request\
 [I] Handling response => [GOLF]\
-[N] CGI\
+[I] CGI => [GOLF]\
 [N] Error Handling\
 [I] Static Web => [GOLF]\
 
@@ -249,6 +249,11 @@ for other series
 ```
 return (1XX | 2XX | 4XX | 5XX) ["text"];
 ```
+
+## CGI
+Concept will be later, once it work.
+Now trying
+Just want to use the CGI to create the index page when autoindex is on
 
 ## Concept
 ### Parsing Configuration file

@@ -5,7 +5,7 @@ Webserv::Webserv(void): _backlog(20) {
     std::cout << "[DEBUG]: Webserv initiated" << std::endl;
 
     // Manually create the server block
-    Server sv1, sv2, sv3;
+    Server sv1;
     // sv1.add_server_name("webserv1");
     sv1.set_port(8080);
     sv1.set_root("/sites/www1");
@@ -20,16 +20,16 @@ Webserv::Webserv(void): _backlog(20) {
     sv1.set_location("/cgi-bin/", "allowedMethod:GET,POST;root:/sites/www1;");
     add_server(sv1);
 
-    sv2.add_server_name("webserv11");
-    sv2.add_server_name("webserv111");
-    sv2.set_port(8080);
-    sv2.set_location("/", "allowedMethod:GET;root:/sites/www2;index:index.html;");
-    add_server(sv2);
+    // sv2.add_server_name("webserv11");
+    // sv2.add_server_name("webserv111");
+    // sv2.set_port(8080);
+    // sv2.set_location("/", "allowedMethod:GET;root:/sites/www2;index:index.html;");
+    // add_server(sv2);
 
-    sv3.add_server_name("webserv2");
-    sv3.set_port(8081);
-    sv3.set_location("/", "allowedMethod:GET;root:/sites/www3;index:index.html;");
-    add_server(sv3);
+    // sv3.add_server_name("webserv2");
+    // sv3.set_port(8081);
+    // sv3.set_location("/", "allowedMethod:GET;root:/sites/www3;index:index.html;");
+    // add_server(sv3);
 
     // setup the server and initiated
     try {
