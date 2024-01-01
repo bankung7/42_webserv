@@ -13,7 +13,9 @@ class Conf {
     private:
         std::string _filename;
         std::string _filedata;
-        int _n_server;
+        std::vector<std::string> _serverconf;
+        size_t _n_server;
+        bool _root_flag;
 
     public:
         Conf();
@@ -21,8 +23,13 @@ class Conf {
         ~Conf();
         void readfile(); 
         bool checkconf();
+        void parseconf(std::vector<Server> &);
+
+        // Getter
+        size_t get_n_server();
+        std::string get_serverconf(size_t);
         
-        // Check each directive
+        // Check Directives
         bool checkroot(std::vector<std::string>);
         bool checkmaxclientsize(std::vector<std::string>);
         bool checkport(std::vector<std::string>);
@@ -37,6 +44,8 @@ class Conf {
         bool checkserver(std::vector<std::string>);
         bool checklocation(std::vector<std::string>);
         bool checkindex(std::vector<std::string>);
+        bool checkerrorpageinlocation(std::vector<std::string>);
+        bool checkuploadpath(std::vector<std::string>);
 
 };
 
