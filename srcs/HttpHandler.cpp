@@ -20,6 +20,8 @@ HttpHandler::HttpHandler(int fd): _fd(fd), _status(READING), _serverIndex(-1) {
     this->_postType = 0;
     this->_maxClientBodySize = std::numeric_limits<std::size_t>::max(); // if not specified
 
+    this->_isCGI = 0;
+
     this->_tryFileStatus = 0;
     this->_isDirectory = 0;
     this->_isRedirection = 0;
@@ -399,16 +401,32 @@ void HttpHandler::create_response(void) {
     // so the filepath should be root + url
     this->_filepath.append(this->_url);
 
-    // get and post that has payload
-    std::cout << "method: " << this->_method << std::endl;
-    std::cout << "Content-Type: " << this->_parameter["Content-Type"] << std::endl;
-    std::cout << "Content-Length: " << this->_reqContentLength << std::endl;
+    // get and post that has payload ===========================================>
+    // std::cout << "method: " << this->_method << std::endl;
+    // std::cout << "Content-Type: " << this->_parameter["Content-Type"] << std::endl;
+    // std::cout << "Content-Length: " << this->_reqContentLength << std::endl;
+    
+    // do the GET method with query ?
+    if (this->_method.compare("GET") == 0 && this->_url.find("?") != std::string::npos) {
+        // transform into body in the same format as urlencoded
+        this->_body.append(this->_url.substr(this->_url.find("?") + 1));
+        std::cout << this->_body << std::endl;
+
+    }
+
     if (this->_reqContentLength != 0) {
         std::cout << "============ BODY =============" << std::endl;
         std::cout << this->_body << std::endl;
     }
 
     // for CGI == OPTIONAL =======================>
+    if (std::string("/cgi-bin/").find(this->_loc.c_str(), 0, 9) == 0) {
+        std::cout << "CGI requesting" << std::endl;
+        handle_cgi();
+        this->_isCGI = 1;
+        set_res_status(404, "TRYING");
+        return ;
+    }
 
     // file upload
     if (this->_location.find("allowedFileUpload:") != std::string::npos) {
@@ -462,12 +480,75 @@ void HttpHandler::create_response(void) {
             // std::cout << "Index Page requested" << std::endl;
             this->_isAutoIndex = 1;
             this->_filepath.append("indexofpage.html");
+
+            // ====================================================> will use cgi to build the index page
+
             return ;
         }
 
         // in case of no index and autoindex, set index.html as default
         this->_filepath.append("index.html");
     }
+
+}
+
+void HttpHandler::handle_cgi(void) {
+
+    std::cout << "Testing CGI: " << this->_url << std::endl;
+
+    // fork and execve
+    pid_t pid = 0;
+
+    int fd[2];
+    if (pipe(fd) < 0) {
+        perror("pipe: ");
+        return ;
+    }
+
+    pid = fork();
+
+    if (pid == 0) {
+
+        close(fd[0]);
+        dup2(this->_fd, STDOUT_FILENO);
+        // std::cout << "[CGI]: I'm in child for => " << this->_fd << std::endl;
+        // std::cout << this->_body << std::endl; // plan to use urlencoded
+        
+        // child process
+
+        // try execve with null
+        std::vector<const char *> argv;
+        argv.push_back("/bin/python3");
+        argv.push_back("listing.py");
+        argv.push_back(NULL);
+
+        // env for path
+        std::vector<const char *> env;
+        env.push_back("PATH=/bin");
+        env.push_back("HOME=/home/golf");
+        env.push_back(NULL);
+
+        // change directory to where cgi file is
+        if (chdir("/mnt/d/Golf/42_project/42_webserv/cgi-bin") != 0) {
+            perror("chdir");
+            exit(1);
+        }
+
+        execve(argv[0], const_cast<char* const*>(argv.data()), const_cast<char* const*>(env.data()));
+        std::perror("execve failed");
+
+        exit(0);
+    } else if (pid == -1) {
+        perror("fork failed");
+    } else {
+        // parent
+        std::cout << "[CGI]: I'm a parent" << std::endl;
+
+
+
+        wait(NULL);
+    }
+
 
 }
 
@@ -558,7 +639,7 @@ void HttpHandler::uploading_task(void) {
             if (!file) { //================ cannot open the file
                 // std::cout << filename << std::endl;
                 std::cout << "[ERROR]: " << strerror(errno) << std::endl;
-                set_res_status(403, "FOBIDDEN");
+                set_res_status(403, "FORBIDDEN");
                 sindex = eindex - 1; // return back 1 char
                 continue ;
             }
@@ -617,7 +698,7 @@ void HttpHandler::try_file(void) {
     std::cout << "[DEBUG]: try file: " << this->_filepath << std::endl;
     std::cout << "try file status " << this->_tryFileStatus << std::endl;
 
-    if (this->_isRedirection == 1 || this->_tryFileStatus == -1)
+    if (this->_isRedirection == 1 || this->_tryFileStatus == -1 || this->_isCGI == 1)
         return ;
 
 
@@ -662,6 +743,10 @@ void HttpHandler::try_file(void) {
 }
 
 void HttpHandler::content_builder(void) {
+
+    // test case
+    if (this->_isCGI == 1)
+        return ;
 
     std::string fileData("");
 
@@ -769,7 +854,6 @@ void HttpHandler::remove_white_space(std::string& input) {
     }
 
 }
-
 
 int HttpHandler::string_to_int(std::string str) {
     std::stringstream ss(str);

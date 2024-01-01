@@ -17,6 +17,7 @@ Webserv::Webserv(void): _backlog(20) {
     sv1.set_location("/box/", "allowedMethod:GET,DELETE;root:/sites/www1;"); // for DELETE
     sv1.set_location("/uploads", "allowedMethod:POST;root:/sites/www1;uploadPath:/sites/www1/temp;allowedFileUpload:yes;client_max_body_size:40000;"); // for uploads, so use the root to tell where to save
     sv1.set_location("/goto/", "allowedMethod:GET,POST;root:/sites/www1;error_page: 404 /error_404.html;");
+    sv1.set_location("/cgi-bin/", "allowedMethod:GET,POST;root:/sites/www1;");
     add_server(sv1);
 
     sv2.add_server_name("webserv11");

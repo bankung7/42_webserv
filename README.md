@@ -20,7 +20,6 @@
 - Must be able to listen to multiple port (defined in config file). 
 
 ## PROGRESS
-
 [N] Parsing Configuration file\
 [C] Server setup and Initializing\
 [I] Epoll Server\

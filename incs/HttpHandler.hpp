@@ -26,6 +26,8 @@
 #include <sys/stat.h> // stat
 #include <errno.h> // errno
 #include <string.h> // strerror
+#include <sys/wait.h> // for wait
+
 
 // C++
 #include <sstream>
@@ -75,9 +77,11 @@ private:
     int _isRedirection;
     int _isAutoIndex;
     int _isIndex;
-    int _isCGI;
     size_t _fileSize;
     std::string _temp; // for fileupload
+
+    // cgi part
+    int _isCGI; // for cgi checking
 
     std::map<int, std::string> _errorCode;
 
@@ -116,6 +120,8 @@ public:
     void try_file(void);
     void content_builder(void);
 
+    // cgi
+    void handle_cgi(void);
 
     // res handle
     void uploading_task(void);
