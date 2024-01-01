@@ -61,6 +61,10 @@ public:
     // remover
     void remove_context(int);
 
+    //utils
+    // void printserverconf(Conf &);
+
+
 };
 
 #endif

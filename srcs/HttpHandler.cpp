@@ -649,7 +649,8 @@ void HttpHandler::content_builder(void) {
         ss << "Location: " << this->_filepath << "\r\n\r\n";
     } else {
         ss << "Cache-Control: no-store\r\n";
-        ss << "Content-type: " << this->_resContentType << "\r\n"
+        // ss << "Content-type: " << this->_resContentType << "\r\n"
+        ss << "Content-type: " << "text/html;\r\n"
         << "Content-Length: " << this->_fileSize << "\r\n\r\n"
         << fileData;
     }

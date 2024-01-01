@@ -1,15 +1,44 @@
 #include "StrUtils.hpp"
 
-std::vector<std::string> split(std::string &str, char delimiter) {
+
+// std::string str = "this is.    a.    test";
+// std::vector<std::string> split(std::string &str, char delimiter) {
+//     std::vector<std::string> tokens;
+//     size_t start = 0;
+//     size_t end = str.find(delimiter);
+//     while (end != std::string::npos) {
+//         while (str[start] == delimiter)
+//              start++;
+//         tokens.push_back(str.substr(start, end - start));
+//         start = end;
+//         while (str[end] == delimiter)
+//             end++;
+//         end = str.find(delimiter, ++end);
+//     }
+//     while (str[start] == delimiter)
+//             start++;
+//     tokens.push_back(str.substr(start));
+//     return tokens;
+// }
+
+std::vector<std::string> split(const std::string& str, const std::string& delimiters) {
     std::vector<std::string> tokens;
-    size_t start = 0;
-    size_t end = str.find(delimiter);
+    std::string::size_type start = 0;
+    std::string::size_type end = str.find_first_of(delimiters);
+
     while (end != std::string::npos) {
-        tokens.push_back(str.substr(start, end - start));
+        if (end != start) {
+            tokens.push_back(str.substr(start, end - start));
+        }
+
         start = end + 1;
-        end = str.find(delimiter, start);
+        end = str.find_first_of(delimiters, start);
     }
-    tokens.push_back(str.substr(start));
+
+    if (start < str.length()) {
+        tokens.push_back(str.substr(start));
+    }
+
     return tokens;
 }
 
