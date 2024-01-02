@@ -56,9 +56,10 @@ void HttpHandler::set_res_content_type() {
         type = std::string(this->_filepath.substr(startIndex, len));
 
         if (type.compare(".jpeg") == 0 || type.compare(".png") == 0 || type.compare(".jpg") == 0)
+        {
             this->_resContentType = std::string("image/*");
-
-        return ;
+            return ;
+        }
     }
     this->_resContentType = std::string("text/html");
 }

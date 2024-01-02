@@ -19,6 +19,8 @@
 // Custom Library
 #include "Server.hpp"
 #include "HttpHandler.hpp"
+#include "Conf.hpp"
+#include "StrUtils.hpp"
 
 // define
 #define MAX_EVENTS 1024
