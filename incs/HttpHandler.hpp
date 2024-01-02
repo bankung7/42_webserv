@@ -82,6 +82,7 @@ private:
 
     // cgi part
     int _isCGI; // for cgi checking
+    std::string _cgipath;
 
     std::map<int, std::string> _errorCode;
 

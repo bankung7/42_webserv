@@ -55,10 +55,11 @@ void HttpHandler::set_res_content_type() {
         len = this->_filepath.size() - startIndex;
         type = std::string(this->_filepath.substr(startIndex, len));
 
-        if (type.compare(".jpeg") == 0 || type.compare(".png") == 0 || type.compare(".jpg") == 0)
+        if (type.compare(".jpeg") == 0 || type.compare(".png") == 0 || type.compare(".jpg") == 0) {
             this->_resContentType = std::string("image/*");
+            return ;
+        }
 
-        return ;
     }
     this->_resContentType = std::string("text/html");
 }
@@ -407,15 +408,20 @@ void HttpHandler::create_response(void) {
     // std::cout << "Content-Length: " << this->_reqContentLength << std::endl;
     
     // do the GET method with query ?
+    // split it from the url and save it in body
     if (this->_method.compare("GET") == 0 && this->_url.find("?") != std::string::npos) {
         // transform into body in the same format as urlencoded
         this->_body.append(this->_url.substr(this->_url.find("?") + 1));
+        this->_url.erase(this->_url.find("?"));
+
+        std::cout << "============ GET QUERY STRING =============" << std::endl;
+        std::cout << this->_url << std::endl;
         std::cout << this->_body << std::endl;
 
     }
 
-    if (this->_reqContentLength != 0) {
-        std::cout << "============ BODY =============" << std::endl;
+    if (this->_method.compare("POST") == 0 && this->_reqContentLength != 0) {
+        std::cout << "============ POST URLENCODED BODY =============" << std::endl;
         std::cout << this->_body << std::endl;
     }
 
@@ -498,7 +504,7 @@ void HttpHandler::handle_cgi(void) {
 
     // create the environment
     std::vector<const char*> env;
-    env.push_back("PATH=/bin");
+    env.push_back("PATH=/bin:~/42_webserv");
     std::string content_length("CONTENT_LENGTH=");
     env.push_back(content_length.append(int_to_string(this->_body.size())).c_str());
 
@@ -511,6 +517,9 @@ void HttpHandler::handle_cgi(void) {
     std::string query_string("QUERY_STRING=");
     env.push_back(query_string.append(this->_body).c_str());
     env.push_back(NULL);
+
+    this->_cgipath.append("./");
+    this->_cgipath.append(this->_url);
 
     int fd[2];
     if (pipe(fd) == -1) {
@@ -543,7 +552,7 @@ void HttpHandler::handle_cgi(void) {
         // create parameter for execve
         std::vector<const char*> argv;
         argv.push_back("/bin/python3");
-        argv.push_back("/mnt/d/Golf/42_project/42_webserv/cgi-bin/listing.py");
+        argv.push_back(this->_cgipath.c_str());
         argv.push_back(NULL);
         
         // execve

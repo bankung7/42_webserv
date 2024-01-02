@@ -7,6 +7,24 @@
     <title>Webserv 1</title>
 
     <style type="text/css">
+        .box-input * {
+            display: block;
+            margin: 5px 0;
+        }
+        
+        .box-input input,
+        .box-input select {
+            margin: 5px 5px 5px 10px;
+        }
+        
+        .inline-block {
+            display: inline-block;
+        }
+        
+        .block {
+            display: block;
+        }
+        
         .flex {
             display: flex;
         }
@@ -93,7 +111,7 @@
                     <li><a href="/html/page1.html">page1</a></li>
                     <li><a href="/html">html - defined index, exist</a></li>
                     <li><a href="/html1">html - defined index, not exist</a></li>
-                    <li><a href="/query?username=test&password=test">Query</a></li>
+                    <li><a href="/cgi-bin/doit.py?prefix=4&firstname=Prayuth&lastname=Chan-ocha">Query Solider</a></li>
                 </ul>
             </div>
 
@@ -130,28 +148,34 @@
             <div class="border-solid-black p5 m5">
                 <div><strong>POST</strong></div>
                 <div>
-                    <p>Idea: This will use form tag handle things </p>
+                    <p>Idea: Just received paramater from 2 input and print it out</p>
                 </div>
                 <div class="flex">
                     <div class="m5 p5">
-                        <form action="/goto/" method="POST" enctype="multipart/form-data">
-                            <input type="hidden" name="username" value="test">
-                            <input type="hidden" name="password" value="test">
-                            <input class="btn-submit" type="submit" value="form-data">
-                        </form>
-                    </div>
-                    <div class="m5 p5">
-                        <form action="/goto/" method="POST" enctype="application/x-www-form-urlencoded">
-                            <input type="hidden" name="username" value="test">
-                            <input type="hidden" name="password" value="test">
-                            <input class="btn-submit" type="submit" value="urlencoded">
-                        </form>
-                    </div>
-                    <div class="m5 p5">
-                        <form action="/goto/" method="POST" enctype="text/plain">
-                            <input type="hidden" name="username" value="test">
-                            <input type="hidden" name="password" value="test">
-                            <input class="btn-submit" type="submit" value="text/plain">
+                        <form action="/cgi-bin/doit.py" method="POST" enctype="application/x-www-form-urlencoded">
+                            <div class="box-input m5">
+                                <div class="flex">
+                                    <p>Prefix: </p>
+                                    <select name="prefix">
+                                        <option value="0">Private</option>
+                                        <option value="1">Sergeant</option>
+                                        <option value="2">Captain</option>
+                                        <option value="3">Colonel</option>
+                                        <option value="4" Default>General</option>
+                                    </select>
+                                </div>
+                                <div class="flex">
+                                    <p>FirstName: </p>
+                                    <input type="text" name="firstname" value="P....">
+                                </div>
+                                <div class="flex">
+                                    <p>LastName: </p>
+                                    <input type="text" name="lastname" value="C....">
+                                </div>
+                            </div>
+                            <div class="flex justify-center">
+                                <input class="btn-submit" type="submit" value="Show me">
+                            </div>
                         </form>
                     </div>
                 </div>
