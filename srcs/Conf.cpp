@@ -40,9 +40,6 @@ void Conf::readfile(void) {
 		std::cout << "Error: configuration file not found." << std::endl;
 	if (!(this->checkconf()))
 		std::cout << "Error: Invalid configuration file" << std::endl;
-	else {
-		std::cout << "OK!! The file is valid." << std::endl;
-	}
 }
 
 bool Conf::checkconf(void) {
@@ -70,7 +67,7 @@ bool Conf::checkconf(void) {
 		}
 		else
 		{
-			if (!location_flag)
+			if (!location_flag) // outside the location block
 			{
 				std::vector<std::string> words = split(lines[i], " \t\n\r");
 				if (checklocation(words)) // location / {
@@ -102,7 +99,7 @@ bool Conf::checkconf(void) {
 					return false;
 				}
 			}
-			else
+			else // inside the location block
 			{
 				std::vector<std::string> words = split(lines[i], ":");
 				if (checkclosebraces(words)) // } for location block
@@ -156,7 +153,6 @@ void Conf::parseconf(std::vector<Server> &svs) {
 			// set location
 			else if (words[0] == "location" && words.size() == 3) {
 				sv.set_location(words[1], words[2]);
-				std::cout << words[2] << std::endl;
 			}
 			// set max client body size
 			else if (checkmaxclientsize(words)) {sv.set_max_client_body_size(ft_stost(words[1]));}
@@ -242,7 +238,7 @@ bool Conf::checkclosebraces(std::vector<std::string> words){
 }
 
 bool Conf::checkreturn(std::vector<std::string> words) {
-	return ((words[0] == "return" && words.size() == 2));
+	return ((words[0] == "return"));
 }
 
 bool Conf::checkallowfileupload(std::vector<std::string> words) {

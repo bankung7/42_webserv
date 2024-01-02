@@ -54,9 +54,10 @@ void HttpHandler::set_res_content_type() {
         type = std::string(this->_filepath.substr(startIndex, len));
 
         if (type.compare(".jpeg") == 0 || type.compare(".png") == 0 || type.compare(".jpg") == 0)
+        {
             this->_resContentType = std::string("image/*");
-
-        return ;
+            return ;
+        }
     }
     this->_resContentType = std::string("text/html");
 }
@@ -195,8 +196,6 @@ void HttpHandler::parsing_request(void) {
         this->_parameter["Host"].erase(this->_parameter["Host"].find(sport) - 1, sport.size() + 1);
         std::stringstream pss(sport);
         pss >> this->_port;
-
-        std::cout << "Content-Type: " << this->_parameter["Content-Type"] << std::endl;
 
         // check content type and set
         if (this->_parameter["Content-Type"].find("application/x-www-form-urlencoded") != std::string::npos) {
@@ -649,8 +648,7 @@ void HttpHandler::content_builder(void) {
         ss << "Location: " << this->_filepath << "\r\n\r\n";
     } else {
         ss << "Cache-Control: no-store\r\n";
-        // ss << "Content-type: " << this->_resContentType << "\r\n"
-        ss << "Content-type: " << "text/html;\r\n"
+        ss << "Content-type: " << this->_resContentType << "\r\n"
         << "Content-Length: " << this->_fileSize << "\r\n\r\n"
         << fileData;
     }
