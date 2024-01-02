@@ -3,21 +3,21 @@
 Webserv::Webserv(void): _backlog(20) {
 
     // std::cout << "[DEBUG]: Webserv initiated" << std::endl;
-    // Conf cf;
-    // cf.parseconf(this->_server);
+    Conf cf;
+    cf.parseconf(this->_server);
     
     // Manually create the server block
-    Server sv1, sv2, sv3;
-    sv1.add_server_name("webserv1");
-    sv1.set_port(8080);
-    sv1.set_root("/sites/www1");
-    sv1.set_location("/", "allowedMethod:GET;root:/sites/www1;"); // default index
-    sv1.set_location("/html","allowedMethod:GET;root:/sites/www1;index:defined.html;error_page: 500 501 501 505 /error_50x.html;error_page: 404 /error_404.html;error_page: 405 /error_405.html;"); // defined index 
-    sv1.set_location("/files","allowedMethod:GET;root:/sites/www1;autoIndex:on;"); // autoindex, if defined index, it would be index
-    sv1.set_location("/google", "allowedMethod:GET;return:https://www.google.co.th;"); // for redirection
-    sv1.set_location("/box/", "allowedMethod:GET,DELETE;root:/sites/www1;"); // for DELETE
-    sv1.set_location("/uploads", "allowedMethod:POST;root:/sites/www1;uploadPath:/sites/www1/temp;allowedFileUpload:yes;client_max_body_size:40000;"); // for uploads, so use the root to tell where to save
-    add_server(sv1);
+    // Server sv1, sv2, sv3;
+    // sv1.add_server_name("webserv1");
+    // sv1.set_port(8080);
+    // sv1.set_root("/sites/www1");
+    // sv1.set_location("/", "allowedMethod:GET;root:/sites/www1;"); // default index
+    // sv1.set_location("/html","allowedMethod:GET;root:/sites/www1;index:defined.html;error_page: 500 501 501 505 /error_50x.html;error_page: 404 /error_404.html;error_page: 405 /error_405.html;"); // defined index 
+    // sv1.set_location("/files","allowedMethod:GET;root:/sites/www1;autoIndex:on;"); // autoindex, if defined index, it would be index
+    // sv1.set_location("/google", "allowedMethod:GET;return:https://www.google.co.th;"); // for redirection
+    // sv1.set_location("/box/", "allowedMethod:GET,DELETE;root:/sites/www1;"); // for DELETE
+    // sv1.set_location("/uploads", "allowedMethod:POST;root:/sites/www1;uploadPath:/sites/www1/temp;allowedFileUpload:yes;client_max_body_size:40000;"); // for uploads, so use the root to tell where to save
+    // add_server(sv1);
 
     // sv3.add_server_name("webserv2");
     // sv3.set_port(8081);
