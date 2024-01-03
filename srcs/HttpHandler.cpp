@@ -485,10 +485,26 @@ void HttpHandler::create_response(void) {
         if (this->_location.find("autoIndex:on;") != std::string::npos) {
             // std::cout << "Index Page requested" << std::endl;
             this->_isAutoIndex = 1;
-            this->_filepath.append("indexofpage.html");
+            // this->_filepath.append("indexofpage.html");
 
-            // ====================================================> will use cgi to build the index page
-
+            // ====================================================> will use cgi to build the index pag
+            // assume that be here with GET
+            if (this->_method.compare("GET") == 0) {
+                std::cout << "HERE" << std::endl;
+                // put the url to query as it will be path
+                this->_body.clear();
+                this->_body.append(this->_root);
+                this->_body.append(this->_url);
+                this->_body.insert(0, "/");
+                // this->_body.append("/");
+                // std::cout << "this path to listing: " << this->_body << std::endl;
+                this->_url.clear(); // remove the url, replace with the path of cgi
+                this->_url.append("/cgi-bin/listing.py");
+                // std::cout << "cgi path : " << this->_url << std::endl;
+                
+            }
+            this->_tryFileStatus = -1;
+            handle_cgi();
             return ;
         }
 
@@ -518,8 +534,9 @@ void HttpHandler::handle_cgi(void) {
     env.push_back(query_string.append(this->_body).c_str());
     env.push_back(NULL);
 
-    this->_cgipath.append("./");
+    this->_cgipath.append(".");
     this->_cgipath.append(this->_url);
+    std::cout << "cgi path : "  << this->_cgipath << std::endl;
 
     int fd[2];
     if (pipe(fd) == -1) {
@@ -553,6 +570,7 @@ void HttpHandler::handle_cgi(void) {
         std::vector<const char*> argv;
         argv.push_back("/bin/python3");
         argv.push_back(this->_cgipath.c_str());
+        // std::cout << argv[1] << std::endl;
         argv.push_back(NULL);
         
         // execve
@@ -571,7 +589,10 @@ void HttpHandler::handle_cgi(void) {
 
         while ((bytesRead = read(fd[0], bf.data(), BUFFER_SIZE)) > 0) {
             std::cout << "reading : " << bytesRead << std::endl;
-            send(this->_fd, bf.data(), bytesRead, 0);
+            // std::cout << bf.data() << std::endl;
+            int bytesCGISend = send(this->_fd, bf.data(), bytesRead, 0);
+            std::cout << "total bytes cgi send: " << bytesCGISend << std::endl;
+            
         }
 
         close(fd[0]); // close read end pipe when completed
@@ -579,6 +600,7 @@ void HttpHandler::handle_cgi(void) {
         waitpid(pid, NULL, 0); // wait for child to finish
         set_res_status(200, "CGI OK");
         this->_tryFileStatus = -1;
+        this->_isCGI = 1;
     }
 
 }
@@ -731,7 +753,6 @@ void HttpHandler::try_file(void) {
 
     if (this->_isRedirection == 1 || this->_tryFileStatus == -1 || this->_isCGI == 1)
         return ;
-
 
     stat(this->_filepath.c_str(), &this->_fileInfo);
 

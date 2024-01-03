@@ -71,6 +71,7 @@ private:
     std::string _filename;
     std::string _filepath; // for root + url
     struct stat _fileInfo; // file info
+    std::string _query; // for query string
     std::string _root; // root
     std::string _droot; // root directive from server block
     int _isDirectory;
