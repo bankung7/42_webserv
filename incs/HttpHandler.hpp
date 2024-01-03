@@ -71,7 +71,7 @@ private:
     std::string _filename;
     std::string _filepath; // for root + url
     struct stat _fileInfo; // file info
-    std::string _query; // for query string
+    std::string _queryString; // for query string
     std::string _root; // root
     std::string _droot; // root directive from server block
     int _isDirectory;
@@ -84,6 +84,7 @@ private:
     // cgi part
     int _isCGI; // for cgi checking
     std::string _cgipath;
+    std::string _cgiResBody; // for cgi write the output to
 
     std::map<int, std::string> _errorCode;
 

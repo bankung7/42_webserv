@@ -141,6 +141,17 @@ void Conf::parseconf(std::vector<Server> &svs) {
 		std::vector<std::string> lines = split(_serverconf[i], "\n");
 		for (size_t j = 0; j < lines.size(); j++) {
 			std::vector<std::string> words = split(lines[j], " \t\n\r");
+            
+            //// debug
+            // if (words[0].compare("location") == 0)
+            //     std::cout << "check word size: " << words.size() << " => " << words[1] << std::endl;
+
+            // for (int j = 0; j < (int)words.size(); j++) {
+            //     std::cout << j << " : " << words[j] << std::endl;
+            // }
+
+            // //// debug
+
 			// set port
 			if (checkport(words)) {sv.set_port(isvalidport(words[1]));}
 			// set server name

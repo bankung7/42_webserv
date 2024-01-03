@@ -251,9 +251,17 @@ return (1XX | 2XX | 4XX | 5XX) ["text"];
 ```
 
 ## CGI
-Concept will be later, once it work.
-Now trying
-Just want to use the CGI to create the index page when autoindex is on
+This will only accept for GET and POST method.
+
+### GET
+It received a parameter by query string which passing through QUERY_STRING in tehe environment (execve)
+What we have to do is to extract the query section from the URL and put it in the environment variable.
+
+### POST
+There a 3 types of POST, which the book said that it will send the data to CGI via STDIN. That mean we have to pipe it. (WTG)
+
+https://www.tutorialspoint.com/python/python_cgi_programming.htm
+https://www.ibm.com/docs/en/netcoolomnibus/8.1?topic=scripts-environment-variables-in-cgi-script
 
 ## Concept
 ### Parsing Configuration file

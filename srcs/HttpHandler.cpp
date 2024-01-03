@@ -20,6 +20,8 @@ HttpHandler::HttpHandler(int fd): _fd(fd), _status(READING), _serverIndex(-1) {
     this->_postType = 0;
     this->_maxClientBodySize = std::numeric_limits<std::size_t>::max(); // if not specified
 
+    this->_queryString = std::string("");
+
     this->_isCGI = 0;
 
     this->_tryFileStatus = 0;
@@ -221,6 +223,9 @@ void HttpHandler::parsing_request(void) {
             return ;
         }
 
+        if (this->_parameter["Content-Type"].size() == 0)
+            this->_parameter["Content-Type"].append("text/html");
+
         // std::cout << this->_body << std::endl;
         // std::cout << this->_req << std::endl;
         return ;
@@ -407,30 +412,29 @@ void HttpHandler::create_response(void) {
     // std::cout << "Content-Type: " << this->_parameter["Content-Type"] << std::endl;
     // std::cout << "Content-Length: " << this->_reqContentLength << std::endl;
     
-    // do the GET method with query ?
-    // split it from the url and save it in body
+    // === GET method with query ? === //
+    // put query part into _queryString
     if (this->_method.compare("GET") == 0 && this->_url.find("?") != std::string::npos) {
-        // transform into body in the same format as urlencoded
-        this->_body.append(this->_url.substr(this->_url.find("?") + 1));
+        this->_queryString.append(this->_url.substr(this->_url.find("?") + 1));
         this->_url.erase(this->_url.find("?"));
 
-        std::cout << "============ GET QUERY STRING =============" << std::endl;
-        std::cout << this->_url << std::endl;
-        std::cout << this->_body << std::endl;
+        // std::cout << "============ GET QUERY STRING =============" << std::endl;
+        // std::cout << this->_url << std::endl;
+        // std::cout << this->_queryString << std::endl;
 
-    }
-
-    if (this->_method.compare("POST") == 0 && this->_reqContentLength != 0) {
-        std::cout << "============ POST URLENCODED BODY =============" << std::endl;
-        std::cout << this->_body << std::endl;
     }
 
     // for CGI == OPTIONAL =======================>
     if (std::string("/cgi-bin/").find(this->_loc.c_str(), 0, 9) == 0) {
-        std::cout << "CGI requesting" << std::endl;
+        // std::cout << "CGI requesting" << std::endl;
+        // accept only text/html and urlencoded
+        if (this->_parameter["Content-Type"].compare("text/html") != 0 && this->_parameter["Content-Type"].compare("application/x-www-form-urlencoded") != 0) {
+            set_res_status(403, "CGI Note allowed the Type");
+            return ;
+        }
         handle_cgi();
         this->_isCGI = 1;
-        set_res_status(404, "TRYING");
+        // set_res_status(404, "TRYING");
         return ;
     }
 
@@ -499,7 +503,7 @@ void HttpHandler::create_response(void) {
                 // this->_body.append("/");
                 // std::cout << "this path to listing: " << this->_body << std::endl;
                 this->_url.clear(); // remove the url, replace with the path of cgi
-                this->_url.append("/cgi-bin/listing.py");
+                this->_url.append("/cgi-bin/directory_listing.py");
                 // std::cout << "cgi path : " << this->_url << std::endl;
                 
             }
@@ -518,34 +522,51 @@ void HttpHandler::handle_cgi(void) {
 
     std::cout << "Processing CGI: " << this->_url << std::endl;
 
-    // create the environment
+    // === create the environment === //
     std::vector<const char*> env;
+
     env.push_back("PATH=/bin:~/42_webserv");
     std::string content_length("CONTENT_LENGTH=");
     env.push_back(content_length.append(int_to_string(this->_body.size())).c_str());
 
-    env.push_back("CONTENT_TYPE=text/html");
+    std::string contentType("CONTENT_TYPE=");
+    contentType.append(this->_parameter["Content-Type"]);
+    std::cout << "content-type fro cgi: " << contentType << std::endl;
+    env.push_back(contentType.c_str());
+
     env.push_back("GATEWAT_INTERFACE=CGI/1.1");
 
     std::string path_info("PATH_INFO=");
     env.push_back(path_info.append(this->_url).c_str());
 
-    std::string query_string("QUERY_STRING=");
-    env.push_back(query_string.append(this->_body).c_str());
-    env.push_back(NULL);
+    std::string reqMethod("REQUEST_METHOD=");
+    reqMethod.append(this->_method);
+    env.push_back(reqMethod.c_str());
 
+    // === GET : put it in the query string === //
+    std::string query_string("QUERY_STRING=");
+    env.push_back(query_string.append(this->_queryString).c_str());
+    // std::cout << "query string fro get: " << query_string << std::endl;
+
+    env.push_back(NULL);
+    // === NULL terminate : End part of environment=== //
+
+    // === Create the argv for execve === //
     this->_cgipath.append(".");
     this->_cgipath.append(this->_url);
-    std::cout << "cgi path : "  << this->_cgipath << std::endl;
+    // std::cout << "cgi path : "  << this->_cgipath << std::endl;
 
-    int fd[2];
-    if (pipe(fd) == -1) {
+    int to_cgi_fd[2];
+    int from_cgi_fd[2];
+
+    if (pipe(to_cgi_fd) == -1 || pipe(from_cgi_fd) == -1) {
         perror("pipe");
         set_res_status(500, "Failed to pipe");
         return ;
     }
 
     pid_t pid = fork();
+
     if (pid < 0) {
         // error case
         perror("fork");
@@ -553,7 +574,16 @@ void HttpHandler::handle_cgi(void) {
         return ;
     } else if (pid == 0) {
 
-        // in child process
+        // Child process
+
+        close(to_cgi_fd[1]); // close to cgi write end
+        close(from_cgi_fd[0]); // close from cgi read end
+
+        dup2(to_cgi_fd[0], STDIN_FILENO); // dup read-to to stdno
+        dup2(from_cgi_fd[1], STDOUT_FILENO); // dup write-from to stdout
+
+        close(to_cgi_fd[0]); // close original
+        close(from_cgi_fd[1]); // close original
         
         // close(this->_fd); // close the server fd // not sure
         for (int i = 0; i < (int)this->_server.size(); i++) {
@@ -561,16 +591,10 @@ void HttpHandler::handle_cgi(void) {
                 close(this->_server[i].get_fd());
         }
 
-        close(fd[0]); // close unused read end pipe
-
-        dup2(fd[1], STDOUT_FILENO); // redirect to write end pipe
-        close(fd[1]); // close the write end pipe
-
-        // create parameter for execve
+        // === create parameter for execve === //
         std::vector<const char*> argv;
         argv.push_back("/bin/python3");
         argv.push_back(this->_cgipath.c_str());
-        // std::cout << argv[1] << std::endl;
         argv.push_back(NULL);
         
         // execve
@@ -580,27 +604,51 @@ void HttpHandler::handle_cgi(void) {
 
     } else {
 
-        // in parent process
+        // Parent process
 
-        close(fd[1]); // close unused write end pipe
+        close(to_cgi_fd[0]); // close to cgi write end
+        close(from_cgi_fd[1]); // close from cgi read end
+
+        // write post data to pipe
+        write(to_cgi_fd[1], this->_body.c_str(), this->_body.size());
+        close(to_cgi_fd[1]); // close when write complete
+
 
         std::vector<char> bf(BUFFER_SIZE);
         int bytesRead;
 
-        while ((bytesRead = read(fd[0], bf.data(), BUFFER_SIZE)) > 0) {
-            std::cout << "reading : " << bytesRead << std::endl;
+        // wait for CGI writing back to server, push it in the _cgiResBody
+        while (1) {
+
+            bytesRead = read(from_cgi_fd[0], bf.data(), BUFFER_SIZE);
             // std::cout << bf.data() << std::endl;
-            int bytesCGISend = send(this->_fd, bf.data(), bytesRead, 0);
-            std::cout << "total bytes cgi send: " << bytesCGISend << std::endl;
-            
+
+            if (bytesRead == 0) {
+                std::cout << "[CGI]: end of file detecting" << std::endl;
+                set_res_status(200, "CGI OK");
+                break ;
+            }
+            if (bytesRead == -1) {
+                std::cout << "[CGI]: error reading for CGI output" << std::endl;
+                set_res_status(500, "CGI FAILED");
+                break ;
+            }
+
+            std::cout << "[CGI]: reading " << bytesRead << std::endl;
+
+            if (bytesRead < BUFFER_SIZE)
+                bf[bytesRead - 1] = '\0';
+
+            this->_res.append(bf.data());
+
+
         }
 
-        close(fd[0]); // close read end pipe when completed
+        close(from_cgi_fd[0]); // close read end pipe when completed
+        std::cout << this->_res << std::endl;
 
         waitpid(pid, NULL, 0); // wait for child to finish
-        set_res_status(200, "CGI OK");
         this->_tryFileStatus = -1;
-        this->_isCGI = 1;
     }
 
 }
@@ -719,7 +767,7 @@ void HttpHandler::set_res_status(int code, std::string text) {
     this->_resStatusCode = code;
     this->_resStatusText = std::string(text);
 
-    if (code == 200)
+    if (code == 200 || this->_isCGI == 1)
         return ;
 
     // TODO: check if default error assigned, later
@@ -796,40 +844,39 @@ void HttpHandler::try_file(void) {
 
 void HttpHandler::content_builder(void) {
 
-    // test case
-    if (this->_isCGI == 1)
-        return ;
+    std::string fileData(""); // for other response that not CGI
 
-    std::string fileData("");
+    if (this->_isCGI != 1) {
 
-    if (this->_tryFileStatus != -1) {
-        fileData = std::string(std::istreambuf_iterator<char>(this->_file), std::istreambuf_iterator<char>());
-    } else if (this->_isRedirection != 1) {
-        fileData.append(int_to_string(this->_resStatusCode));
-        fileData.append(" : ");
-        fileData.append(this->_resStatusText);
+        if (this->_tryFileStatus != -1) {
+            fileData = std::string(std::istreambuf_iterator<char>(this->_file), std::istreambuf_iterator<char>());
+        } else if (this->_isRedirection != 1) {
+            fileData.append(int_to_string(this->_resStatusCode));
+            fileData.append(" : ");
+            fileData.append(this->_resStatusText);
+        }
+
+        this->_file.close(); // close the file
+        if (this->_fileSize == 0)
+            this->_fileSize = fileData.size();
+
+        // std::cout << "file size: " << this->_fileSize << std::endl;
     }
-
-    this->_file.close(); // close the file
-    if (this->_fileSize == 0)
-        this->_fileSize = fileData.size();
-
-    // std::cout << "file size: " << this->_fileSize << std::endl;
 
     // create response header
     std::stringstream ss;
     ss << "HTTP/1.1 " << this->_resStatusCode << " " << this->_resStatusText << "\r\n";
 
     if (this->_isRedirection == 1) {
-        ss << "Cache-Control: no-store\r\n";
         ss << "Location: " << this->_filepath << "\r\n\r\n";
+    } else if (this->_isCGI == 1) {
+        ss << "Content-Length: " << this->_res.size() << "\r\n"
+        << this->_res;
     } else {
-        ss << "Cache-Control: no-store\r\n";
         ss << "Content-type: " << this->_resContentType << "\r\n"
         << "Content-Length: " << this->_fileSize << "\r\n\r\n"
         << fileData;
     }
-
 
     std::string res(ss.str());
     std::vector<char> msg;

@@ -111,7 +111,7 @@
                     <li><a href="/html/page1.html">page1</a></li>
                     <li><a href="/html">html - defined index, exist</a></li>
                     <li><a href="/html1">html - defined index, not exist</a></li>
-                    <li><a href="/cgi-bin/doit.py?prefix=4&firstname=Prayuth&lastname=Chan-ocha">Query Solider</a></li>
+                    <li><a href="/cgi-bin/hello.py?firstname=Ban&lastname=Mido">Hello CGI</a></li>
                 </ul>
             </div>
 
@@ -124,6 +124,7 @@
                 <ul>
                     <li><a href="/files/">files folder</a></li>
                     <li><a href="/box/">box folder</a></li>
+                    <li><a href="/images">Images</a></li>
                 </ul>
             </div>
 
@@ -150,9 +151,9 @@
                 </div>
                 <div class="flex">
                     <div class="m5 p5">
-                        <form action="/cgi-bin/doit.py" method="POST" enctype="application/x-www-form-urlencoded">
+                        <form action="/cgi-bin/hello.py" method="POST" enctype="application/x-www-form-urlencoded">
                             <div class="box-input m5">
-                                <div class="flex">
+                                <!-- <div class="flex">
                                     <p>Prefix: </p>
                                     <select name="prefix">
                                         <option value="0">Private</option>
@@ -161,14 +162,14 @@
                                         <option value="3">Colonel</option>
                                         <option value="4" Default>General</option>
                                     </select>
-                                </div>
+                                </div> -->
                                 <div class="flex">
                                     <p>FirstName: </p>
-                                    <input type="text" name="firstname" value="P....">
+                                    <input type="text" name="firstname" value="Prayuth">
                                 </div>
                                 <div class="flex">
                                     <p>LastName: </p>
-                                    <input type="text" name="lastname" value="C....">
+                                    <input type="text" name="lastname" value="Chan-ocha">
                                 </div>
                             </div>
                             <div class="flex justify-center">
