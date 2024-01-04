@@ -83,12 +83,14 @@ private:
 
     // cgi part
     int _isCGI; // for cgi checking
+    std::string _cgiType; // for bash or python3
     std::string _cgipath;
     std::string _cgiResBody; // for cgi write the output to
 
     std::map<int, std::string> _errorCode;
 
     std::string _res;
+    std::string _resHeader;
     std::ifstream _file;
     int _resStatusCode;
     std::string _resStatusText;

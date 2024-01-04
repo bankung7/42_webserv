@@ -524,10 +524,29 @@ void HttpHandler::handle_cgi(void) {
 
     std::cout << "Processing CGI: " << this->_url << std::endl;
 
+    // === specify CGI type === //
+    std::string cgiExtension;
+    cgiExtension.append(this->_url.substr(this->_url.rfind(".")));
+    std::cout << "extension: " << cgiExtension << std::endl;
+    
+    if (cgiExtension.compare(".sh") == 0) {
+        std::cout << "Bash cgi" << std::endl;
+        this->_cgiType.append("/bin/bash");
+    }
+    else if (cgiExtension.compare(".py") == 0) {
+        std::cout << "Python cgi" << std::endl;
+        this->_cgiType.append("/usr/bin/python3");
+    }
+    else {
+        set_res_status(404, "CGI NOT SUPPORT");
+        return ;
+    }
+        
+
     // === create the environment === //
     std::vector<const char*> env;
 
-    env.push_back("PATH=/bin:~/42_webserv");
+    env.push_back("PATH=/sbin:/usr/sbin:/bin:/usr/bin");
 
     std::string host("SERVER_NAME=127.0.0.1:8080"); //========= hard code
     env.push_back(host.c_str());
@@ -537,7 +556,6 @@ void HttpHandler::handle_cgi(void) {
 
     std::string contentType("CONTENT_TYPE=");
     contentType.append(this->_parameter["Content-Type"]);
-    std::cout << "content-type fro cgi: " << contentType << std::endl;
     env.push_back(contentType.c_str());
 
     env.push_back("GATEWAT_INTERFACE=CGI/1.1");
@@ -599,7 +617,7 @@ void HttpHandler::handle_cgi(void) {
 
         // === create parameter for execve === //
         std::vector<const char*> argv;
-        argv.push_back("/bin/python3");
+        argv.push_back(this->_cgiType.c_str());
         argv.push_back(this->_cgipath.c_str());
         argv.push_back(NULL);
         
@@ -877,7 +895,8 @@ void HttpHandler::content_builder(void) {
     if (this->_isRedirection == 1) {
         ss << "Location: " << this->_filepath << "\r\n\r\n";
     } else if (this->_isCGI == 1) {
-        ss << "Content-Length: " << this->_res.size() << "\r\n"
+        std::cout << "Content-length: " << (this->_res.size() - this->_res.find("<html>")) << std::endl;
+        ss << "Content-Length: " << (this->_res.size() - this->_res.find("<html>")) << "\r\n"
         << this->_res;
     } else {
         ss << "Content-type: " << this->_resContentType << "\r\n"
@@ -889,7 +908,7 @@ void HttpHandler::content_builder(void) {
     std::vector<char> msg;
     msg.insert(msg.begin(), res.begin(), res.end());
 
-    // std::cout << msg.data() << std::endl;
+    std::cout << msg.data() << std::endl;
 
     int totalByte = msg.size();
     int sentByte = send(this->_fd, msg.data(), totalByte, 0);

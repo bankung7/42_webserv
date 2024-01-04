@@ -111,7 +111,8 @@
                     <li><a href="/html/page1.html">page1</a></li>
                     <li><a href="/html">html - defined index, exist</a></li>
                     <li><a href="/html1">html - defined index, not exist</a></li>
-                    <li><a href="/cgi-bin/hello.py?firstname=Ban&lastname=Mido">Hello CGI</a></li>
+                    <li><a href="/cgi-bin/hello.py?firstname=Ban&lastname=Mido">Python CGI</a></li>
+                    <li><a href="/cgi-bin/hello.sh?firstname=Ban&lastname=Mido">Bash CGI</a></li>
                 </ul>
             </div>
 
@@ -152,16 +153,6 @@
                     <div class="m5 p5">
                         <form action="/cgi-bin/hello.py" method="POST" enctype="application/x-www-form-urlencoded">
                             <div class="box-input m5">
-                                <!-- <div class="flex">
-                                    <p>Prefix: </p>
-                                    <select name="prefix">
-                                        <option value="0">Private</option>
-                                        <option value="1">Sergeant</option>
-                                        <option value="2">Captain</option>
-                                        <option value="3">Colonel</option>
-                                        <option value="4" Default>General</option>
-                                    </select>
-                                </div> -->
                                 <div class="flex">
                                     <p>FirstName: </p>
                                     <input type="text" name="firstname" value="Prayuth">
