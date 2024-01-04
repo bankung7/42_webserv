@@ -487,7 +487,7 @@ void HttpHandler::create_response(void) {
         // is autoindex == OPTIONAL, if off, don't set this in the structure
         // this might use cgi to generate the file into prepared folder
         if (this->_location.find("autoIndex:on;") != std::string::npos) {
-            // std::cout << "Index Page requested" << std::endl;
+            std::cout << "Index Page requested" << std::endl;
             this->_isAutoIndex = 1;
             // this->_filepath.append("indexofpage.html");
 
@@ -496,19 +496,21 @@ void HttpHandler::create_response(void) {
             if (this->_method.compare("GET") == 0) {
                 std::cout << "HERE" << std::endl;
                 // put the url to query as it will be path
-                this->_body.clear();
-                this->_body.append(this->_root);
-                this->_body.append(this->_url);
-                this->_body.insert(0, "/");
-                // this->_body.append("/");
-                // std::cout << "this path to listing: " << this->_body << std::endl;
+                this->_queryString = std::string("");
+                this->_queryString.append("root=");
+                this->_queryString.append(this->_root);
+                this->_queryString.append("&");
+                this->_queryString.append("url=");
+                this->_queryString.append(this->_url.substr(1, this->_url.size() - 1));
+
                 this->_url.clear(); // remove the url, replace with the path of cgi
                 this->_url.append("/cgi-bin/directory_listing.py");
-                // std::cout << "cgi path : " << this->_url << std::endl;
-                
+                this->_isCGI = 1;
+
+                handle_cgi();
+
+                this->_tryFileStatus = -1;
             }
-            this->_tryFileStatus = -1;
-            handle_cgi();
             return ;
         }
 
@@ -526,6 +528,10 @@ void HttpHandler::handle_cgi(void) {
     std::vector<const char*> env;
 
     env.push_back("PATH=/bin:~/42_webserv");
+
+    std::string host("SERVER_NAME=127.0.0.1:8080"); //========= hard code
+    env.push_back(host.c_str());
+
     std::string content_length("CONTENT_LENGTH=");
     env.push_back(content_length.append(int_to_string(this->_body.size())).c_str());
 
@@ -641,11 +647,12 @@ void HttpHandler::handle_cgi(void) {
 
             this->_res.append(bf.data());
 
-
         }
 
         close(from_cgi_fd[0]); // close read end pipe when completed
+        std::cout << "===== CGI OUTPUT =====" << std::endl;
         std::cout << this->_res << std::endl;
+        std::cout << "===== CGI OUTPUT =====" << std::endl;
 
         waitpid(pid, NULL, 0); // wait for child to finish
         this->_tryFileStatus = -1;
