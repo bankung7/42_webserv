@@ -469,6 +469,7 @@ void HttpHandler::create_response(void) {
             set_res_status(403, "Forbidden");
             return ;
         }
+        this->_resContentType = std::string("text/html");
         uploading_task();
         // this->_tryFileStatus = -1;
         return ;
