@@ -40,7 +40,7 @@ def main():
     print('<head><title>CGI indexing</title></head>')
     print('<body>')
     
-    print(f'<h1>Index of {url}</h1>')
+    print(f'<h1>Index of /{url}</h1>')
     
     print('<div>')
     print('<table width="800px">')

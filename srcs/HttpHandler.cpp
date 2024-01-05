@@ -11,6 +11,7 @@ HttpHandler::HttpHandler(int fd): _fd(fd), _status(READING), _serverIndex(-1) {
     this->_parameter["Connection"] = std::string("");
     this->_parameter["boundary"] = std::string("");
     this->_parameter["Content-Type"] = std::string("");
+    this->_parameter["Keep-Alive"] = std::string("");
 
     this->_reqContentLength = 0;
 
@@ -53,10 +54,11 @@ void HttpHandler::set_res_content_type() {
     std::cout << "file " << this->_filepath << std::endl;
 
     std::string type;
-    type = std::string(this->_filepath.substr(this->_filepath.rfind(".")));
-    
-    if (type.find(".") != std::string::npos) {
-        std::cout << "type : " << type << std::endl;
+    std::size_t index = this->_filepath.rfind(".");
+
+    if (index != std::string::npos) {
+        type = this->_filepath.substr(index);
+        // std::cout << "type : " << type << std::endl;
 
         if (type.compare(".jpeg") == 0 || type.compare(".png") == 0 || type.compare(".jpg") == 0) {
             this->_resContentType = std::string("image/*");
@@ -86,6 +88,10 @@ std::string HttpHandler::get_connection_type(void) {
 
 int HttpHandler::get_continue_read(void) const {
     return (this->_isContinueRead);
+}
+
+std::time_t HttpHandler::get_time_out(void) const {
+    return (this->_timeout);
 }
 
 // process
@@ -174,11 +180,25 @@ void HttpHandler::parsing_request(void) {
             std::string attr;
             std::getline(lss, attr, ':');
             if (this->_parameter.find(attr) != this->_parameter.end()) {
+                    
                 // std::cout << "[DEBUG]: found " << attr << std::endl;
                 std::string value;
                 std::getline(lss, value);
                 this->remove_white_space(value);
                 this->_parameter[attr] = std::string(value);
+
+                // for connection
+                if (attr.compare("Connection") == 0) {
+                    if (this->_parameter["Connection"].compare("keep-alive") == 0) {
+                        if (this->_parameter["Keep-Alive"].size() == 0) {
+                            std::time(&this->_timeout);
+                            this->_timeout += KEEP_ALIVE_TIME_OUT;
+                            // std::cout << this->_timeout << std::endl;
+                        }
+                    } else {
+                        std::time(&this->_timeout);
+                    }
+                }
 
                 // set content-length
                 if (attr.compare("Content-Length") == 0 && this->_reqContentLength == 0) {
@@ -242,6 +262,9 @@ void HttpHandler::parsing_request(void) {
         this->_isContinueRead = COMPLETED;
         set_res_status(404, "OVER READING");
     }
+
+    std::cout << "Connection: " << this->_parameter["Connection"] << std::endl;
+    std::cout << "Keep-Alive: " << this->_parameter["Keep-Alive"] << std::endl;
 
 }
 
@@ -405,6 +428,7 @@ void HttpHandler::create_response(void) {
         attr.erase(0, 1); // remove "
         attr.erase(attr.size() - 1); // remove "
         set_res_status(code, attr);
+        this->_isRedirection = 0;
         return;
     }
 
@@ -422,11 +446,6 @@ void HttpHandler::create_response(void) {
     if (this->_method.compare("GET") == 0 && this->_url.find("?") != std::string::npos) {
         this->_queryString.append(this->_url.substr(this->_url.find("?") + 1));
         this->_url.erase(this->_url.find("?"));
-
-        // std::cout << "============ GET QUERY STRING =============" << std::endl;
-        // std::cout << this->_url << std::endl;
-        // std::cout << this->_queryString << std::endl;
-
     }
 
     // for CGI == OPTIONAL =======================>
@@ -541,7 +560,6 @@ void HttpHandler::handle_cgi(void) {
         set_res_status(404, "CGI NOT SUPPORT FILE");
         return ;
     }
-        
 
     // === create the environment === //
     std::vector<const char*> env;
@@ -686,10 +704,6 @@ void HttpHandler::uploading_task(void) {
     // only formdata accepted
     if (this->_postType == FORMDATA) {
 
-        // read each boundary
-        // std::getline() does not work as expected, fall to manual read by index
-        // expected that payload was completed
-
         // std::cout << "============== start of body ==============" << std::endl;
         // std::cout << this->_body << std::endl;
         // std::cout << "============== end of body ==============" << std::endl;
@@ -709,9 +723,6 @@ void HttpHandler::uploading_task(void) {
                 break ;
 
             length = eindex - sindex - boundary.size();
-
-            // std::cout << "end of start line: " << (int)this->_body[sindex + boundary.size() + 1] << std::endl;
-            // std::cout << "end of end line: " << (int)this->_body[eindex - 2] << std::endl;
 
             std::string block(this->_body.substr(sindex + 2 + boundary.size(), length - 4)); // minus \r\n at the end of first line
             // std::cout << "============== start of block ==============" << std::endl;
@@ -794,8 +805,9 @@ void HttpHandler::set_res_status(int code, std::string text) {
 
     // TODO: check if default error assigned, later
     std::map<int, std::string>::iterator it = this->_errorCode.find(code);
-    if (it == this->_errorCode.end())
+    if (it == this->_errorCode.end()) {
         this->_tryFileStatus = -1; // this will return system error page
+    }
     else {
 
         // guaruntee that custom error_page is exist before try_file
@@ -818,8 +830,8 @@ void HttpHandler::set_res_status(int code, std::string text) {
 void HttpHandler::try_file(void) {
 
     // this step is reached when the filepath isset, even in the error code
-    std::cout << "[DEBUG]: try file: " << this->_filepath << std::endl;
-    std::cout << "try file status " << this->_tryFileStatus << std::endl;
+    // std::cout << "[DEBUG]: try file: " << this->_filepath << std::endl;
+    // std::cout << "try file status " << this->_tryFileStatus << std::endl;
 
     if (this->_isRedirection == 1 || this->_tryFileStatus == -1 || this->_isCGI == 1)
         return ;
@@ -897,9 +909,9 @@ void HttpHandler::content_builder(void) {
     response.append("\r\n");
 
     // add Content-disposition for all that not html
-    if (this->_resContentType.compare("text/html") != 0) {
-        std::cout << "Responset Content Type : " << this->_resContentType << std::endl;
-        response.append(create_res_attribute("Content-Disposition", "attahcment"));
+    if (this->_resContentType.compare("text/html") != 0 && this->_resStatusCode == 200) {
+        // std::cout << "Response Content Type : " << this->_resContentType << std::endl;
+        response.append(create_res_attribute("Content-Disposition", "attachment"));
     };
 
     if (this->_isRedirection == 1) {
@@ -919,7 +931,7 @@ void HttpHandler::content_builder(void) {
     // std::cout << response << std::endl;
 
     int totalByte = response.size();
-    std::cout << "total size to send: " << totalByte << std::endl;
+    // std::cout << "total size to send: " << totalByte << std::endl;
     int sentByte = send(this->_fd, response.c_str(), totalByte, 0);
 
     if (sentByte == -1)
@@ -928,6 +940,10 @@ void HttpHandler::content_builder(void) {
         std::cout << "\033[;31m" << "[ERROR]: Sendin not whole file" << "\033[0m" << std::endl;
     else
         std::cout << "\033[;32m" << "[DEBUG]: Send completed " << totalByte << "\033[0m" << std::endl;
+
+    
+    this->_status = COMPLETE_PHASE;
+
 }
 
 

@@ -19,6 +19,8 @@
 #define URLENCODED 11
 #define FORMDATA 12
 
+#define KEEP_ALIVE_TIME_OUT 5
+
 // C
 #include <stdio.h>
 #include <unistd.h>
@@ -37,6 +39,7 @@
 #include <algorithm>
 #include <string>
 #include <limits> // numeric_limit
+#include <ctime>
 
 // Custom
 #include "Server.hpp"
@@ -61,6 +64,8 @@ private:
     std::size_t _maxClientBodySize; // limit body size
 
     std::map<std::string, std::string> _parameter;
+
+    time_t _timeout; // for client timeout
 
     std::vector<Server> _server;
     int _serverIndex;
@@ -113,6 +118,7 @@ public:
     int get_status(void) const;
     std::string get_connection_type(void);
     int get_continue_read(void) const;
+    std::time_t get_time_out(void) const;
 
     // process
     void handle_request(void);

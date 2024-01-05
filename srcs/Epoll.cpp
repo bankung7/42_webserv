@@ -24,7 +24,7 @@ int Webserv::polling(void) {
     socklen_t caddrLen = sizeof(caddr);
 
     while (1) {
-        int nfds = epoll_wait(this->_epfd, events, MAX_EVENTS, -1);
+        int nfds = epoll_wait(this->_epfd, events, MAX_EVENTS, 200);
 
         // if error occured
         if (nfds == -1)
@@ -55,6 +55,7 @@ int Webserv::polling(void) {
                     HttpHandler* context = new HttpHandler(conn);
                     event.events = EPOLLIN;
                     event.data.ptr = (void*)context;
+                    add_context(context->get_fd(), context);
                     context->set_server(this->_server);
 
                     if (epoll_ctl(this->_epfd, EPOLL_CTL_ADD, conn, &event) == -1)
@@ -66,7 +67,6 @@ int Webserv::polling(void) {
                 // EPOLLIN, reading state
                 else {
 
-                    // deal with request
                     HttpHandler* context = (HttpHandler*)event.data.ptr;
 
                     std::cout << "[DEBUG]: reading state for " << context->get_fd() << std::endl;
@@ -106,7 +106,7 @@ int Webserv::polling(void) {
                 HttpHandler* context = (HttpHandler*)event.data.ptr;
 
                 context->handle_response();
-                std::cout << "[DEBUG]: writing state for " << context->get_fd() << std::endl;
+                // std::cout << "[DEBUG]: writing state for " << context->get_fd() << std::endl;
 
                 close_connection(context);
 
@@ -114,6 +114,9 @@ int Webserv::polling(void) {
                 // not any case
                 std::cout << "or may be this" << std::endl;
             }
+
+            // check time out
+            // check_time_out();
         }
     }
 
@@ -125,24 +128,6 @@ void Webserv::close_connection(HttpHandler* context) {
     // TODO:
     std::cout << context->get_connection_type() << std::endl;
 
-    // // dealing with connection that was not closed yet
-    // // TODO: dont let be there forever
-    // if (context->get_connection_type().compare("keep-alive\r") == 0) {
-
-    //     std::cout << "yes keep this alive" << std::endl;
-
-    //     context->set_status(COMPLETED);
-
-    //     struct epoll_event event;
-    //     event.events = EPOLLIN;
-    //     event.data.ptr = (void*)context;
-        
-    //     if (epoll_ctl(this->_epfd, EPOLL_CTL_MOD, context->get_fd(), &event) == -1)
-    //         throw std::runtime_error("[ERROR]: epoll del to epfd failed");
-
-    //     return ;
-    // }
-
     int client_fd = context->get_fd(); // get client fd
 
     if (epoll_ctl(this->_epfd, EPOLL_CTL_DEL, client_fd, NULL) == -1)
@@ -152,4 +137,25 @@ void Webserv::close_connection(HttpHandler* context) {
     this->remove_context(client_fd);
     close(client_fd);
 
+}
+
+void Webserv::check_time_out(void) {
+    
+    std::time_t ctime;
+    time(&ctime);
+
+    std::map<int, HttpHandler*>::iterator it = this->_context.begin();
+
+    for (; it != this->_context.end(); it++) {
+
+        HttpHandler* cont = it->second;
+        
+        if (cont->get_status() < 6)
+            continue ;
+        
+        if (cont->get_time_out() < ctime) {
+            close_connection(cont);
+        }
+
+    }
 }
