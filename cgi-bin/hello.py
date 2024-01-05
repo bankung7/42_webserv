@@ -1,6 +1,8 @@
-#!/usr/local/bin/python3.7
+#!/bin/python3
 
-import cgi # alert warning drpricated
+# only support python 3.5 - 3.10
+
+import cgi
 
 form = cgi.FieldStorage()
 

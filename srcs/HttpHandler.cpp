@@ -49,21 +49,26 @@ void HttpHandler::set_server(std::vector<Server>& server) {
 }
 
 void HttpHandler::set_res_content_type() {
-    std::size_t startIndex, len;
-    std::string type;
 
-    startIndex = this->_filepath.rfind(".");
-    if (startIndex != std::string::npos) {
-        len = this->_filepath.size() - startIndex;
-        type = std::string(this->_filepath.substr(startIndex, len));
+    std::cout << "file " << this->_filepath << std::endl;
+
+    std::string type;
+    type = std::string(this->_filepath.substr(this->_filepath.rfind(".")));
+    
+    if (type.find(".") != std::string::npos) {
+        std::cout << "type : " << type << std::endl;
 
         if (type.compare(".jpeg") == 0 || type.compare(".png") == 0 || type.compare(".jpg") == 0) {
             this->_resContentType = std::string("image/*");
             return ;
         }
+        if (type.compare(".html") == 0) {
+            this->_resContentType = std::string("text/html");
+            return ;
+        }
 
     }
-    this->_resContentType = std::string("text/html");
+    this->_resContentType = std::string("text/plain");
 }
 
 // getter
@@ -468,6 +473,9 @@ void HttpHandler::create_response(void) {
     // is directory == OPTIONAL
     if (this->_isDirectory == 1) {
 
+        // set that directory can't be downloaded
+        this->_resContentType = std::string("text/html");
+
         std::cout << "\033[0;31mDIRECTORY\033[0;0m" << std::endl;
 
         // in case match location is directory but not / at the end
@@ -494,7 +502,6 @@ void HttpHandler::create_response(void) {
             // ====================================================> will use cgi to build the index pag
             // assume that be here with GET
             if (this->_method.compare("GET") == 0) {
-                std::cout << "HERE" << std::endl;
                 // put the url to query as it will be path
                 this->_queryString = std::string("");
                 this->_queryString.append("root=");
@@ -652,10 +659,7 @@ void HttpHandler::handle_cgi(void) {
 
             std::cout << "[CGI]: reading " << bytesRead << std::endl;
 
-            if (bytesRead < BUFFER_SIZE)
-                bf[bytesRead - 1] = '\0';
-
-            this->_res.append(bf.data());
+            this->_res.append(bf.data(), bytesRead); // fixed this to add only what read
 
         }
 
@@ -666,6 +670,7 @@ void HttpHandler::handle_cgi(void) {
 
         waitpid(pid, NULL, 0); // wait for child to finish
         this->_tryFileStatus = -1;
+        this->_resContentType = std::string("text/html");
     }
 
 }
@@ -880,25 +885,6 @@ void HttpHandler::content_builder(void) {
         // std::cout << "file size: " << this->_fileSize << std::endl;
     }
 
-    // std::stringstream ss;
-    // ss << "HTTP/1.1 " << this->_resStatusCode << " " << this->_resStatusText << "\r\n";
-
-    // if (this->_isRedirection == 1) {
-    //     ss << "Location: " << this->_filepath << "\r\n\r\n";
-    // } else if (this->_isCGI == 1) {
-    //     std::cout << "Content-length: " << (this->_res.size() - this->_res.find("<html>")) << std::endl;
-    //     ss << "Content-Length: " << (this->_res.size() - this->_res.find("<html>")) << "\r\n"
-    //     << this->_res;
-    // } else {
-    //     ss << "Content-type: " << this->_resContentType << "\r\n"
-    //     << "Content-Length: " << this->_fileSize << "\r\n\r\n"
-    //     << fileData;
-    // }
-
-    // std::string res(ss.str());
-    // std::vector<char> msg;
-    // msg.insert(msg.begin(), res.begin(), res.end());
-
     // create response header
     std::string response;
     response.clear();
@@ -909,6 +895,12 @@ void HttpHandler::content_builder(void) {
     response.append(" ");
     response.append(this->_resStatusText);
     response.append("\r\n");
+
+    // add Content-disposition for all that not html
+    if (this->_resContentType.compare("text/html") != 0) {
+        std::cout << "Responset Content Type : " << this->_resContentType << std::endl;
+        response.append(create_res_attribute("Content-Disposition", "attahcment"));
+    };
 
     if (this->_isRedirection == 1) {
         response.append(create_res_attribute("Content-Type", "0"));
@@ -924,7 +916,7 @@ void HttpHandler::content_builder(void) {
         response.append(fileData);
     }
 
-    std::cout << response << std::endl;
+    // std::cout << response << std::endl;
 
     int totalByte = response.size();
     std::cout << "total size to send: " << totalByte << std::endl;

@@ -1,6 +1,7 @@
-#!/usr/local/bin/python3.7
+#!/bin/python3
 
-import os # for path
+# only support python 3.5 - 3.10
+import os
 from datetime import datetime
 import cgi
 
