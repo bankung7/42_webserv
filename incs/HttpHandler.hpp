@@ -133,6 +133,7 @@ public:
     void set_res_status(int, std::string);
     void error_page_set(int, std::string);
     void parsing_error_code(std::string);
+    std::string create_res_attribute(std::string, std::string);
 
 
     // utils

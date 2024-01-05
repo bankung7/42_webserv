@@ -529,16 +529,9 @@ void HttpHandler::handle_cgi(void) {
     cgiExtension.append(this->_url.substr(this->_url.rfind(".")));
     std::cout << "extension: " << cgiExtension << std::endl;
     
-    if (cgiExtension.compare(".sh") == 0) {
-        std::cout << "Bash cgi" << std::endl;
-        this->_cgiType.append("/bin/bash");
-    }
-    else if (cgiExtension.compare(".py") == 0) {
-        std::cout << "Python cgi" << std::endl;
-        this->_cgiType.append("/usr/bin/python3");
-    }
-    else {
-        set_res_status(404, "CGI NOT SUPPORT");
+    if (cgiExtension.compare(".sh") != 0 && cgiExtension.compare(".py") != 0) {
+        std::cout << "[CGI]: Not support type" << std::endl;
+        set_res_status(404, "CGI NOT SUPPORT FILE");
         return ;
     }
         
@@ -546,7 +539,7 @@ void HttpHandler::handle_cgi(void) {
     // === create the environment === //
     std::vector<const char*> env;
 
-    env.push_back("PATH=/sbin:/usr/sbin:/bin:/usr/bin");
+    env.push_back("PATH=/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin");
 
     std::string host("SERVER_NAME=127.0.0.1:8080"); //========= hard code
     env.push_back(host.c_str());
@@ -617,7 +610,6 @@ void HttpHandler::handle_cgi(void) {
 
         // === create parameter for execve === //
         std::vector<const char*> argv;
-        argv.push_back(this->_cgiType.c_str());
         argv.push_back(this->_cgipath.c_str());
         argv.push_back(NULL);
         
@@ -888,30 +880,56 @@ void HttpHandler::content_builder(void) {
         // std::cout << "file size: " << this->_fileSize << std::endl;
     }
 
+    // std::stringstream ss;
+    // ss << "HTTP/1.1 " << this->_resStatusCode << " " << this->_resStatusText << "\r\n";
+
+    // if (this->_isRedirection == 1) {
+    //     ss << "Location: " << this->_filepath << "\r\n\r\n";
+    // } else if (this->_isCGI == 1) {
+    //     std::cout << "Content-length: " << (this->_res.size() - this->_res.find("<html>")) << std::endl;
+    //     ss << "Content-Length: " << (this->_res.size() - this->_res.find("<html>")) << "\r\n"
+    //     << this->_res;
+    // } else {
+    //     ss << "Content-type: " << this->_resContentType << "\r\n"
+    //     << "Content-Length: " << this->_fileSize << "\r\n\r\n"
+    //     << fileData;
+    // }
+
+    // std::string res(ss.str());
+    // std::vector<char> msg;
+    // msg.insert(msg.begin(), res.begin(), res.end());
+
     // create response header
-    std::stringstream ss;
-    ss << "HTTP/1.1 " << this->_resStatusCode << " " << this->_resStatusText << "\r\n";
+    std::string response;
+    response.clear();
+
+    // create first line
+    response.append("HTTP/1.1 ");
+    response.append(int_to_string(this->_resStatusCode));
+    response.append(" ");
+    response.append(this->_resStatusText);
+    response.append("\r\n");
 
     if (this->_isRedirection == 1) {
-        ss << "Location: " << this->_filepath << "\r\n\r\n";
+        response.append(create_res_attribute("Content-Type", "0"));
+        response.append(create_res_attribute("Location", this->_filepath));
+        response.append("\r\n");
     } else if (this->_isCGI == 1) {
-        std::cout << "Content-length: " << (this->_res.size() - this->_res.find("<html>")) << std::endl;
-        ss << "Content-Length: " << (this->_res.size() - this->_res.find("<html>")) << "\r\n"
-        << this->_res;
+        response.append(create_res_attribute("Content-Length", int_to_string(this->_res.size() - this->_res.find("\r\n\r\n"))));
+        response.append(this->_res);
     } else {
-        ss << "Content-type: " << this->_resContentType << "\r\n"
-        << "Content-Length: " << this->_fileSize << "\r\n\r\n"
-        << fileData;
+        response.append(create_res_attribute("Content-Length", int_to_string(this->_fileSize)));
+        response.append(create_res_attribute("Content-Type", this->_resContentType));
+        response.append("\r\n");
+        response.append(fileData);
     }
 
-    std::string res(ss.str());
-    std::vector<char> msg;
-    msg.insert(msg.begin(), res.begin(), res.end());
+    // std::cout << response << std::endl;
 
-    std::cout << msg.data() << std::endl;
+    // std::cout << msg.data() << std::endl;
 
-    int totalByte = msg.size();
-    int sentByte = send(this->_fd, msg.data(), totalByte, 0);
+    int totalByte = response.size();
+    int sentByte = send(this->_fd, response.c_str(), totalByte, 0);
 
     if (sentByte == -1)
         std::cout << "\033[;31m" << "[ERROR]: Something wrong while sending" << "\033[0m" << std::endl;
@@ -999,4 +1017,13 @@ std::string HttpHandler::int_to_string(int n) {
     ss << n;
     std::string output(ss.str());
     return (std::string(output));
+}
+
+std::string HttpHandler::create_res_attribute(std::string key, std::string value) {
+    std::string attr;
+    attr.append(key);
+    attr.append(": ");
+    attr.append(value);
+    attr.append("\r\n");
+    return (std::string(attr));
 }
