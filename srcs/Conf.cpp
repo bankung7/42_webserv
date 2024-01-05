@@ -162,7 +162,9 @@ void Conf::parseconf(std::vector<Server> &svs) {
 			// set root
 			else if (checkroot(words)) {sv.set_root(words[1]);}
 			// set location
-			else if (words[0] == "location" && words.size() == 3) {
+			else if (words[0] == "location") {
+				for (size_t k = 3; k < words.size(); k++)
+					words[2].append(" ").append(words[k]);
 				sv.set_location(words[1], words[2]);
 			}
 			// set max client body size
