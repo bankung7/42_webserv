@@ -915,7 +915,7 @@ void HttpHandler::content_builder(void) {
         response.append(create_res_attribute("Location", this->_filepath));
         response.append("\r\n");
     } else if (this->_isCGI == 1) {
-        response.append(create_res_attribute("Content-Length", int_to_string(this->_res.size() - this->_res.find("\r\n\r\n"))));
+        response.append(create_res_attribute("Content-Length", int_to_string(this->_res.size() - this->_res.find("<html>"))));
         response.append(this->_res);
     } else {
         response.append(create_res_attribute("Content-Length", int_to_string(this->_fileSize)));
@@ -924,11 +924,10 @@ void HttpHandler::content_builder(void) {
         response.append(fileData);
     }
 
-    // std::cout << response << std::endl;
-
-    // std::cout << msg.data() << std::endl;
+    std::cout << response << std::endl;
 
     int totalByte = response.size();
+    std::cout << "total size to send: " << totalByte << std::endl;
     int sentByte = send(this->_fd, response.c_str(), totalByte, 0);
 
     if (sentByte == -1)

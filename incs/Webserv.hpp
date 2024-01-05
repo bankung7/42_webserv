@@ -24,7 +24,7 @@
 
 // define
 #define MAX_EVENTS 1024
-#define BACKLOG 20
+#define BACKLOG 100
 
 class Webserv {
 

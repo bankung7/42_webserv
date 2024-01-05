@@ -20,8 +20,6 @@ echo '<body>'
   Args="$*"
   IFS="$OIFS"
 
-#   echo $Args
-
 # Next parse the individual "name=value" tokens.
 
   firstName=""
@@ -33,8 +31,6 @@ echo '<body>'
         IFS="${OIFS}="
         set $i
         IFS="${OIFS}"
-
-        # echo $i
 
         case $1 in
                 # Don't allow "/" changed to " ". Prevent hacker problems.
