@@ -34,7 +34,7 @@ private:
     std::vector<Server> _server;
     std::set<int> _port;
     std::map<int, HttpHandler*> _context;
-    std::vector<HttpHandler> _client;
+    std::vector<HttpHandler*> _client;
 
     int _backlog;
     int _epfd;
@@ -62,6 +62,7 @@ public:
 
     // remover
     void remove_context(int);
+    void remove_client(int);
 
 };
 

@@ -15,6 +15,9 @@ HttpHandler::HttpHandler(int fd): _fd(fd), _status(READING), _serverIndex(-1) {
 
     this->_reqContentLength = 0;
 
+    std::time(&this->_timeout);
+    this->_timeout += KEEP_ALIVE_TIME_OUT;
+
     this->_body = std::string("");
     this->_bodyLength = 0;
     this->_isContinueRead = 0;
@@ -51,7 +54,7 @@ void HttpHandler::set_server(std::vector<Server>& server) {
 
 void HttpHandler::set_res_content_type() {
 
-    std::cout << "file " << this->_filepath << std::endl;
+    std::cout << "[DEBUG]: " << this->_filepath << std::endl;
 
     std::string type;
     std::size_t index = this->_filepath.rfind(".");
@@ -127,6 +130,7 @@ void HttpHandler::handle_request(void) {
     }
 
     // TODO : POST and DELETE method
+    // std::cout << "====== " << this->_fd << "====== " << std::endl;
     // std::cout << this->_req << std::endl;
 
     this->parsing_request();
@@ -189,15 +193,27 @@ void HttpHandler::parsing_request(void) {
 
                 // for connection
                 if (attr.compare("Connection") == 0) {
-                    if (this->_parameter["Connection"].compare("keep-alive") == 0) {
+                    if (value.compare("keep-alive") == 0) {
+                        std::time(&this->_timeout);
                         if (this->_parameter["Keep-Alive"].size() == 0) {
-                            std::time(&this->_timeout);
                             this->_timeout += KEEP_ALIVE_TIME_OUT;
                             // std::cout << this->_timeout << std::endl;
+                        } else {
+                            std::stringstream kss(value);
+                            std::string kvalue;
+                            std::getline(kss, kvalue, ',');
+                            remove_white_space(kvalue);
+                            if (kvalue.size() > 0) {
+                                int ktime = string_to_int(kvalue.substr(kvalue.find("=") + 1));
+                                this->_timeout += ktime;
+                            } else {
+                                this->_timeout += KEEP_ALIVE_TIME_OUT;
+                            }
                         }
                     } else {
                         std::time(&this->_timeout);
                     }
+
                 }
 
                 // set content-length
@@ -263,18 +279,11 @@ void HttpHandler::parsing_request(void) {
         set_res_status(404, "OVER READING");
     }
 
-    std::cout << "Connection: " << this->_parameter["Connection"] << std::endl;
-    std::cout << "Keep-Alive: " << this->_parameter["Keep-Alive"] << std::endl;
-
 }
 
 void HttpHandler::handle_response(void) {
 
-    // protect case
-    if (this->_status >= COMPLETED)
-        return ;
-
-    // std::cout << this->_req << std::endl;
+    std::cout << this->_req << std::endl;
 
     // Assign server block
     assign_server_block();
@@ -284,7 +293,7 @@ void HttpHandler::handle_response(void) {
 
     // match location
     assign_location_block();
-    std::cout << "[DEBUG]: Location block was assigned to " << this->_loc << std::endl;
+    // std::cout << "[DEBUG]: Location block was assigned to " << this->_loc << std::endl;
 
     // create response
     create_response();
@@ -294,6 +303,13 @@ void HttpHandler::handle_response(void) {
 
     // content builder
     content_builder();
+
+    std::time_t ctime;
+    std::time(&ctime);
+
+    std::cout << "Connection: " << this->_parameter["Connection"] << std::endl;
+    std::cout << "Keep-Alive: " << this->_parameter["Keep-Alive"] << std::endl;
+    // std::cout << "Time to out in " << this->_timeout - ctime << std::endl;
 }
 
 void HttpHandler::assign_server_block(void) {
@@ -399,7 +415,7 @@ void HttpHandler::create_response(void) {
         startIndex = this->_location.find("return: ");
         length = this->_location.find(";", startIndex + 1) - startIndex - 8;
 
-        std::cout << "\033[1;31mRedirection case : " << this->_location.substr(startIndex + 8, length) << "\033[0m" << std::endl;
+        // std::cout << "\033[1;31mRedirection case : " << this->_location.substr(startIndex + 8, length) << "\033[0m" << std::endl;
         
         // split to code and url or text
         std::stringstream redirection(this->_location.substr(startIndex + 8, length));
@@ -409,7 +425,8 @@ void HttpHandler::create_response(void) {
         // get the status code
         std::getline(redirection, attr, ' ');
         int code = string_to_int(attr);
-        std::cout << attr << std::endl;
+        
+        // std::cout << attr << std::endl;
 
         // relocation, get url
         if (code >= 300 && code <= 399) {
@@ -496,7 +513,7 @@ void HttpHandler::create_response(void) {
         // set that directory can't be downloaded
         this->_resContentType = std::string("text/html");
 
-        std::cout << "\033[0;31mDIRECTORY\033[0;0m" << std::endl;
+        // std::cout << "\033[0;31mDIRECTORY\033[0;0m" << std::endl;
 
         // in case match location is directory but not / at the end
         if (this->_filepath[this->_filepath.size() - 1] != '/')
@@ -940,8 +957,7 @@ void HttpHandler::content_builder(void) {
     else if (totalByte != sentByte)
         std::cout << "\033[;31m" << "[ERROR]: Sendin not whole file" << "\033[0m" << std::endl;
     else
-        std::cout << "\033[;32m" << "[DEBUG]: Send completed " << totalByte << "\033[0m" << std::endl;
-
+        std::cout << "\033[;32m" << "[DEBUG]: Send completed " << totalByte << " to " << this->_fd << "\033[0m" << std::endl;
     
     this->_status = COMPLETE_PHASE;
 
