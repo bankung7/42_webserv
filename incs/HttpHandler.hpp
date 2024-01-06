@@ -19,7 +19,7 @@
 #define URLENCODED 11
 #define FORMDATA 12
 
-#define KEEP_ALIVE_TIME_OUT 5000000
+#define KEEP_ALIVE_TIME_OUT 5
 
 // C
 #include <stdio.h>
@@ -58,7 +58,7 @@ private:
     std::string _reqContentType;
     std::size_t _reqContentLength; // content-length
     std::size_t _bodyLength;        // actual body length
-    std::string _body;
+    std::string _body; // for requesy body
     int _isContinueRead;
     int _readState; // 0 for header, 1 for body
     int _postType; // url or formdata

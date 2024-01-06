@@ -154,19 +154,19 @@ void HttpHandler::handle_request(void)
         // when reading to body [POST] only
         if (this->_readState == 1)
         {
-            if (this->_method.compare("POST") == 0)
-            {
+            // if (this->_method.compare("POST") == 0)
+            // {
                 // if completed, to epollout
-                // std::cout << "POST method" << std::endl;
-                if (this->_body.size() >= this->_reqContentLength)
+                if (this->_body.size() == this->_reqContentLength)
                 { // check later
                     std::cout << "size: " << this->_reqContentLength << " " << this->_body.size() << std::endl;
                     this->_readState = 2;
                     this->_status = WRITING;
                     return;
                 }
-            }
+            // }
 
+            
             // if not completed, queue in epollin
             return;
         }
@@ -187,26 +187,27 @@ void HttpHandler::handle_request(void)
             // set up header parameter
             setup_header();
 
-            // if GET
-            if (this->_method.compare("GET") == 0 || this->_method.compare("DELETE") == 0)
-            {
-                // std::cout << "GET method" << std::endl;
-                this->_readState = 2;
-                this->_status = WRITING;
-                return;
-            }
+            // // if GET
+            // if (this->_method.compare("GET") == 0 || this->_method.compare("DELETE") == 0)
+            // {
+            //     // std::cout << "GET method" << std::endl;
+            //     this->_readState = 2;
+            //     this->_status = WRITING;
+            //     return;
+            // }
 
-            // if POST, completed in one shot
-            if (this->_method.compare("POST") == 0)
-            {
+            // // if POST, completed in one shot
+            // if (this->_method.compare("POST") == 0)
+            // {
                 if (this->_body.size() >= this->_reqContentLength)
                 { // check later
                     std::cout << "[DEBUG]: Request POST size: " << this->_reqContentLength << " " << this->_body.size() << std::endl;
                     this->_readState = 2;
                     this->_status = WRITING;
+                    return;
                 }
-                return;
-            }
+            // }
+
             return;
         }
     }
@@ -291,6 +292,7 @@ void HttpHandler::setup_header(void)
                         {
                             int ktime = string_to_int(kvalue.substr(kvalue.find("=") + 1));
                             this->_timeout += ktime;
+                            std::cout << "ktime " << ktime << std::endl;
                         }
                         else
                         {
@@ -301,6 +303,7 @@ void HttpHandler::setup_header(void)
                 else
                 {
                     std::time(&this->_timeout);
+                    this->_timeout *= 1.5;
                 }
                 continue;
             }
@@ -513,7 +516,8 @@ void HttpHandler::handle_response(void)
 {
 
     // std::cout << this->_req << std::endl;
-
+    // std::cout << this->_method << std::endl;
+    
     // Assign server block
     assign_server_block();
     // std::cout << "Server index: " << this->_serverIndex << std::endl;
@@ -536,8 +540,8 @@ void HttpHandler::handle_response(void)
     std::time_t ctime;
     std::time(&ctime);
 
-    std::cout << "[DEBUG]: Connection: " << this->_parameter["Connection"] << std::endl;
-    std::cout << "[DEBUG]: Keep-Alive: " << this->_parameter["Keep-Alive"] << std::endl;
+    // std::cout << "[DEBUG]: Connection: " << this->_parameter["Connection"] << std::endl;
+    // std::cout << "[DEBUG]: Keep-Alive: " << this->_parameter["Keep-Alive"] << std::endl;
     // std::cout << "Time to out in " << this->_timeout - ctime << std::endl;
 }
 
@@ -917,6 +921,7 @@ void HttpHandler::handle_cgi(void)
         // execve
         execve(argv[0], const_cast<char *const *>(argv.data()), const_cast<char *const *>(env.data()));
         perror("execve");
+
     }
     else
     {
