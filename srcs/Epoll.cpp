@@ -39,8 +39,6 @@ int Webserv::polling(void) {
             // EPOLLIN event
             if (events[i].events & EPOLLIN) {
 
-                std::cout << "[DEBUG]: New Connection initiated" << std::endl;
-
                 // if fd, new connection
                 if (this->_fd.find(event.data.fd) != this->_fd.end()) {
                     int conn = accept(event.data.fd, (struct sockaddr*)&caddr, (socklen_t*)&caddrLen);
@@ -53,7 +51,7 @@ int Webserv::polling(void) {
                     if (fcntl(conn, F_SETFL, O_NONBLOCK) == -1)
                         throw std::runtime_error("[ERROR]: set non-blocking failed");
 
-                    std::cout << "\033[0;32m[DEBUG]: New connection to " << conn << " from " << event.data.fd << "\033[0m" << std::endl;
+                    std::cout << "\033[0;32m[DEBUG]: New connection initiated wtih " << conn << " from " << event.data.fd << "\033[0m" << std::endl;
 
                     // create context and set to EPOLLIN
                     HttpHandler* context = new HttpHandler(conn);
@@ -78,29 +76,38 @@ int Webserv::polling(void) {
 
                     std::cout << "[DEBUG]: reading state for " << context->get_fd() << std::endl;
 
-                    context->handle_request();
+                    // start reading and not finish yet
+                    if (context->get_status() <= READING) {
+                        context->handle_request();
 
-                    // continue read, watch out for never ending loop
-                    if (context->get_continue_read() == 1) {
-                        // std::cout << "still have thing to read" << std::endl;
-                        continue;
+                        // if completed
+                        if (context->get_status() == WRITING) {
+                            event.events = EPOLLOUT;
+                            event.data.ptr = (void*)context;
+                            if (epoll_ctl(this->_epfd, EPOLL_CTL_MOD, context->get_fd(), &event) == -1)
+                                throw std::runtime_error("[ERROR]: epoll mod [OUT] to epfd failed");
+                        }
+
+                        continue ;
                     }
 
                     // in case of conection was hangup
                     if (context->get_status() == WRITING) {
+                        std::cout << "writing state" << std::endl;
 
                         // reading complete send to EPOLLOUT
                         event.events = EPOLLOUT;
                         event.data.ptr = (void*)context;
                         if (epoll_ctl(this->_epfd, EPOLL_CTL_MOD, context->get_fd(), &event) == -1)
-                            throw std::runtime_error("[ERROR]: epoll mod to epfd failed");
+                            throw std::runtime_error("[ERROR]: epoll mod [OUT] to epfd failed");
 
+                        std::cout << "[DEBUG]: Reading finish, sent to EPOLLOUT" << std::endl;
                     } 
                     // in case the connection was closed from client
                     else if (context->get_status() == CLOSED) {
                         std::cout << "[DEBUG]: Connection was closed from client" << std::endl;
                         close_connection(context);
-                    } 
+                    }
                     else 
                         std::cout << "[DEBUG]: reading in progress for next buffer" << std::endl;
 
@@ -112,8 +119,9 @@ int Webserv::polling(void) {
                 // get context
                 HttpHandler* context = (HttpHandler*)event.data.ptr;
 
-                context->handle_response();
                 std::cout << "[DEBUG]: writing state for " << context->get_fd() << std::endl;
+
+                context->handle_response();
 
                 // this mean completed phase reached
                 // check the connection it is keep-alive or not
@@ -137,8 +145,10 @@ int Webserv::polling(void) {
                         event.events = EPOLLIN;
                         event.data.ptr = (void*)newContext;
 
-                        if (epoll_ctl(this->_epfd, EPOLL_CTL_MOD, newContext->get_fd(), &event) == -1)
+                        if (epoll_ctl(this->_epfd, EPOLL_CTL_MOD, newContext->get_fd(), &event) == -1) {
+                            perror("epoll del timeout");
                             throw std::runtime_error("[ERROR]: epoll mod to epfd failed");
+                        }
                         
                         // std::cout << "=== client " << newContext->get_fd() << " reset to wait queue ===" << std::endl;
 
@@ -169,8 +179,10 @@ void Webserv::close_connection(HttpHandler* context) {
     // TODO:
     int client_fd = context->get_fd(); // get client fd
 
-    if (epoll_ctl(this->_epfd, EPOLL_CTL_DEL, client_fd, NULL) == -1)
+    if (epoll_ctl(this->_epfd, EPOLL_CTL_DEL, client_fd, NULL) == -1) {
+        perror("epoll delete");
         throw std::runtime_error("[ERROR]: epoll del to epfd failed");
+    }
 
     std::cout << "\033[;33m[DEBUG]: close the connection with " << client_fd << "\033[0m" << std::endl;
     this->remove_context(client_fd);

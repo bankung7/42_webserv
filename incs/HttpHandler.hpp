@@ -60,6 +60,7 @@ private:
     std::size_t _bodyLength;        // actual body length
     std::string _body;
     int _isContinueRead;
+    int _readState; // 0 for header, 1 for body
     int _postType; // url or formdata
     std::size_t _maxClientBodySize; // limit body size
 
@@ -122,7 +123,10 @@ public:
 
     // process
     void handle_request(void);
+    void reading_request(void);
+    void setup_header(void);
     void parsing_request(void);
+
 
     void handle_response(void);
     void assign_server_block(void);
