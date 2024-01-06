@@ -188,7 +188,7 @@ void HttpHandler::handle_request(void)
             setup_header();
 
             // if GET
-            if (this->_method.compare("GET") == 0)
+            if (this->_method.compare("GET") == 0 || this->_method.compare("DELETE") == 0)
             {
                 // std::cout << "GET method" << std::endl;
                 this->_readState = 2;

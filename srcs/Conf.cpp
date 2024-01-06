@@ -1,11 +1,11 @@
 #include "Conf.hpp"
 
-Conf::Conf(void) : _filename("./config/default.conf"), _filedata(""), _n_server(0), _root_flag(false){
+Conf::Conf(void) : _filename("./config/default.conf"), _filedata(""), _n_server(0) {
 	readfile();
 }
 
 
-Conf::Conf(std::string filename) : _filename(filename), _filedata(""), _n_server(0), _root_flag(false) {
+Conf::Conf(std::string filename) : _filename(filename), _filedata(""), _n_server(0) {
 	readfile();
 }
 

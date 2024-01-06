@@ -19,7 +19,7 @@
 #define URLENCODED 11
 #define FORMDATA 12
 
-#define KEEP_ALIVE_TIME_OUT 5
+#define KEEP_ALIVE_TIME_OUT 5000000
 
 // C
 #include <stdio.h>

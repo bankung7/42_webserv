@@ -24,7 +24,7 @@ int Webserv::polling(void) {
     socklen_t caddrLen = sizeof(caddr);
 
     while (1) {
-        int nfds = epoll_wait(this->_epfd, events, MAX_EVENTS, 500);
+        int nfds = epoll_wait(this->_epfd, events, MAX_EVENTS, -1);
 
         // std::cout << "epoll loop" << std::endl;
 
