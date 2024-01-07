@@ -15,6 +15,7 @@
 #define TRY_FILE_PHASE 4
 #define CONTENT_PHASE 5
 #define COMPLETE_PHASE 6
+#define NO_SERVER_FOUND -1
 
 #define URLENCODED 11
 #define FORMDATA 12

@@ -16,6 +16,7 @@
 #include <vector>
 #include <set>
 #include <ctime>
+#include <csignal> // signal
 
 // Custom Library
 #include "Server.hpp"
@@ -27,6 +28,10 @@
 #define MAX_EVENTS 1024
 #define BACKLOG 100
 
+#include "Color.hpp" // for text color
+
+// define color
+
 class Webserv {
 
 private:
@@ -34,10 +39,11 @@ private:
     std::vector<Server> _server;
     std::set<int> _port;
     std::map<int, HttpHandler*> _context;
-    std::vector<HttpHandler*> _client;
 
     int _backlog;
     int _epfd;
+
+    std::stringstream _log; // text for error writing
 
 public:
     Webserv(void);
@@ -62,7 +68,11 @@ public:
 
     // remover
     void remove_context(int);
-    void remove_client(int);
+    
+
+    // error handling
+    void clean_socket(void);
+    void clean_context(void);
 
 };
 

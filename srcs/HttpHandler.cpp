@@ -156,17 +156,16 @@ void HttpHandler::handle_request(void)
         {
             // if (this->_method.compare("POST") == 0)
             // {
-                // if completed, to epollout
-                if (this->_body.size() == this->_reqContentLength)
-                { // check later
-                    std::cout << "size: " << this->_reqContentLength << " " << this->_body.size() << std::endl;
-                    this->_readState = 2;
-                    this->_status = WRITING;
-                    return;
-                }
+            // if completed, to epollout
+            if (this->_body.size() == this->_reqContentLength)
+            { // check later
+                std::cout << "size: " << this->_reqContentLength << " " << this->_body.size() << std::endl;
+                this->_readState = 2;
+                this->_status = WRITING;
+                return;
+            }
             // }
 
-            
             // if not completed, queue in epollin
             return;
         }
@@ -187,26 +186,13 @@ void HttpHandler::handle_request(void)
             // set up header parameter
             setup_header();
 
-            // // if GET
-            // if (this->_method.compare("GET") == 0 || this->_method.compare("DELETE") == 0)
-            // {
-            //     // std::cout << "GET method" << std::endl;
-            //     this->_readState = 2;
-            //     this->_status = WRITING;
-            //     return;
-            // }
-
-            // // if POST, completed in one shot
-            // if (this->_method.compare("POST") == 0)
-            // {
-                if (this->_body.size() >= this->_reqContentLength)
-                { // check later
-                    std::cout << "[DEBUG]: Request POST size: " << this->_reqContentLength << " " << this->_body.size() << std::endl;
-                    this->_readState = 2;
-                    this->_status = WRITING;
-                    return;
-                }
-            // }
+            if (this->_body.size() >= this->_reqContentLength)
+            { // check later
+                std::cout << "[DEBUG]: Request POST size: " << this->_reqContentLength << " " << this->_body.size() << std::endl;
+                this->_readState = 2;
+                this->_status = WRITING;
+                return;
+            }
 
             return;
         }
@@ -274,14 +260,17 @@ void HttpHandler::setup_header(void)
             // for Connection
             if (attr.compare("Connection") == 0)
             {
+                // Connection: keep-alive
                 if (value.compare("keep-alive") == 0)
                 {
                     std::time(&this->_timeout);
+
+                    // No Keep-Alive in the request, set default
                     if (this->_parameter["Keep-Alive"].size() == 0)
                     {
                         this->_timeout += KEEP_ALIVE_TIME_OUT;
-                        // std::cout << this->_timeout << std::endl;
                     }
+                    // Keep-alive is set in the request
                     else
                     {
                         std::stringstream kss(value);
@@ -300,6 +289,7 @@ void HttpHandler::setup_header(void)
                         }
                     }
                 }
+                // Connection: closed, and other if does not match keep-alive
                 else
                 {
                     std::time(&this->_timeout);
@@ -341,237 +331,76 @@ void HttpHandler::setup_header(void)
         }
     }
 
-    // if no content-type send, use defualt text/html
+    // if no content-type in the request, use defualt text/html
     if (this->_parameter["Content-Type"].size() == 0)
         this->_parameter["Content-Type"].append("text/html");
-
-}
-
-void HttpHandler::parsing_request(void)
-{
-
-    // protect case
-    if (this->_status == CLOSED)
-        return;
-
-    if (this->_isContinueRead == NOTSTART)
-    {
-
-        std::stringstream ss(this->_req);
-        std::string line;
-
-        // get status line
-        std::getline(ss, line, '\n');
-        std::stringstream lss(line);
-        std::getline(lss, this->_method, ' ');
-        std::getline(lss, this->_url, ' ');
-        std::getline(lss, this->_version);
-
-        // loop for other attribute
-        while (std::getline(ss, line, '\n'))
-        {
-            std::stringstream lss(line);
-
-            // std::cout << line << std::endl;
-
-            // check if the body exist
-            if (line.compare("\r") == 0 && this->_parameter["Content-Length"].compare("0") != 0)
-            {
-
-                // move this to body
-                std::getline(ss, line, '\n');
-                // window case, it seem like it not send some part of the body in header when splited
-                // macos, some part of the request is push into the first time read
-                if (line.size() != 0)
-                {
-                    this->_body.append(this->_req.substr(this->_req.find(line)));
-                }
-
-                // =============
-                if (this->_body.size() < this->_reqContentLength)
-                {
-                    this->_isContinueRead = READING;
-                    return;
-                }
-
-                break;
-            }
-
-            // This is for header
-            std::string attr;
-            std::getline(lss, attr, ':');
-            if (this->_parameter.find(attr) != this->_parameter.end())
-            {
-
-                // std::cout << "[DEBUG]: found " << attr << std::endl;
-                std::string value;
-                std::getline(lss, value);
-                this->remove_white_space(value);
-                this->_parameter[attr] = std::string(value);
-
-                // for connection
-                if (attr.compare("Connection") == 0)
-                {
-                    if (value.compare("keep-alive") == 0)
-                    {
-                        std::time(&this->_timeout);
-                        if (this->_parameter["Keep-Alive"].size() == 0)
-                        {
-                            this->_timeout += KEEP_ALIVE_TIME_OUT;
-                            // std::cout << this->_timeout << std::endl;
-                        }
-                        else
-                        {
-                            std::stringstream kss(value);
-                            std::string kvalue;
-                            std::getline(kss, kvalue, ',');
-                            remove_white_space(kvalue);
-                            if (kvalue.size() > 0)
-                            {
-                                int ktime = string_to_int(kvalue.substr(kvalue.find("=") + 1));
-                                this->_timeout += ktime;
-                            }
-                            else
-                            {
-                                this->_timeout += KEEP_ALIVE_TIME_OUT;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        std::time(&this->_timeout);
-                    }
-                }
-
-                // set content-length
-                if (attr.compare("Content-Length") == 0 && this->_reqContentLength == 0)
-                {
-                    this->_reqContentLength = string_to_int(value);
-                    std::cout << "Content-Length: " << this->_reqContentLength << std::endl;
-                }
-            }
-        }
-    }
-
-    // if reading the body
-    if (this->_isContinueRead == READING && (this->_body.size() < this->_reqContentLength))
-    {
-        // std::cout << "current size: " << this->_body.size() << "/" << this->_reqContentLength << std::endl;
-        return;
-    }
-
-    // read completed
-    if (this->_body.size() == this->_reqContentLength)
-    {
-        // std::cout << "=== received all body message : " << this->_body.size() << std::endl;
-
-        this->_isContinueRead = COMPLETED;
-        // split and set hostname and port
-        std::string sport(this->_parameter["Host"]);
-        sport.erase(0, sport.find(":") + 1);
-        this->_parameter["Host"].erase(this->_parameter["Host"].find(sport) - 1, sport.size() + 1);
-        std::stringstream pss(sport);
-        pss >> this->_port;
-
-        // std::cout << "Content-Type: " << this->_parameter["Content-Type"] << std::endl;
-
-        // check content type and set
-        if (this->_parameter["Content-Type"].find("application/x-www-form-urlencoded") != std::string::npos)
-        {
-            this->_postType = URLENCODED;
-            return;
-        }
-
-        if (this->_parameter["Content-Type"].find("multipart/form-data") != std::string::npos)
-        {
-            this->_postType = FORMDATA;
-            // set boundary
-            std::size_t index = (this->_parameter["Content-Type"]).find("boundary=");
-            this->_parameter["boundary"] = std::string((this->_parameter["Content-Type"]).substr(index + 9));
-            remove_white_space(this->_parameter["boundary"]);
-            this->_parameter["boundary"].insert(0, "--"); // inset the -- in front of boundary
-            // std::cout << "set boudnary " << this->_parameter["boundary"] << std::endl;
-
-            return;
-        }
-
-        if (this->_parameter["Content-Type"].size() == 0)
-            this->_parameter["Content-Type"].append("text/html");
-
-        // std::cout << this->_body << std::endl;
-        // std::cout << this->_req << std::endl;
-        return;
-    }
-
-    // protect overreading case
-    if (this->_body.size() > this->_reqContentLength)
-    {
-        std::cout << "[WARNING]: Over reading" << std::endl;
-        this->_isContinueRead = COMPLETED;
-        set_res_status(404, "OVER READING");
-    }
 }
 
 void HttpHandler::handle_response(void)
 {
 
     // std::cout << this->_req << std::endl;
-    // std::cout << this->_method << std::endl;
-    
+
     // Assign server block
     assign_server_block();
     // std::cout << "Server index: " << this->_serverIndex << std::endl;
     // std::cout << "Server host: " << this->_parameter["Host"] << std::endl;
     // std::cout << "Server port: " << this->_server[this->_serverIndex].get_port() << std::endl;
 
-    // match location
-    assign_location_block();
-    // std::cout << "[DEBUG]: Location block was assigned to " << this->_loc << std::endl;
+    if (this->_status != NO_SERVER_FOUND) {
 
-    // create response
-    create_response();
+        // match location
+        assign_location_block();
+        // std::cout << "[DEBUG]: Location block was assigned to " << this->_loc << std::endl;
 
-    // try file
-    try_file();
+        // create response
+        create_response();
+
+        // try file
+        try_file();
+
+    }
 
     // content builder
     content_builder();
-
-    std::time_t ctime;
-    std::time(&ctime);
-
-    // std::cout << "[DEBUG]: Connection: " << this->_parameter["Connection"] << std::endl;
-    // std::cout << "[DEBUG]: Keep-Alive: " << this->_parameter["Keep-Alive"] << std::endl;
-    // std::cout << "Time to out in " << this->_timeout - ctime << std::endl;
 }
 
 void HttpHandler::assign_server_block(void)
 {
 
-    // loop check with port and assigned the first found for default,
-    // or if it exact match just return
-    // continue loop if found
-
+    // as the subject is not clear, we will design this step as to exactly match host:port.
     for (int i = 0; i < (int)this->_server.size(); i++)
     {
-
-        // if not the same port, check by hostfd that first accept
+        // if port not match, skip
         if (this->_server[i].get_port() != this->_port)
         {
             continue;
         }
 
-        // check if the server index was not assign to be default
-        if (this->_serverIndex == -1)
-            this->_serverIndex = i;
+        // // check if the server index was not assign to be default
+        // if (this->_serverIndex == -1)
+        //     this->_serverIndex = i;
 
-        // check if the server name exact match
+        // if the port match but no server_name defined
+        if (this->_server[i].is_server_name_defined() == -1) {
+            std::cout << "no servername defined" << std::endl;
+            this->_serverIndex = i;
+            return ;
+        }
+
+        // if ther server name match
         if (this->_server[i].has_server_name(this->_parameter["Host"]) == 1)
         {
+            // std::cout << this->_parameter["Host"] << " " << this->_server[i].get_server_name(this->_parameter["Host"]) << std::endl;
             this->_serverIndex = i;
             return;
         }
     }
+
+    set_res_status(400, "NOT a VALID SERVER NAME");
+    this->_parameter["Connection"] = "closed";
+    this->_tryFileStatus = -1;
+    this->_status = NO_SERVER_FOUND; // as no servername match
 }
 
 void HttpHandler::assign_location_block(void)
@@ -865,8 +694,8 @@ void HttpHandler::handle_cgi(void)
     env.push_back(query_string.append(this->_queryString).c_str());
     // std::cout << "query string fro get: " << query_string << std::endl;
 
-    env.push_back(NULL);
     // === NULL terminate : End part of environment=== //
+    env.push_back(NULL);
 
     // === Create the argv for execve === //
     this->_cgipath.append(".");
@@ -894,7 +723,6 @@ void HttpHandler::handle_cgi(void)
     }
     else if (pid == 0)
     {
-
         // Child process
 
         close(to_cgi_fd[1]);   // close to cgi write end
@@ -921,11 +749,9 @@ void HttpHandler::handle_cgi(void)
         // execve
         execve(argv[0], const_cast<char *const *>(argv.data()), const_cast<char *const *>(env.data()));
         perror("execve");
-
     }
     else
     {
-
         // Parent process
 
         close(to_cgi_fd[0]);   // close to cgi write end
@@ -964,9 +790,9 @@ void HttpHandler::handle_cgi(void)
         }
 
         close(from_cgi_fd[0]); // close read end pipe when completed
-        std::cout << "===== CGI OUTPUT =====" << std::endl;
-        std::cout << this->_res << std::endl;
-        std::cout << "===== CGI OUTPUT =====" << std::endl;
+        // std::cout << "===== CGI OUTPUT =====" << std::endl;
+        // std::cout << this->_res << std::endl;
+        // std::cout << "===== CGI OUTPUT =====" << std::endl;
 
         waitpid(pid, NULL, 0); // wait for child to finish
         this->_tryFileStatus = -1;
@@ -1213,9 +1039,9 @@ void HttpHandler::content_builder(void)
 
     if (this->_isRedirection == 1)
     {
-        response.append(create_res_attribute("Content-Type", "0"));
+        // response.append(create_res_attribute("Content-Type", "0"));
         response.append(create_res_attribute("Location", this->_filepath));
-        response.append("\r\n");
+        response.append("\r\n\r\n");
     }
     else if (this->_isCGI == 1)
     {

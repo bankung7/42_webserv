@@ -114,6 +114,18 @@ server {
 }
 ```
 
+## Local Address
+It is the IP address and Port
+
+## Binding the port
+```
+SO_REUSEADDR
+It allows to reuse the local address and port for the socket
+
+SO_REUSEPORT
+It allows multiple socket to bind to the same local address and port.
+```
+
 ### Location Directive
 
 ```

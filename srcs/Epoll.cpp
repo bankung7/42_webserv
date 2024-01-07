@@ -92,17 +92,6 @@ int Webserv::polling(void) {
                         continue ;
                     }
 
-                    // if it try to recv multiple time to get 
-                    // if (context->get_status() == WRITING) {
-                    //     std::cout << "writing state" << std::endl;
-                    //     // reading complete send to EPOLLOUT
-                    //     event.events = EPOLLOUT;
-                    //     event.data.ptr = (void*)context;
-                    //     if (epoll_ctl(this->_epfd, EPOLL_CTL_MOD, context->get_fd(), &event) == -1)
-                    //         throw std::runtime_error("[ERROR]: epoll mod [OUT] to epfd failed");
-                    //     std::cout << "[DEBUG]: Reading finish, sent to EPOLLOUT" << std::endl;
-                    // } 
-                    
                     // in case the connection was closed from client
                     if (context->get_status() == CLOSED) {
                         std::cout << "[DEBUG]: Connection was closed from client" << std::endl;
@@ -120,7 +109,7 @@ int Webserv::polling(void) {
                 std::cout << "[DEBUG]: writing state for " << context->get_fd() << std::endl;
 
                 context->handle_response();
-
+                
                 std::cout << "[DEBUG]: Connection type: " << context->get_connection_type() << std::endl;
 
                 // if the connection was closed 
@@ -143,9 +132,6 @@ int Webserv::polling(void) {
                         HttpHandler *newContext = new HttpHandler(context->get_fd());
                         this->_context[context->get_fd()] = newContext; // old
                         newContext->set_server(this->_server);
-
-                        // remove_client(context->get_fd()); // remove old
-                        // this->_client.push_back(newContext); // new
 
                         delete context;
 
@@ -206,25 +192,11 @@ void Webserv::check_time_out(void) {
     std::time_t ctime;
     time(&ctime);
 
-    // for (int i = 0; i < (int)this->_client.size(); i++) {
-
-    //     std::cout << "[DEBUG]: client [" << this->_client[i]->get_fd() << "] : status [" << this->_client[i]->get_status() << "]";
-    //     std::cout << " time out in " << this->_client[i]->get_time_out() - ctime << std::endl;
-
-    //     if (this->_client[i]->get_status() < 2) {
-    //         if (this->_client[i]->get_time_out() < ctime) {
-    //             std::cout << "[DEBUG]: client " << this->_client[i]->get_fd() << " has time out" << std::endl;
-    //             close_connection(this->_client[i]);
-    //             _client.erase(_client.begin() + i);
-    //             i--;
-    //         }
-    //     }
-    // }
-
     std::vector<int> fd_list;
 
     std::map<int, HttpHandler*>::iterator it = this->_context.begin();
 
+    // check and put the timeout into the list, then clear it below.
     for (; it != this->_context.end(); it++) {
 
         HttpHandler* cont = it->second;
@@ -240,19 +212,9 @@ void Webserv::check_time_out(void) {
         }
     }
     
-    // loop erase that expired
+    // loop erase that expired, and remove it
     for (int i = 0; i < (int)fd_list.size(); i++) {
         close_connection(this->_context[fd_list[i]]);
     }
 
-}
-
-void Webserv::remove_client(int fd) {
-
-    for (int i = 0; i < (int)this->_client.size(); i++) {
-        if (this->_client[i]->get_fd() == fd) {
-            this->_client.erase(this->_client.begin() + i);
-            return ;
-        }
-    }
 }

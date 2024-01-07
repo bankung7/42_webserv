@@ -7,8 +7,9 @@
 #include <arpa/inet.h>
 #include <sys/socket.h> // socket(), bind(), listen()
 #include <netdb.h> // addrinfo, getaddrinfo(), freeaddrinfo()
-#include <string.h> // memset
+#include <string.h> // memset, strerror
 #include <fcntl.h> // O_NONBLOCK
+#include <errno.h> // errno
 
 // C++ library
 #include <iostream>
@@ -18,7 +19,6 @@
 class Server {
 
 private:
-    // int         _duplicated;
     int         _fd;
     std::vector<std::string> _serverName;
     int         _port;
@@ -47,6 +47,7 @@ public:
     int get_port(void) const;
     std::string get_root(void) const;
     std::string get_server_name(std::string) const;
+    int is_server_name_defined(void) const;
     std::string get_location(std::string);
     std::string best_match_location(std::string);
 
@@ -60,11 +61,3 @@ public:
 };
 
 #endif
-
-
-/// localhost:8080
-/// localhost:8080/index.html
-/// localhost:8080/sub1
-
-/// localhost:8080/sub1/
-/// localhost:8080/sub1/index.html

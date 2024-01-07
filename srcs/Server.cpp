@@ -62,6 +62,12 @@ std::string Server::get_server_name(std::string name) const{
     return (std::string(""));
 }
 
+int Server::is_server_name_defined(void) const {
+    if (this->_serverName.size() == 0)
+        return (-1);
+    return (0);
+}
+
 std::string Server::get_location(std::string loc) {
 
     if (this->_location.find(loc) != this->_location.end())
@@ -72,6 +78,7 @@ std::string Server::get_location(std::string loc) {
 // checker
 int Server::has_server_name(std::string name) {
     for (int i = 0; i < (int)this->_serverName.size(); i++) {
+        // std::cout << this->_serverName[i] << std::endl;
         if (this->_serverName[i].compare(name) == 0) {
             return (1);
         }
@@ -116,11 +123,13 @@ void Server::initiated(int backlog) {
     struct sockaddr_in addr;
     addr.sin_family = AF_INET;                  // for IPv4
     addr.sin_port = htons(this->get_port());    // set to specific port
-    addr.sin_addr.s_addr = INADDR_ANY;          // for all IP address
+    addr.sin_addr.s_addr = htonl(INADDR_ANY);          // for all IP address
 
     // bind
-    if (bind(fd, (struct sockaddr*)&addr, (int)(sizeof(addr))) == -1)
+    if (bind(fd, (struct sockaddr*)&addr, (int)(sizeof(addr))) == -1) {
         throw std::runtime_error("[ERROR]: bind port failed");
+    }
+    // the COMMON PORT can be binded if we put sudo when starting the server
 
     // set nonblocking
     if (fcntl(fd, F_SETFL, O_NONBLOCK) == -1)
