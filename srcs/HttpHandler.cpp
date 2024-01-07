@@ -135,22 +135,16 @@ void HttpHandler::handle_request(void)
             this->_req.append(bf.data(), bytesRead); // write to (res) header
         else
             this->_body.append(bf.data(), bytesRead); // write to body
-       
-        // std::cout << "============" << std::endl;
-        // std::cout << this->_req << std::endl;
-        // std::cout << "============" << std::endl;
-        // std::cout << this->_body << std::endl;
-        // std::cout << "============" << std::endl;
 
         // when reading to body [POST] only
         if (this->_readState == 1)
         {
             // if completed, to epollout
             if (this->_body.size() == this->_reqContentLength)
-            { // check later
-                std::cout << "size: " << this->_reqContentLength << " " << this->_body.size() << std::endl;
+            {
+                // std::cout << "size: " << this->_reqContentLength << " " << this->_body.size() << std::endl;
                 this->_readState = 2;
-                this->_status = WRITING;
+                this->_status = POST_READ_PHASE;
                 return;
             }
 
@@ -176,7 +170,7 @@ void HttpHandler::handle_request(void)
             { // check later
                 std::cout << "[DEBUG]: Request POST size: " << this->_reqContentLength << " " << this->_body.size() << std::endl;
                 this->_readState = 2;
-                this->_status = WRITING;
+                this->_status = POST_READ_PHASE;
                 return;
             }
 
@@ -294,8 +288,8 @@ void HttpHandler::setup_header(void)
             }
 
             // for Content-type
-            if (attr.compare("Content-Type") == 0 && this->_parameter["Content-Type"].size() == 0) {
-
+            if (attr.compare("Content-Type") == 0 && this->_parameter["Content-Type"].size() != 0) {
+                
                 // formdata
                 if (this->_parameter["Content-Type"].find("multipart/form-data") != std::string::npos)
                 {
@@ -309,7 +303,7 @@ void HttpHandler::setup_header(void)
                     // std::cout << "set boudnary " << this->_parameter["boundary"] << std::endl;
                     continue;
                 }
-    
+
                 // urlencoded
                 if (this->_parameter["Content-Type"].find("application/x-www-form-urlencoded") != std::string::npos)
                 {
@@ -332,20 +326,14 @@ void HttpHandler::handle_response(void)
     // Assign server block
     assign_server_block();
 
-    if (this->_status != NO_SERVER_FOUND)
-    {
+    // match location
+    assign_location_block();
 
-        // match location
-        assign_location_block();
+    // create response
+    create_response();
 
-        std::cout << "[DEBUG]: Location block was assigned to " << this->_loc << std::endl;
-
-        // create response
-        create_response();
-
-        // try file
-        try_file();
-    }
+    // try file
+    try_file();
 
     // content builder
     content_builder();
@@ -353,6 +341,7 @@ void HttpHandler::handle_response(void)
 
 void HttpHandler::assign_server_block(void)
 {
+    this->_status = FIND_SERVER_PHASE;
 
     // as the subject is not clear, we will design this step as to exactly match host:port.
     for (int i = 0; i < (int)this->_server.size(); i++)
@@ -372,30 +361,37 @@ void HttpHandler::assign_server_block(void)
         {
             // std::cout << "no servername defined" << std::endl;
             this->_serverIndex = i;
+            this->_status = FIND_LOCATION_PHASE;
             return;
         }
 
-        // if ther server name match
+        // if the port and  server name match
         if (this->_server[i].has_server_name(this->_parameter["Host"]) == 1)
         {
             // std::cout << this->_parameter["Host"] << " " << this->_server[i].get_server_name(this->_parameter["Host"]) << std::endl;
             this->_serverIndex = i;
+            this->_status = FIND_LOCATION_PHASE;
             return;
         }
+
     }
 
-    set_res_status(400, "NOT a VALID SERVER NAME");
+    set_res_status(404, "Not Found");
     this->_parameter["Connection"] = "closed";
-    this->_tryFileStatus = -1;
-    this->_status = NO_SERVER_FOUND; // as no servername match
+    this->_status = CONTENT_PHASE; // as no servername match
 }
 
 void HttpHandler::assign_location_block(void)
 {
 
+    if (this->_status != FIND_LOCATION_PHASE)
+        return ;
+
     // get the location block
     this->_loc.append(this->_server[this->_serverIndex].best_match_location(this->_url));
     this->_location.append(this->_server[this->_serverIndex].get_location(this->_loc));
+
+    this->_status = CREATE_RESPONSE_PHASE;
 
     // std::cout << this->_loc << std::endl;
     // std::cout << this->_location << std::endl;
@@ -404,9 +400,13 @@ void HttpHandler::assign_location_block(void)
 void HttpHandler::create_response(void)
 {
 
+    if (this->_status != CREATE_RESPONSE_PHASE)
+        return ;
+
     std::size_t startIndex, length;
 
     startIndex = 0;
+
     // Set errorcode into the map
     while (1)
     {
@@ -422,7 +422,8 @@ void HttpHandler::create_response(void)
     // set root == MANDATORY
     startIndex = this->_location.find("root:");
     if (startIndex == std::string::npos)
-    {                                                                            // ================ this will fall down from the server itself
+    {
+        // ================ this will fall down from the server itself
         this->_root = std::string(this->_server[this->_serverIndex].get_root()); // set root
     }
     else
@@ -447,6 +448,7 @@ void HttpHandler::create_response(void)
         // std::cout << "Allowed Method " << attribute << std::endl;
         std::cout << "\033[1;31mRequest " << this->_method << " method is not allowed\033[0m" << std::endl;
         set_res_status(405, "METHOD NOT ALLOWED");
+        this->_status = TRY_FILE_PHASE;
         return;
     }
 
@@ -465,7 +467,7 @@ void HttpHandler::create_response(void)
         {
             std::cout << "\033[1;33m[WARNING]: File is too large than server limit " << this->_maxClientBodySize << "\033[0m" << std::endl;
             set_res_status(413, "Content Too Large");
-            // this->_tryFileStatus = -1;
+            this->_status = TRY_FILE_PHASE;
             return;
         }
     }
@@ -499,26 +501,23 @@ void HttpHandler::create_response(void)
             std::getline(redirection, attr);
             this->_filepath = std::string(attr);
             set_res_status(code, "MOVED");
+            this->_status = CONTENT_PHASE;
             return;
         }
 
         // other get text to set response
         std::getline(redirection, attr);
-        attr.erase(0, 1);            // remove "
-        attr.erase(attr.size() - 1); // remove "
-        set_res_status(code, attr);
+        attr.erase(0, 1); // remove " at beginning
+        attr.erase(attr.size() - 1); // remove " at the end
         this->_isRedirection = 0;
+        set_res_status(code, attr);
         return;
     }
 
     // put the filename in the path
     // so the filepath should be root + url
     this->_filepath.append(this->_url);
-
-    // get and post that has payload ===========================================>
-    // std::cout << "method: " << this->_method << std::endl;
-    // std::cout << "Content-Type: " << this->_parameter["Content-Type"] << std::endl;
-    // std::cout << "Content-Length: " << this->_reqContentLength << std::endl;
+    this->_status = TRY_FILE_PHASE;
 
     // === GET method with query ? === //
     // put query part into _queryString
@@ -539,18 +538,21 @@ void HttpHandler::create_response(void)
         {
             this->_isCGI = 0;
             set_res_status(403, "Not Accept multipart/formdata");
+            this->_status = TRY_FILE_PHASE;
             return;
         }
 
         this->_isCGI = 1;
         handle_cgi();
-        // set_res_status(404, "TRYING");
+        this->_status = CONTENT_PHASE;
         return;
     }
 
     // file upload
     if (this->_location.find("allowedFileUpload:") != std::string::npos)
     {
+
+        this->_status = CONTENT_PHASE;
         if (this->_location.find("allowedFileUpload:yes;") == std::string::npos)
         {
             std::cout << "\033[1;31Uploadfile is not allowed : " << std::string(this->_location.substr(startIndex + 7, length)) << "\033[0m" << std::endl;
@@ -559,13 +561,11 @@ void HttpHandler::create_response(void)
         }
         this->_resContentType = std::string("text/html");
         uploading_task();
-        // this->_tryFileStatus = -1;
         return;
     }
 
     // check if directory or not
     stat(this->_filepath.c_str(), &this->_fileInfo);
-    // perror("stat");
 
     switch (this->_fileInfo.st_mode & S_IFMT)
     {
@@ -573,20 +573,14 @@ void HttpHandler::create_response(void)
         this->_isDirectory = 1;
         break;
     default: // if nothing else
-        // std::cout << "not support or file not found" << std::endl;
-        break;
+        break; // not support
     }
-
-    // other post method begin here =========================
 
     // is directory == OPTIONAL
     if (this->_isDirectory == 1)
     {
-
         // set that directory can't be downloaded
         this->_resContentType = std::string("text/html");
-
-        // std::cout << "\033[0;31mDIRECTORY\033[0;0m" << std::endl;
 
         // in case match location is directory but not / at the end
         if (this->_filepath[this->_filepath.size() - 1] != '/')
@@ -600,6 +594,7 @@ void HttpHandler::create_response(void)
             startIndex = this->_location.find("index:");
             length = this->_location.find(";", startIndex + 1) - startIndex;
             this->_filepath.append(this->_location.substr(startIndex + 6, length - 6));
+            this->_status = TRY_FILE_PHASE;
             return;
         }
 
@@ -630,18 +625,23 @@ void HttpHandler::create_response(void)
                 handle_cgi();
 
                 this->_tryFileStatus = -1;
+                this->_status = CONTENT_PHASE;
+                return ;
             }
+
+            this->_status = TRY_FILE_PHASE;
             return;
         }
 
         // in case of no index and autoindex, set index.html as default
         this->_filepath.append("index.html");
+
     }
+
 }
 
 void HttpHandler::handle_cgi(void)
 {
-
     std::cout << "[CGI]: Processing CGI: " << this->_url << std::endl;
 
     // === specify CGI type === //
@@ -653,6 +653,7 @@ void HttpHandler::handle_cgi(void)
     {
         std::cout << "[CGI]: Not support type" << std::endl;
         set_res_status(404, "CGI NOT SUPPORT FILE");
+        this->_status = TRY_FILE_PHASE;
         return;
     }
 
@@ -661,15 +662,26 @@ void HttpHandler::handle_cgi(void)
     this->_cgipath.append(this->_url);
     // std::cout << "cgi path : "  << this->_cgipath << std::endl;
 
-    // check that there is a cgi file
+    // check that there is a cgi file and executable
     if (access(this->_cgipath.c_str(), F_OK) == -1)
     {
         std::cout << YELLOW << "[WARNING]: File does not exist" << C_RESET << std::endl;
-        set_res_status(400, "BAD CGI REQUEST");
+        set_res_status(404, "CGI not found");
         this->_resContentType = std::string("text/html");
+        this->_status = CONTENT_PHASE;
         this->_tryFileStatus = -1;
         this->_isCGI = 0;
-        // this->_tryFileStatus = -1;
+        return;
+    }
+
+    // if the file was not permit to run
+    if (access(this->_cgipath.c_str(), X_OK) == -1) {
+        std::cout << YELLOW << "[WARNING]: Permission required for the file" << C_RESET << std::endl;
+        set_res_status(403, "Forbidden");
+        this->_resContentType = std::string("text/html");
+        this->_status = CONTENT_PHASE;
+        this->_tryFileStatus = -1;
+        this->_isCGI = 0;
         return;
     }
 
@@ -712,6 +724,7 @@ void HttpHandler::handle_cgi(void)
     {
         perror("pipe");
         set_res_status(500, "Failed to pipe");
+        this->_status = TRY_FILE_PHASE;
         return;
     }
 
@@ -722,6 +735,7 @@ void HttpHandler::handle_cgi(void)
         // error case
         perror("fork");
         set_res_status(500, "failed to fork");
+        this->_status = TRY_FILE_PHASE;
         return;
     }
     else if (pid == 0)
@@ -751,7 +765,9 @@ void HttpHandler::handle_cgi(void)
 
         // execve
         execve(argv[0], const_cast<char *const *>(argv.data()), const_cast<char *const *>(env.data()));
-        perror("execve");
+        std::cout << "[ERROR]: execve error => " << strerror(errno) << std::endl;
+        this->_status = TRY_FILE_PHASE;
+        set_res_status(500, "CGI FAILED");
     }
     else
     {
@@ -784,6 +800,7 @@ void HttpHandler::handle_cgi(void)
             if (bytesRead == -1)
             {
                 std::cout << "[CGI]: error reading for CGI output" << std::endl;
+                this->_isCGI = 0;
                 set_res_status(500, "CGI FAILED");
                 break;
             }
@@ -801,7 +818,10 @@ void HttpHandler::handle_cgi(void)
         // std::cout << "===== CGI OUTPUT =====" << std::endl;
 
         waitpid(pid, NULL, 0); // wait for child to finish
+
     }
+
+    this->_status = CONTENT_PHASE;
 
     // check that they are well-format html like it should be ended with </html>
     if (this->_res.rfind("</html>") == std::string::npos) {
@@ -818,9 +838,8 @@ void HttpHandler::handle_cgi(void)
 
 void HttpHandler::uploading_task(void)
 {
-
     // protect case // not support other entype
-    if (this->_postType != FORMDATA)
+    if (this->_method.compare("POST") != 0 || this->_postType != FORMDATA)
     {
         set_res_status(403, "NOT ALLOWED");
         return;
@@ -829,6 +848,32 @@ void HttpHandler::uploading_task(void)
     // only formdata accepted
     if (this->_postType == FORMDATA)
     {
+        // check if directory exist
+        std::string uploadPath;
+
+        std::size_t upindex, uplength;
+        upindex = this->_location.find("uploadPath:");
+
+        // ============= if no uploadPath found, use fall back to root
+        if (upindex == std::string::npos)
+            uploadPath.insert(0, this->_root);
+        else
+        {
+            // ===== found
+            uplength = this->_location.find(";", upindex + 1) - upindex - 11;
+            uploadPath.insert(0, this->_location.substr(upindex + 11, uplength));
+            uploadPath.erase(0, 1); // remove first /
+        }
+
+        struct stat sb;
+        stat(uploadPath.c_str(), &sb);
+
+        // std::cout << uploadPath << std::endl;
+
+        if ((sb.st_mode & S_IFMT) != S_IFDIR) {
+            set_res_status(404, "No Directory Path Found");
+            return ;
+        }
 
         // std::cout << "============== start of body ==============" << std::endl;
         // std::cout << this->_body << std::endl;
@@ -894,7 +939,7 @@ void HttpHandler::uploading_task(void)
                 filename.insert(0, this->_location.substr(uindex + 11, length));
                 filename.erase(0, 1); // remove first /
             }
-            std::cout << "filename: " << filename << std::endl;
+            // std::cout << "filename: " << filename << std::endl;
 
             std::ofstream file(filename.c_str(), std::ios::binary);
 
@@ -903,6 +948,7 @@ void HttpHandler::uploading_task(void)
                 // std::cout << filename << std::endl;
                 std::cout << "[ERROR]: " << strerror(errno) << std::endl;
                 set_res_status(403, "FORBIDDEN");
+                this->_status = TRY_FILE_PHASE;
                 sindex = eindex - 1; // return back 1 char
                 continue;
             }
@@ -911,17 +957,20 @@ void HttpHandler::uploading_task(void)
             file.close();
             std::cout << "[DEBUG]: File save successfully" << std::endl;
             set_res_status(200, "OK file saved");
+            this->_status = CONTENT_PHASE;
             this->_tryFileStatus = 2;
 
             sindex = eindex - 1; // return back 1 char
             // to next block
         }
 
+        this->_status = CONTENT_PHASE;
         return;
     }
 
     set_res_status(200, "OK");
-    // return to the page before submit
+    this->_status = CONTENT_PHASE;
+
 }
 
 void HttpHandler::set_res_status(int code, std::string text)
@@ -929,33 +978,46 @@ void HttpHandler::set_res_status(int code, std::string text)
     this->_resStatusCode = code;
     this->_resStatusText = std::string(text);
 
-    if (code == 200 || this->_isCGI == 1) {
+    if (code < 400 || this->_isCGI == 1) {
         // std::cout << "OK or CGI completed" << std::endl;
+        this->_status = CONTENT_PHASE;
         return;
     }
 
     // TODO: check if default error assigned, later
     std::map<int, std::string>::iterator it = this->_errorCode.find(code);
 
+    this->_status = CONTENT_PHASE;
+
     if (it == this->_errorCode.end())
     {
         // std::cout << "no match " << code << std::endl;
         this->_tryFileStatus = -1; // this will return system error page
+        return ;
     }
     else
     {
         // guaruntee that custom error_page is exist before try_file
-
-        std::cout << "the default error page was setup" << std::endl;
+        // std::cout << "the default error page was setup" << std::endl;
         this->_filepath.clear();
         this->_filepath.append(this->_root);
         this->_filepath.append(this->_errorCode[code]);
 
         // check if the custom error page is exist
         if (access(this->_filepath.c_str(), F_OK) != -1)
-        { // file found
-            this->_tryFileStatus = 0;
-            std::cout << "file found" << std::endl;
+        { 
+            // file found
+            // std::cout << "file found" << std::endl;
+
+            // if the file open, close it
+            if (this->_file.is_open())
+                this->_file.close();
+            
+            this->_file.open(this->_filepath.c_str());
+            
+            // if file cannot open for some reason
+            if (!this->_file.is_open())
+                this->_tryFileStatus = -1;
 
             return;
         }
@@ -968,32 +1030,29 @@ void HttpHandler::set_res_status(int code, std::string text)
 
 void HttpHandler::try_file(void)
 {
+    if (this->_status != TRY_FILE_PHASE)
+        return;
 
     // this step is reached when the filepath isset, even in the error code
     // std::cout << "try file status " << this->_tryFileStatus << std::endl;
 
-    if (this->_isRedirection == 1 || this->_tryFileStatus == -1 || this->_isCGI == 1)
-        return;
-
-    // std::cout << "[DEBUG]: try file: " << this->_filepath << std::endl;
+    std::cout << "[DEBUG]: try file: " << this->_filepath << std::endl;
 
     // if file request not found
     if (access(this->_filepath.c_str(), F_OK) == -1)
     {
         // std::cout << YELLOW << "[WARNING]: File does not exist" << std::endl;
         set_res_status(404, "File Not Found");
+        return ;
     }
 
     // fall back from set default error page, if no then send text/plain
-    if (this->_tryFileStatus == -1)
-        return;
-
-    stat(this->_filepath.c_str(), &this->_fileInfo);
+    // if (this->_tryFileStatus == -1)
+    //     return;
 
     // if delete method
     if (this->_method.compare("DELETE") == 0)
     {
-
         // std::cout << "delete method" << std::endl;
 
         // check file permission
@@ -1012,8 +1071,18 @@ void HttpHandler::try_file(void)
         }
 
         set_res_status(200, "OK");
-        this->_tryFileStatus = -1; // if code can be default
+        this->_tryFileStatus = -1; // [TODO]
         return;
+    }
+
+    // get the file size
+    stat(this->_filepath.c_str(), &this->_fileInfo);
+
+    // check the permission
+    if (access(this->_filepath.c_str(), R_OK) == -1) {
+        // dont have permission to read it
+        set_res_status(403, "No Permission");
+        return ;
     }
 
     this->_file.open(this->_filepath.c_str(), std::ios::in);
@@ -1022,7 +1091,6 @@ void HttpHandler::try_file(void)
     if (!this->_file.is_open()) {
         std::cout << YELLOW << "[WARNING]: The file cannot be open for some reason" << std::endl;
         set_res_status(404, "File cannot open");
-        this->_tryFileStatus = -1;
         return ;
     }
 
@@ -1031,13 +1099,6 @@ void HttpHandler::try_file(void)
     if (this->_resStatusCode == 0)
         set_res_status(200, "OK");
 
-    if (this->_resStatusCode == 0)
-    {
-        set_res_status(404, "NOT FOUND");
-        try_file();
-        return;
-    }
-
     // std::cout << "page not found " << this->_resStatusCode << std::endl;
 }
 
@@ -1045,6 +1106,8 @@ void HttpHandler::content_builder(void)
 {
 
     std::string fileData(""); // for other response that not CGI
+    
+    // std::cout << "content phase" << std::endl;
 
     // if not cgi
     if (this->_isCGI != 1)
@@ -1052,6 +1115,7 @@ void HttpHandler::content_builder(void)
 
         if (this->_tryFileStatus != -1)
         {
+            // read from the file, should be at try_file na
             fileData = std::string(std::istreambuf_iterator<char>(this->_file), std::istreambuf_iterator<char>());
         }
         else if (this->_isRedirection != 1)
@@ -1061,7 +1125,10 @@ void HttpHandler::content_builder(void)
             fileData.append(this->_resStatusText);
         }
 
-        this->_file.close(); // close the file
+        // close the file if it open
+        if (this->_file.is_open())
+            this->_file.close();
+
         if (this->_fileSize == 0)
             this->_fileSize = fileData.size();
 

@@ -24,11 +24,7 @@
 #include "Conf.hpp"
 #include "StrUtils.hpp"
 
-// define
-#define MAX_EVENTS 1024
-#define BACKLOG 100
-
-#include "Color.hpp" // for text color
+#include "Code.hpp" // for define variable
 
 // define color
 

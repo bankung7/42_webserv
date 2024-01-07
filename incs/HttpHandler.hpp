@@ -1,27 +1,6 @@
 #ifndef HTTPHANDLER_HPP
 #define HTTPHANDLER_HPP
 
-#define BUFFER_SIZE 1024
-
-#define NOTSTART 0
-#define READING 1
-#define WRITING 2
-#define COMPLETED 3
-#define CLOSED 9
-
-#define POST_READ_PHASE 1
-#define FIND_CONFIG_PHASE 2
-#define REWRITE_PHASE 3
-#define TRY_FILE_PHASE 4
-#define CONTENT_PHASE 5
-#define COMPLETE_PHASE 6
-#define NO_SERVER_FOUND -1
-
-#define URLENCODED 11
-#define FORMDATA 12
-
-#define KEEP_ALIVE_TIME_OUT 5
-
 // C
 #include <stdio.h>
 #include <unistd.h>
@@ -30,7 +9,6 @@
 #include <errno.h> // errno
 #include <string.h> // strerror
 #include <sys/wait.h> // for wait
-
 
 // C++
 #include <sstream>
@@ -44,7 +22,7 @@
 
 // Custom
 #include "Server.hpp"
-#include "Color.hpp"
+#include "Code.hpp"
 
 class HttpHandler {
 
@@ -138,6 +116,7 @@ public:
     void handle_cgi(void);
 
     // res handle
+    void open_file(void);
     void uploading_task(void);
     void set_res_status(int, std::string);
     void error_page_set(int, std::string);

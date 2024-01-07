@@ -82,7 +82,7 @@ int Webserv::polling(void) {
                         context->handle_request();
 
                         // if completed for a 1 call
-                        if (context->get_status() == WRITING) {
+                        if (context->get_status() == POST_READ_PHASE) {
                             event.events = EPOLLOUT;
                             event.data.ptr = (void*)context;
                             if (epoll_ctl(this->_epfd, EPOLL_CTL_MOD, context->get_fd(), &event) == -1)
@@ -206,8 +206,8 @@ void Webserv::check_time_out(void) {
 
         HttpHandler* cont = it->second;
 
-        std::cout << "[DEBUG]: client [" << cont->get_fd() << "] : status [" << cont->get_status() << "]";
-        std::cout << " time out in " << cont->get_time_out() - ctime << std::endl;
+        // std::cout << "[DEBUG]: client [" << cont->get_fd() << "] : status [" << cont->get_status() << "]";
+        // std::cout << " time out in " << cont->get_time_out() - ctime << std::endl;
 
         if (cont->get_status() < 2) {
             if (cont->get_time_out() < ctime) {
