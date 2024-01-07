@@ -1,16 +1,16 @@
 #include "Conf.hpp"
 
-Conf::Conf(void) : _filename("./config/default.conf"), _filedata(""), _n_server(0), _root_flag(false){
+Conf::Conf(void) : _filename("./config/default.conf"), _filedata(""), _n_server(0) {
 	readfile();
 }
 
 
-Conf::Conf(std::string filename) : _filename(filename), _filedata(""), _n_server(0), _root_flag(false) {
+Conf::Conf(std::string filename) : _filename(filename), _filedata(""), _n_server(0) {
 	readfile();
 }
 
 Conf::~Conf(void) {
-    
+
 }
 
 // read file, trim, ignoring empty line and comment
@@ -24,7 +24,7 @@ void Conf::readfile(void) {
 			if (line.find('#') < line.length())
 				line.erase(line.find('#'));
 			for (std::string::iterator it = line.begin(); it < line.end(); it++)
-			{	
+			{
 				if (!isspace(*it))
 				{
 					_filedata.append(it, line.end());
@@ -75,7 +75,7 @@ bool Conf::checkconf(void) {
 					location_flag = true;
 					n_brace++;
 					svcf.append(rtrim(lines[i], "{"));
-				}	
+				}
 				else if (checkmaxclientsize(words) || checkservername(words) || checkerrorpage(words) \
 					|| checkport(words) || checkroot(words)) {
 					svcf.append(lines[i]+'\n');
@@ -110,7 +110,7 @@ bool Conf::checkconf(void) {
 						_n_server = 0;
 						return false;
 					}
-					location_flag = false;	
+					location_flag = false;
 					svcf.append(rtrim(lines[i], "}") + '\n');
 				}
 				else if (checkallowedmethods(words) || checkroot(words) || checkreturn(words) \
@@ -123,8 +123,8 @@ bool Conf::checkconf(void) {
 					_n_server = 0;
 					return false;
 				}
-			}	
-		}	
+			}
+		}
 	}
 	if (n_brace != 0 || _n_server != _serverconf.size())
 	{
@@ -141,17 +141,30 @@ void Conf::parseconf(std::vector<Server> &svs) {
 		std::vector<std::string> lines = split(_serverconf[i], "\n");
 		for (size_t j = 0; j < lines.size(); j++) {
 			std::vector<std::string> words = split(lines[j], " \t\n\r");
+
+            //// debug
+            // if (words[0].compare("location") == 0)
+            //     std::cout << "check word size: " << words.size() << " => " << words[1] << std::endl;
+
+            // for (int j = 0; j < (int)words.size(); j++) {
+            //     std::cout << j << " : " << words[j] << std::endl;
+            // }
+
+            // //// debug
+
 			// set port
 			if (checkport(words)) {sv.set_port(isvalidport(words[1]));}
 			// set server name
 			else if (checkservername(words)) {
-				for (size_t k = 1; k < words.size() - 1; k++) 
+				for (size_t k = 1; k < words.size() - 1; k++)
 					sv.add_server_name(words[k]);
 			}
 			// set root
 			else if (checkroot(words)) {sv.set_root(words[1]);}
 			// set location
-			else if (words[0] == "location" && words.size() == 3) {
+			else if (words[0] == "location") {
+				for (size_t k = 3; k < words.size(); k++)
+					words[2].append(" ").append(words[k]);
 				sv.set_location(words[1], words[2]);
 			}
 			// set max client body size
@@ -245,7 +258,7 @@ bool Conf::checkallowfileupload(std::vector<std::string> words) {
 	if (words[0] == "allowedFileUpload" && words.size() == 2) {
 		if (words[1] == "yes;" || words[1] == "no;")
 			return true;
-		else	
+		else
 			return false;
 	}
 	else

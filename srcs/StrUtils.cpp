@@ -1,26 +1,5 @@
 #include "StrUtils.hpp"
 
-
-// std::string str = "this is.    a.    test";
-// std::vector<std::string> split(std::string &str, char delimiter) {
-//     std::vector<std::string> tokens;
-//     size_t start = 0;
-//     size_t end = str.find(delimiter);
-//     while (end != std::string::npos) {
-//         while (str[start] == delimiter)
-//              start++;
-//         tokens.push_back(str.substr(start, end - start));
-//         start = end;
-//         while (str[end] == delimiter)
-//             end++;
-//         end = str.find(delimiter, ++end);
-//     }
-//     while (str[start] == delimiter)
-//             start++;
-//     tokens.push_back(str.substr(start));
-//     return tokens;
-// }
-
 std::vector<std::string> split(const std::string& str, const std::string& delimiters) {
     std::vector<std::string> tokens;
     std::string::size_type start = 0;
@@ -42,7 +21,7 @@ std::vector<std::string> split(const std::string& str, const std::string& delimi
     return tokens;
 }
 
-//" \t\r\n" 
+//" \t\r\n"
 std::string ltrim(const std::string& str, std::string c_list) {
     std::string::size_type start = str.find_first_not_of(c_list);
     return (start == std::string::npos) ? "" : str.substr(start);

@@ -19,6 +19,8 @@
 #define URLENCODED 11
 #define FORMDATA 12
 
+#define KEEP_ALIVE_TIME_OUT 5
+
 // C
 #include <stdio.h>
 #include <unistd.h>
@@ -26,6 +28,8 @@
 #include <sys/stat.h> // stat
 #include <errno.h> // errno
 #include <string.h> // strerror
+#include <sys/wait.h> // for wait
+
 
 // C++
 #include <sstream>
@@ -35,6 +39,7 @@
 #include <algorithm>
 #include <string>
 #include <limits> // numeric_limit
+#include <ctime>
 
 // Custom
 #include "Server.hpp"
@@ -53,12 +58,15 @@ private:
     std::string _reqContentType;
     std::size_t _reqContentLength; // content-length
     std::size_t _bodyLength;        // actual body length
-    std::string _body;
+    std::string _body; // for requesy body
     int _isContinueRead;
+    int _readState; // 0 for header, 1 for body
     int _postType; // url or formdata
     std::size_t _maxClientBodySize; // limit body size
 
     std::map<std::string, std::string> _parameter;
+
+    time_t _timeout; // for client timeout
 
     std::vector<Server> _server;
     int _serverIndex;
@@ -69,19 +77,26 @@ private:
     std::string _filename;
     std::string _filepath; // for root + url
     struct stat _fileInfo; // file info
+    std::string _queryString; // for query string
     std::string _root; // root
     std::string _droot; // root directive from server block
     int _isDirectory;
     int _isRedirection;
     int _isAutoIndex;
     int _isIndex;
-    int _isCGI;
     size_t _fileSize;
     std::string _temp; // for fileupload
+
+    // cgi part
+    int _isCGI; // for cgi checking
+    std::string _cgiType; // for bash or python3
+    std::string _cgipath;
+    std::string _cgiResBody; // for cgi write the output to
 
     std::map<int, std::string> _errorCode;
 
     std::string _res;
+    std::string _resHeader;
     std::ifstream _file;
     int _resStatusCode;
     std::string _resStatusText;
@@ -104,10 +119,14 @@ public:
     int get_status(void) const;
     std::string get_connection_type(void);
     int get_continue_read(void) const;
+    std::time_t get_time_out(void) const;
 
     // process
     void handle_request(void);
+    void reading_request(void);
+    void setup_header(void);
     void parsing_request(void);
+
 
     void handle_response(void);
     void assign_server_block(void);
@@ -116,12 +135,15 @@ public:
     void try_file(void);
     void content_builder(void);
 
+    // cgi
+    void handle_cgi(void);
 
     // res handle
     void uploading_task(void);
     void set_res_status(int, std::string);
     void error_page_set(int, std::string);
     void parsing_error_code(std::string);
+    std::string create_res_attribute(std::string, std::string);
 
 
     // utils

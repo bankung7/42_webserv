@@ -89,9 +89,10 @@ std::string Server::best_match_location(std::string loc) {
 
     int mostMatch = 0;
     std::string output;
-
+    // std::cout << "total size of location: " << this->_location.size() << std::endl;
     for (; it != this->_location.end(); it++) {
         int size = it->first.size();
+        // std::cout << it->first << std::endl;
         if (loc.compare(0, it->first.size(), it->first) == 0 && size >= mostMatch) {
             // std::cout << "most match found => " << it->first << std::endl;
             mostMatch = size;

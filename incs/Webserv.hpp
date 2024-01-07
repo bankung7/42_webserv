@@ -15,6 +15,7 @@
 #include <sstream>
 #include <vector>
 #include <set>
+#include <ctime>
 
 // Custom Library
 #include "Server.hpp"
@@ -24,7 +25,7 @@
 
 // define
 #define MAX_EVENTS 1024
-#define BACKLOG 20
+#define BACKLOG 100
 
 class Webserv {
 
@@ -33,6 +34,7 @@ private:
     std::vector<Server> _server;
     std::set<int> _port;
     std::map<int, HttpHandler*> _context;
+    std::vector<HttpHandler*> _client;
 
     int _backlog;
     int _epfd;
@@ -57,9 +59,11 @@ public:
     // Epoll.cpp
     int polling(void);
     void close_connection(HttpHandler*);
+    void check_time_out(void);
 
     // remover
     void remove_context(int);
+    void remove_client(int);
 
     //utils
     // void printserverconf(Conf &);

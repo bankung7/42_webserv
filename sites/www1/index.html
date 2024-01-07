@@ -7,6 +7,24 @@
     <title>Webserv 1</title>
 
     <style type="text/css">
+        .box-input * {
+            display: block;
+            margin: 5px 0;
+        }
+        
+        .box-input input,
+        .box-input select {
+            margin: 5px 5px 5px 10px;
+        }
+        
+        .inline-block {
+            display: inline-block;
+        }
+        
+        .block {
+            display: block;
+        }
+        
         .flex {
             display: flex;
         }
@@ -93,31 +111,34 @@
                     <li><a href="/html/page1.html">page1</a></li>
                     <li><a href="/html">html - defined index, exist</a></li>
                     <li><a href="/html1">html - defined index, not exist</a></li>
+                    <li><a href="/cgi-bin/hello.py?firstname=Ban&lastname=Mido">Python CGI</a></li>
+                    <li><a href="/cgi-bin/hello.sh?firstname=Ban&lastname=Mido">Bash CGI</a></li>
                 </ul>
             </div>
 
-            <!-- <div class="flex">
-                <img style="width: 50%;" src="/images/panda.jpeg" alt="panda">
-                <img style="width: 50%;" src="/images/panda1.jpeg" alt="panda1">
-            </div> -->
-
+            <!-- Directory Listing Zone -->
             <div class="border-solid-black p5 m5">
                 <div><strong>Auto Index</strong></div>
                 <div>
                     <p>Idea: may use cgi to get filename in the directory and return</p>
                 </div>
                 <ul>
-                    <li><a href="/files">file directory listing</a></li>
+                    <li><a href="/temp/">Temp folder (Default Upload Path)</a></li>
+                    <li><a href="/images/">Images folder</a></li>
                 </ul>
             </div>
 
+            <!-- Redirection Zone -->
             <div class="border-solid-black p5 m5">
                 <div><strong>Redirection</strong></div>
                 <div>
                     <p>Idea: just click the which is not direct link to another webserv</p>
                 </div>
                 <div>
-                    <a href="/google">Google</a>
+                    <a href="/google">to Google</a>
+                </div>
+                <div>
+                    <a href="/code/">to other text code</a>
                 </div>
             </div>
 
@@ -125,13 +146,27 @@
             <div class="border-solid-black p5 m5">
                 <div><strong>POST</strong></div>
                 <div>
-                    <p>Idea: Answer the question</p>
+                    <p>Idea: Just received paramater from 2 input and print it out</p>
+                    <p>This also use CGI</p>
                 </div>
-                <div class="m5 p5">
-                    <form action="/box/index.html" method="POST">
-                        <input type="hidden" name="path" value="index.html">
-                        <input class="btn-submit" type="submit" value="Go with POST">
-                    </form>
+                <div class="flex">
+                    <div class="m5 p5">
+                        <form action="/cgi-bin/hello.py" method="POST" enctype="application/x-www-form-urlencoded">
+                            <div class="box-input m5">
+                                <div class="flex">
+                                    <p>FirstName: </p>
+                                    <input type="text" name="firstname" value="Prayuth">
+                                </div>
+                                <div class="flex">
+                                    <p>LastName: </p>
+                                    <input type="text" name="lastname" value="Chan-ocha">
+                                </div>
+                            </div>
+                            <div class="flex justify-center">
+                                <input class="btn-submit" type="submit" value="Show me">
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
 
@@ -141,6 +176,7 @@
                 <div>
                     <p>Idea: use curl in the terminal to try</p>
                     <p>curl -X "DELETE" 127.0.0.1:8080/box/deleted.html</p>
+                    <p>curl -X "DELETE" 127.0.0.1:8080/temp/deleted.html</p>
                 </div>
                 <div>
                     <ul>
@@ -156,12 +192,15 @@
                 <div class="border-solid-black p5 m5">
                     <div>
                         <div><strong>Upload</strong></div>
+                        <p>Only support for entype="multipart/form-data".</p>
                         <div>
                             <form name="upload" method="POST" action="/uploads" enctype="multipart/form-data">
-                                <p>Try to input something here</p>
-                                <input type="file" name="uploadFile" value="file1">
-                                <input type="file" name="uploadFile" value="file1">
-                                <input type="submit" value="Upload">
+                                <div class="m5">
+                                    <input type="file" name="uploadFile" value="file1">
+                                </div>
+                                <div class="m5">
+                                    <input type="submit" value="Upload">
+                                </div>
                             </form>
                         </div>
                     </div>
