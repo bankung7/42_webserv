@@ -3,12 +3,12 @@
 Webserv::Webserv(void): _backlog(20) {
 
     std::cout << "[DEBUG]: Webserv initiated" << std::endl;
-    Conf cf;
-    cf.parseconf(this->_server);
 
     try {
-        setup();
-        polling();
+		Conf cf;
+		cf.parseconf(this->_server);
+        // setup();
+        // polling();
     } catch (std::exception &e) {
         std::cerr << e.what() << std::endl;
     }

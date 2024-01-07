@@ -1,11 +1,25 @@
 #include "Conf.hpp"
 
-Conf::Conf(void) : _filename("./config/default.conf"), _filedata(""), _n_server(0) {
+Conf::Conf(void) :
+	_filename("./config/default.conf"),
+	_filedata(""),
+	_n_server(0),
+	_am_flag(false),
+	// _root_flag(false),
+	// _groot_flag(false),
+	_port_flag(false) {
 	readfile();
 }
 
 
-Conf::Conf(std::string filename) : _filename(filename), _filedata(""), _n_server(0) {
+Conf::Conf(std::string filename) :
+	_filename(filename),
+	_filedata(""),
+	_n_server(0),
+	_am_flag(false),
+	// _root_flag(false),
+	// _groot_flag(false),
+	_port_flag(false) {
 	readfile();
 }
 
@@ -37,9 +51,10 @@ void Conf::readfile(void) {
 		ifs.close();
 	}
 	else
-		std::cout << "Error: configuration file not found." << std::endl;
+		throw std::runtime_error("Error: Configuration file not found.");
 	if (!(this->checkconf()))
-		std::cout << "Error: Invalid configuration file" << std::endl;
+		throw std::runtime_error("Error: Invalid configuration file");
+	// std::cout << "OK!! The configuration file is valid." << std::endl;
 }
 
 bool Conf::checkconf(void) {
@@ -77,7 +92,9 @@ bool Conf::checkconf(void) {
 					svcf.append(rtrim(lines[i], "{"));
 				}
 				else if (checkmaxclientsize(words) || checkservername(words) || checkerrorpage(words) \
-					|| checkport(words) || checkroot(words)) {
+					|| checkport(words)) {
+					if (lines[i][lines[i].length() - 1] == ';')
+						lines[i] = trim(lines[i], ";");
 					svcf.append(lines[i]+'\n');
 				}
 				else if (checkclosebraces(words)) { // } for server block
@@ -88,6 +105,9 @@ bool Conf::checkconf(void) {
 						_n_server = 0;
 						return false;
 					}
+					if (!this->_port_flag)
+						return false;
+					this->_port_flag = false;
 					_n_server++;
 					_serverconf.push_back(rtrim(svcf, "\n"));
 					svcf = "";
@@ -110,12 +130,17 @@ bool Conf::checkconf(void) {
 						_n_server = 0;
 						return false;
 					}
+					if (!this->_am_flag)
+						return false;
+					this->_am_flag = false;
 					location_flag = false;
 					svcf.append(rtrim(lines[i], "}") + '\n');
 				}
 				else if (checkallowedmethods(words) || checkroot(words) || checkreturn(words) \
 					|| checkallowfileupload(words) || checkautoindex(words) || checkindex(words) \
 					|| checkerrorpageinlocation(words) || checkmaxclientsize(words) || checkuploadpath(words)) {
+					if (lines[i][lines[i].length() - 1] != ';')
+						lines[i].append(";");
 					svcf.append(lines[i]);
 				}
 				else
@@ -184,7 +209,12 @@ bool Conf::checkmaxclientsize(std::vector<std::string> words) {
 }
 
 bool Conf::checkport(std::vector<std::string> words) {
-	return (words[0] == "listen" && words.size() == 2 && isvalidport(words[1]));
+	if (words[0] == "listen" && words.size() == 2 && isvalidport(words[1]))
+	{
+		this->_port_flag = true;
+		return true;
+	}
+	return false;
 }
 
 bool Conf::checkservername(std::vector<std::string> words) {
@@ -202,12 +232,11 @@ bool Conf::checkallowedmethods(std::vector<std::string> words){
 		std::vector<std::string> methods = split(words[1], ",");
 		for (size_t i = 0; i < methods.size(); i++)
 		{
-			if (methods[i] == "GET" || methods[i] == "POST" || methods[i] == "DELETE")
-				return true;
-			else
+			if (methods[i] != "GET" && methods[i] != "POST" && methods[i] != "DELETE")
 				return false;
 		}
-		return false;
+		this->_am_flag = true;
+		return true;
 	}
 	else
 		return false;

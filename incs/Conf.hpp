@@ -15,6 +15,10 @@ class Conf {
         std::string _filedata;
         std::vector<std::string> _serverconf;
         size_t _n_server;
+		bool _am_flag;
+		// bool _groot_flag;
+		// bool _root_flag;
+		bool _port_flag;
 
     public:
         Conf();
