@@ -1176,13 +1176,34 @@ void HttpHandler::content_builder(void)
 
     int totalByte = response.size();
     // std::cout << "total size to send: " << totalByte << std::endl;
-    int sentByte = send(this->_fd, response.c_str(), totalByte, 0);
+    // int sentByte = send(this->_fd, response.c_str(), totalByte, 0);
 
-    if (sentByte == -1)
-        std::cout << "\033[;31m"
-                  << "[ERROR]: Something wrong while sending"
-                  << "\033[0m" << std::endl;
-    else if (totalByte != sentByte)
+    int bytesSent = 0;
+    int sentByte = 0;
+    while (1) {
+
+        if (totalByte - bytesSent < BUFFER_SIZE)
+            sentByte = send(this->_fd, response.c_str() + bytesSent, totalByte - bytesSent, 0);
+        else
+            sentByte = send(this->_fd, response.c_str() + bytesSent, BUFFER_SIZE, 0);
+
+        if (sentByte > 0) {
+            bytesSent += sentByte;
+        } else if (sentByte == -1) {
+            // std::cout << "send failed will keep try sending" << std::endl;
+        }
+
+        if (bytesSent == totalByte)
+            break ;
+            
+    }
+
+    // if (sentByte == -1)
+    //     std::cout << "\033[;31m"
+    //               << "[ERROR]: Something wrong while sending"
+    //               << "\033[0m" << std::endl;
+
+    if (totalByte > bytesSent)
         std::cout << "\033[;31m"
                   << "[ERROR]: Sendin not whole file"
                   << "\033[0m" << std::endl;
