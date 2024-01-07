@@ -13,6 +13,7 @@ Webserv::Webserv(void): _backlog(20) {
     cf.parseconf(this->_server);
 
     signal(SIGINT, signal_handler);
+    signal(SIGPIPE, SIG_IGN); // broken pipe when siege
     
     try {
         setup();

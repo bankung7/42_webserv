@@ -74,7 +74,7 @@ int Webserv::polling(void) {
 
                     HttpHandler* context = (HttpHandler*)event.data.ptr;
 
-                    std::cout << "[DEBUG]: reading state for " << context->get_fd() << std::endl;
+                    // std::cout << "[DEBUG]: reading state for " << context->get_fd() << std::endl;
 
                     // start reading and not finish yet
                     if (context->get_status() <= READING) {
@@ -106,7 +106,7 @@ int Webserv::polling(void) {
                 // get context
                 HttpHandler* context = (HttpHandler*)event.data.ptr;
 
-                std::cout << "[DEBUG]: writing state for " << context->get_fd() << std::endl;
+                // std::cout << "[DEBUG]: writing state for " << context->get_fd() << std::endl;
 
                 context->handle_response();
 

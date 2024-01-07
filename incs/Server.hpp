@@ -16,16 +16,23 @@
 #include <map>
 #include <vector>
 
+// Customs
+#include "StrUtils.hpp"
+
 class Server {
 
 private:
+
     int         _fd;
     std::vector<std::string> _serverName;
     int         _port;
-    std::string _defaultErrorPage;
+
+    std::map<int, std::string> _errorCode;
     size_t      _maxClientBodySize;
-    std::string _root;
-    std::string _allowedMethod;
+
+    std::string _root; // mandatory
+    std::string _allowedMethod; // mandatory
+
     std::map<std::string, std::string> _location;
 
 public:
@@ -50,13 +57,15 @@ public:
     int is_server_name_defined(void) const;
     std::string get_location(std::string);
     std::string best_match_location(std::string);
+    std::string get_error_code(int);
 
     // checker
     int has_server_name(std::string);
 
     // general function
     void initiated(int);
-
+    void remove_white_space(std::string &);
+    int string_to_int(std::string str);
 
 };
 

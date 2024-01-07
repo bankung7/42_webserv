@@ -21,8 +21,28 @@ void Server::set_port(int port) {
     this->_port = port;
 };
 
-void Server::set_default_error_page(std::string path) {
-    this->_defaultErrorPage = std::string(path);
+// will received later
+void Server::set_default_error_page(std::string str) {
+
+    remove_white_space(str);
+
+    // cut form the backside to get the filename first
+    int start, len;
+
+    start = str.rfind(" ");
+    len = str.size() - start;
+    std::string name(str.substr(start + 1, len - 1));
+    str.erase(start, len);
+
+    // std::cout << name << " " << name.size() << std::endl;
+
+    std::stringstream ss(str);
+    std::string attr;
+    while (std::getline(ss, attr, ' '))
+    {
+        int code = string_to_int(attr);
+        this->_errorCode[code] = std::string(name);
+    }
 };
 
 void Server::set_max_client_body_size(size_t size) {
@@ -72,6 +92,17 @@ std::string Server::get_location(std::string loc) {
 
     if (this->_location.find(loc) != this->_location.end())
         return (std::string(this->_location[loc]));
+    return (std::string(""));
+}
+
+std::string Server::get_error_code(int code) {
+    std::map<int, std::string>::iterator it = this->_errorCode.begin();
+
+    for (; it != this->_errorCode.end(); it++) {
+        if (code == it->first) {
+            return (std::string(it->second));
+        }
+    }
     return (std::string(""));
 }
 
@@ -143,3 +174,39 @@ void Server::initiated(int backlog) {
     this->_fd = fd;
     
 };
+
+// Utils
+void Server::remove_white_space(std::string &input)
+{
+    int len = input.size();
+    for (int i = 0; i < (int)len; i++)
+    {
+        if (input[i] == ' ')
+        {
+            input.erase(i, 1);
+            i--;
+            len = input.size();
+        }
+        else
+            break;
+    }
+
+    // this line was wrong for a while, must check if any output is weird
+    for (int i = input.size() - 1; i >= 0; i--)
+    {
+        if (input[i] == ' ' || input[i] == '\r' || input[i] == '\n')
+        {
+            input.erase(i, 1);
+        }
+        else
+            break;
+    }
+}
+
+int Server::string_to_int(std::string str)
+{
+    std::stringstream ss(str);
+    int output;
+    ss >> output;
+    return (output);
+}

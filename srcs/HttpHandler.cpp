@@ -113,7 +113,7 @@ void HttpHandler::handle_request(void)
     bf.clear();
     bytesRead = recv(this->get_fd(), bf.data(), BUFFER_SIZE, 0);
 
-    std::cout << "[DEBUG]: Request Bytes read: " << bytesRead << std::endl;
+    // std::cout << "[DEBUG]: Request Bytes read: " << bytesRead << std::endl;
 
     if (bytesRead < 0)
     {
@@ -989,43 +989,46 @@ void HttpHandler::set_res_status(int code, std::string text)
 
     this->_status = CONTENT_PHASE;
 
+    // check in the location first
     if (it == this->_errorCode.end())
     {
-        // std::cout << "no match " << code << std::endl;
-        this->_tryFileStatus = -1; // this will return system error page
-        return ;
-    }
-    else
-    {
-        // guaruntee that custom error_page is exist before try_file
-        // std::cout << "the default error page was setup" << std::endl;
-        this->_filepath.clear();
-        this->_filepath.append(this->_root);
-        this->_filepath.append(this->_errorCode[code]);
-
-        // check if the custom error page is exist
-        if (access(this->_filepath.c_str(), F_OK) != -1)
-        { 
-            // file found
-            // std::cout << "file found" << std::endl;
-
-            // if the file open, close it
-            if (this->_file.is_open())
-                this->_file.close();
-            
-            this->_file.open(this->_filepath.c_str());
-            
-            // if file cannot open for some reason
-            if (!this->_file.is_open())
-                this->_tryFileStatus = -1;
-
-            return;
+        // check at server directive
+        if (this->_server[this->_serverIndex].get_error_code(code).size() == 0) {
+            this->_tryFileStatus = -1; // this will return system error page
+            return ;
         }
-
-        // default file not found
-        this->_tryFileStatus = -1;
-        std::cout << "error filepath: " << this->_filepath << std::endl;
+        
+        // found in the server block
+        this->_root = std::string(this->_server[this->_serverIndex].get_root());
+        this->_errorCode[code] = this->_server[this->_serverIndex].get_error_code(code);
     }
+    
+    // guaruntee that custom error_page is exist before try_file
+    // std::cout << "the default error page was setup" << std::endl;
+    this->_filepath.clear();
+    this->_filepath.append(this->_root);
+    this->_filepath.append(this->_errorCode[code]);
+
+    // check if the custom error page is exist
+    if (access(this->_filepath.c_str(), F_OK | R_OK) != -1)
+    { 
+        // std::cout << "file found" << std::endl;
+
+        // if the file open, close it
+        if (this->_file.is_open())
+            this->_file.close();
+        
+        this->_file.open(this->_filepath.c_str());
+        
+        // if file cannot open for some reason
+        if (!this->_file.is_open())
+            this->_tryFileStatus = -1;
+
+        return;
+    }
+
+    // default file not found
+    this->_tryFileStatus = -1;
 }
 
 void HttpHandler::try_file(void)
@@ -1182,30 +1185,32 @@ void HttpHandler::content_builder(void)
     int sentByte = 0;
     while (1) {
 
+        if (bytesSent >= totalByte)
+            break ;
+
         if (totalByte - bytesSent < BUFFER_SIZE)
             sentByte = send(this->_fd, response.c_str() + bytesSent, totalByte - bytesSent, 0);
         else
             sentByte = send(this->_fd, response.c_str() + bytesSent, BUFFER_SIZE, 0);
 
-        if (sentByte > 0) {
-            bytesSent += sentByte;
-        } else if (sentByte == -1) {
-            // std::cout << "send failed will keep try sending" << std::endl;
+        if (sentByte <= 0) {
+            std::cout << B_RED << "send failed [" << this->_fd << "]" << C_RESET << std::endl;
+            break ;
         }
 
-        if (bytesSent == totalByte)
-            break ;
-            
+        bytesSent += sentByte;
     }
 
-    // if (sentByte == -1)
+    // if (sentByte == -1) {
     //     std::cout << "\033[;31m"
     //               << "[ERROR]: Something wrong while sending"
     //               << "\033[0m" << std::endl;
+    // }
 
     if (totalByte > bytesSent)
+    // if (totalByte > sentByte)
         std::cout << "\033[;31m"
-                  << "[ERROR]: Sendin not whole file"
+                  << "[ERROR]: Connection was closed before sending whole things"
                   << "\033[0m" << std::endl;
     else
         std::cout << "\033[;32m"
