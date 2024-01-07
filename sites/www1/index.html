@@ -107,13 +107,25 @@
                 <div>
                     <p>Idea: just a link which specify by URL</p>
                 </div>
-                <ul>
-                    <li><a href="/html/page1.html">page1</a></li>
-                    <li><a href="/html">html - defined index, exist</a></li>
-                    <li><a href="/html1">html - defined index, not exist</a></li>
-                    <li><a href="/cgi-bin/hello.py?firstname=Ban&lastname=Mido">Python CGI</a></li>
-                    <li><a href="/cgi-bin/hello.sh?firstname=Ban&lastname=Mido">Bash CGI</a></li>
-                </ul>
+                <div>
+                    <ul>
+                        <li><a href="/html/page1.html">Normal Page</a></li>
+                        <li><a href="/html/page12.html">Page Not exist</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <ul>
+                        <li><a href="/html">Directory that have index.html with default_index</a></li>
+                        <li><a href="/html1">Directory that don't have index.html but default_index</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <ul>
+                        <li><a href="/cgi-bin/hello.py?firstname=Ban&lastname=Mido">Python CGI</a></li>
+                        <li><a href="/cgi-bin/hello.sh?firstname=Ban&lastname=Mido">Bash CGI</a></li>
+                        <!-- <li><a href="/cgi-bin/infinite.py">Infinite Loop</a></li> -->
+                    </ul>
+                </div>
             </div>
 
             <!-- Directory Listing Zone -->

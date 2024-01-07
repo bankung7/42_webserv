@@ -109,7 +109,7 @@ int Webserv::polling(void) {
                 std::cout << "[DEBUG]: writing state for " << context->get_fd() << std::endl;
 
                 context->handle_response();
-                
+
                 std::cout << "[DEBUG]: Connection type: " << context->get_connection_type() << std::endl;
 
                 // if the connection was closed 
@@ -148,6 +148,11 @@ int Webserv::polling(void) {
                         continue ;
                     }
                 }
+
+            } else if ((event.events & EPOLLHUP) || (event.events & EPOLLERR)) { // EPOLLOUT event
+            
+                // for EPOLLERR and EPOLLHUP, throw them out, and shutdown
+                throw std::runtime_error("[ERROR]: EPOLLERR or EPOLLHUP");
 
             } else {
                 // not any case

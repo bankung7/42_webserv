@@ -44,6 +44,7 @@
 
 // Custom
 #include "Server.hpp"
+#include "Color.hpp"
 
 class HttpHandler {
 

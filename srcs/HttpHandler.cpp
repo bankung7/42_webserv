@@ -136,8 +136,6 @@ void HttpHandler::handle_request(void)
     {
         // normal case, try to parsing the request and check that all message received
 
-        // std::cout << "current state: " << this->_readState << std::endl;
-
         if (this->_readState == 0) // write to heade
             this->_req.append(bf.data(), bytesRead);
         else if (this->_readState == 1) // write to body
@@ -347,18 +345,19 @@ void HttpHandler::handle_response(void)
     // std::cout << "Server host: " << this->_parameter["Host"] << std::endl;
     // std::cout << "Server port: " << this->_server[this->_serverIndex].get_port() << std::endl;
 
-    if (this->_status != NO_SERVER_FOUND) {
+    if (this->_status != NO_SERVER_FOUND)
+    {
 
         // match location
         assign_location_block();
-        // std::cout << "[DEBUG]: Location block was assigned to " << this->_loc << std::endl;
+
+        std::cout << "[DEBUG]: Location block was assigned to " << this->_loc << std::endl;
 
         // create response
         create_response();
 
         // try file
         try_file();
-
     }
 
     // content builder
@@ -382,10 +381,11 @@ void HttpHandler::assign_server_block(void)
         //     this->_serverIndex = i;
 
         // if the port match but no server_name defined
-        if (this->_server[i].is_server_name_defined() == -1) {
-            std::cout << "no servername defined" << std::endl;
+        if (this->_server[i].is_server_name_defined() == -1)
+        {
+            // std::cout << "no servername defined" << std::endl;
             this->_serverIndex = i;
-            return ;
+            return;
         }
 
         // if ther server name match
@@ -551,8 +551,8 @@ void HttpHandler::create_response(void)
             set_res_status(403, "CGI Note allowed the Type");
             return;
         }
-        handle_cgi();
         this->_isCGI = 1;
+        handle_cgi();
         // set_res_status(404, "TRYING");
         return;
     }
@@ -651,17 +651,34 @@ void HttpHandler::create_response(void)
 void HttpHandler::handle_cgi(void)
 {
 
-    std::cout << "Processing CGI: " << this->_url << std::endl;
+    std::cout << "[CGI]: Processing CGI: " << this->_url << std::endl;
 
     // === specify CGI type === //
     std::string cgiExtension;
     cgiExtension.append(this->_url.substr(this->_url.rfind(".")));
-    std::cout << "extension: " << cgiExtension << std::endl;
+    // std::cout << "extension: " << cgiExtension << std::endl;
 
     if (cgiExtension.compare(".sh") != 0 && cgiExtension.compare(".py") != 0)
     {
         std::cout << "[CGI]: Not support type" << std::endl;
         set_res_status(404, "CGI NOT SUPPORT FILE");
+        return;
+    }
+
+    // === Create the argv for execve === //
+    this->_cgipath.append(".");
+    this->_cgipath.append(this->_url);
+    // std::cout << "cgi path : "  << this->_cgipath << std::endl;
+
+    // check that there is a cgi file
+    if (access(this->_cgipath.c_str(), F_OK) == -1)
+    {
+        std::cout << YELLOW << "[WARNING]: File does not exist" << C_RESET << std::endl;
+        set_res_status(400, "BAD CGI REQUEST");
+        this->_resContentType = std::string("text/html");
+        this->_tryFileStatus = -1;
+        this->_isCGI = 0;
+        // this->_tryFileStatus = -1;
         return;
     }
 
@@ -696,11 +713,6 @@ void HttpHandler::handle_cgi(void)
 
     // === NULL terminate : End part of environment=== //
     env.push_back(NULL);
-
-    // === Create the argv for execve === //
-    this->_cgipath.append(".");
-    this->_cgipath.append(this->_url);
-    // std::cout << "cgi path : "  << this->_cgipath << std::endl;
 
     int to_cgi_fd[2];
     int from_cgi_fd[2];
@@ -777,6 +789,7 @@ void HttpHandler::handle_cgi(void)
                 set_res_status(200, "CGI OK");
                 break;
             }
+
             if (bytesRead == -1)
             {
                 std::cout << "[CGI]: error reading for CGI output" << std::endl;
@@ -785,19 +798,31 @@ void HttpHandler::handle_cgi(void)
             }
 
             std::cout << "[CGI]: reading " << bytesRead << std::endl;
+            // std::cout << bf.data() << std::endl;
 
             this->_res.append(bf.data(), bytesRead); // fixed this to add only what read
         }
 
         close(from_cgi_fd[0]); // close read end pipe when completed
+
         // std::cout << "===== CGI OUTPUT =====" << std::endl;
         // std::cout << this->_res << std::endl;
         // std::cout << "===== CGI OUTPUT =====" << std::endl;
 
         waitpid(pid, NULL, 0); // wait for child to finish
-        this->_tryFileStatus = -1;
-        this->_resContentType = std::string("text/html");
     }
+
+    // check that they are well-format html like it should be ended with </html>
+    if (this->_res.rfind("</html>") == std::string::npos) {
+        std::cout << YELLOW << "[CGI]: Something wrong for CGI output" << C_RESET << std::endl;
+        this->_isCGI = 0;
+        set_res_status(500, "Internal Server Error");
+        return ;
+    }
+
+    this->_tryFileStatus = -1;
+    this->_resContentType = std::string("text/html");
+    set_res_status(200, "CGI OK");
 }
 
 void HttpHandler::uploading_task(void)
@@ -836,6 +861,7 @@ void HttpHandler::uploading_task(void)
             length = eindex - sindex - boundary.size();
 
             std::string block(this->_body.substr(sindex + 2 + boundary.size(), length - 4)); // minus \r\n at the end of first line
+
             // std::cout << "============== start of block ==============" << std::endl;
             // std::cout << block << std::endl;
             // std::cout << "============== end of block ==============" << std::endl;
@@ -912,18 +938,21 @@ void HttpHandler::set_res_status(int code, std::string text)
     this->_resStatusCode = code;
     this->_resStatusText = std::string(text);
 
-    if (code == 200 || this->_isCGI == 1)
+    if (code == 200 || this->_isCGI == 1) {
+        // std::cout << "OK or CGI completed" << std::endl;
         return;
+    }
 
     // TODO: check if default error assigned, later
     std::map<int, std::string>::iterator it = this->_errorCode.find(code);
+
     if (it == this->_errorCode.end())
     {
+        // std::cout << "no match " << code << std::endl;
         this->_tryFileStatus = -1; // this will return system error page
     }
     else
     {
-
         // guaruntee that custom error_page is exist before try_file
 
         std::cout << "the default error page was setup" << std::endl;
@@ -932,11 +961,17 @@ void HttpHandler::set_res_status(int code, std::string text)
         this->_filepath.append(this->_errorCode[code]);
 
         // check if the custom error page is exist
-        stat(this->_filepath.c_str(), &this->_fileInfo);
-        if ((this->_fileInfo.st_mode & S_IFMT) == S_IFREG)
+        if (access(this->_filepath.c_str(), F_OK) != -1)
+        { // file found
+            this->_tryFileStatus = 0;
+            std::cout << "file found" << std::endl;
+
             return;
+        }
+
+        // default file not found
         this->_tryFileStatus = -1;
-        // std::cout << "error filepath: " << this->_filepath << std::endl;
+        std::cout << "error filepath: " << this->_filepath << std::endl;
     }
 }
 
@@ -944,44 +979,66 @@ void HttpHandler::try_file(void)
 {
 
     // this step is reached when the filepath isset, even in the error code
-    // std::cout << "[DEBUG]: try file: " << this->_filepath << std::endl;
     // std::cout << "try file status " << this->_tryFileStatus << std::endl;
 
     if (this->_isRedirection == 1 || this->_tryFileStatus == -1 || this->_isCGI == 1)
         return;
 
+    // std::cout << "[DEBUG]: try file: " << this->_filepath << std::endl;
+
+    // if file request not found
+    if (access(this->_filepath.c_str(), F_OK) == -1)
+    {
+        // std::cout << YELLOW << "[WARNING]: File does not exist" << std::endl;
+        set_res_status(404, "File Not Found");
+    }
+
+    // fall back from set default error page, if no then send text/plain
+    if (this->_tryFileStatus == -1)
+        return;
+
     stat(this->_filepath.c_str(), &this->_fileInfo);
 
-    // if file exist
-    if ((this->_fileInfo.st_mode & S_IFMT) == S_IFREG)
+    // if delete method
+    if (this->_method.compare("DELETE") == 0)
     {
 
-        // TODO: DELETE METHOD =========================
-        if (this->_method.compare("DELETE") == 0)
-        {
+        // std::cout << "delete method" << std::endl;
 
-            // std::cout << "delete method" << std::endl;
-            // std::cout << this->_req << std::endl;
+        // check file permission
+        if (access(this->_filepath.c_str(), W_OK) == -1) {
+            std::cout << YELLOW << "[WARNING]: You dont have permission to delete the file" << std::endl;
+            set_res_status(403, "Forbidden");
+            return ;
+        }
 
-            int status = std::remove(this->_filepath.c_str());
-            if (status != 0)
-            { // ==================== thing wend wrong for macos, it ask for permission to deleted
-                std::cout << "[ERROR]: Permission denied" << std::endl;
-                set_res_status(403, "NO PERMISSION");
-                return;
-            }
-            set_res_status(200, "OK");
-            this->_tryFileStatus = -1; // if code can be default
+        int status = std::remove(this->_filepath.c_str());
+        if (status != 0)
+        { // ==================== thing went wrong for macos, it ask for permission to deleted
+            std::cout << "[ERROR]: Permission denied" << std::endl;
+            set_res_status(403, "NO PERMISSION");
             return;
         }
 
-        this->_file.open(this->_filepath.c_str(), std::ios::in);
-        this->_fileSize = this->_fileInfo.st_size;
-        set_res_content_type();
-        if (this->_resStatusCode == 0)
-            set_res_status(200, "OK");
+        set_res_status(200, "OK");
+        this->_tryFileStatus = -1; // if code can be default
         return;
     }
+
+    this->_file.open(this->_filepath.c_str(), std::ios::in);
+
+    // check if the file cannot open for some reasone
+    if (!this->_file.is_open()) {
+        std::cout << YELLOW << "[WARNING]: The file cannot be open for some reason" << std::endl;
+        set_res_status(404, "File cannot open");
+        this->_tryFileStatus = -1;
+        return ;
+    }
+
+    this->_fileSize = this->_fileInfo.st_size;
+    set_res_content_type();
+    if (this->_resStatusCode == 0)
+        set_res_status(200, "OK");
 
     if (this->_resStatusCode == 0)
     {
@@ -998,6 +1055,7 @@ void HttpHandler::content_builder(void)
 
     std::string fileData(""); // for other response that not CGI
 
+    // if not cgi
     if (this->_isCGI != 1)
     {
 
