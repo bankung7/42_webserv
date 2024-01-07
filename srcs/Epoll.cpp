@@ -114,7 +114,7 @@ int Webserv::polling(void) {
 
                 // if the connection was closed 
                 if (context->get_connection_type().find("closed") == 0) {
-                    std::cout << "Closed connection after finishin" << std::endl;
+                    std::cout << "Closed connection after finishing" << std::endl;
                     close_connection(context); //============================= CLOSE CONNECTION
                     continue;
                 }

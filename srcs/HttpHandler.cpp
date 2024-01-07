@@ -8,36 +8,34 @@ HttpHandler::HttpHandler(int fd) : _fd(fd), _status(READING), _serverIndex(-1)
 {
 
     this->_parameter["Host"] = std::string("");
-    this->_parameter["Content-Length"] = std::string("0");
-    this->_parameter["Connection"] = std::string("");
-    this->_parameter["boundary"] = std::string("");
     this->_parameter["Content-Type"] = std::string("");
+    this->_parameter["Content-Length"] = std::string("0");
+    this->_parameter["boundary"] = std::string("");
+    this->_parameter["Connection"] = std::string("keep-alive"); // default to keep-alive
     this->_parameter["Keep-Alive"] = std::string("");
 
     this->_reqContentLength = 0;
     this->_readState = 0;
     this->_status = NOTSTART;
 
-    std::time(&this->_timeout);
+    std::time(&this->_timeout); // default
     this->_timeout += KEEP_ALIVE_TIME_OUT;
 
-    this->_body = std::string("");
-    this->_bodyLength = 0;
-    this->_isContinueRead = 0;
     this->_postType = 0;
     this->_maxClientBodySize = std::numeric_limits<std::size_t>::max(); // if not specified
 
+    // cgi part
+    this->_isCGI = 0;
     this->_queryString = std::string("");
 
-    this->_isCGI = 0;
-
     this->_tryFileStatus = 0;
+
     this->_isDirectory = 0;
     this->_isRedirection = 0;
     this->_isAutoIndex = 0;
     this->_isIndex = 0;
-    this->_isCGI = 0;
     this->_fileSize = 0;
+
     this->_resStatusCode = 0;
     this->_resStatusText = std::string("");
 }
@@ -100,11 +98,6 @@ std::string HttpHandler::get_connection_type(void)
     return (this->_parameter["Connection"]);
 }
 
-int HttpHandler::get_continue_read(void) const
-{
-    return (this->_isContinueRead);
-}
-
 std::time_t HttpHandler::get_time_out(void) const
 {
     return (this->_timeout);
@@ -125,24 +118,24 @@ void HttpHandler::handle_request(void)
     if (bytesRead < 0)
     {
         // error case
+        std::cout << RED << "[WARNING]: Client [" << this->_fd << "] has something error while reading" << C_RESET << std::endl;
         set_status(CLOSED); // it might be set to other error
     }
     else if (bytesRead == 0)
     {
         // client closed the connection
+        std::cout << YELLOW << "[INFO]: Client [" << this->_fd << "]closed the connection" << C_RESET << std::endl;
         set_status(CLOSED);
     }
     else
     {
         // normal case, try to parsing the request and check that all message received
 
-        if (this->_readState == 0) // write to heade
-            this->_req.append(bf.data(), bytesRead);
-        else if (this->_readState == 1) // write to body
-            this->_body.append(bf.data(), bytesRead);
+        if (this->_readState == 0)
+            this->_req.append(bf.data(), bytesRead); // write to (res) header
         else
-            return; // protect case
-
+            this->_body.append(bf.data(), bytesRead); // write to body
+       
         // std::cout << "============" << std::endl;
         // std::cout << this->_req << std::endl;
         // std::cout << "============" << std::endl;
@@ -152,8 +145,6 @@ void HttpHandler::handle_request(void)
         // when reading to body [POST] only
         if (this->_readState == 1)
         {
-            // if (this->_method.compare("POST") == 0)
-            // {
             // if completed, to epollout
             if (this->_body.size() == this->_reqContentLength)
             { // check later
@@ -162,7 +153,6 @@ void HttpHandler::handle_request(void)
                 this->_status = WRITING;
                 return;
             }
-            // }
 
             // if not completed, queue in epollin
             return;
@@ -175,8 +165,6 @@ void HttpHandler::handle_request(void)
             // split after \r\n\r\n to body if exist, and remove it for req
             this->_body.append(this->_req.substr(this->_req.find("\r\n\r\n") + 4));
             this->_req.erase(this->_req.find("\r\n\r\n"));
-
-            // std::cout << this->_req << std::endl;
 
             this->_readState = 1;
             this->_status = READING;
@@ -203,7 +191,6 @@ void HttpHandler::setup_header(void)
     std::string line;
 
     // get first line // must 3 part
-
     // get method
     std::getline(ss, this->_method, ' ');
     remove_white_space(this->_method);
@@ -241,6 +228,8 @@ void HttpHandler::setup_header(void)
             {
                 // if port does not specified
                 std::size_t index = value.find(":");
+
+                // set default 80 if it not specify
                 if (index == std::string::npos)
                 {
                     this->_parameter["Host"] = std::string(value);
@@ -299,51 +288,49 @@ void HttpHandler::setup_header(void)
             // for Content-length
             if (attr.compare("Content-Length") == 0 && this->_reqContentLength == 0)
             {
-                this->_reqContentLength = string_to_int(value);
+                this->_reqContentLength = string_to_size(value);
                 std::cout << "Content-Length: " << this->_reqContentLength << std::endl;
                 continue;
             }
 
-            // for Content-type, urlencoded
-            if (this->_parameter["Content-Type"].find("application/x-www-form-urlencoded") != std::string::npos)
-            {
-                this->_postType = URLENCODED;
-                continue;
+            // for Content-type
+            if (attr.compare("Content-Type") == 0 && this->_parameter["Content-Type"].size() == 0) {
+
+                // formdata
+                if (this->_parameter["Content-Type"].find("multipart/form-data") != std::string::npos)
+                {
+                    this->_postType = FORMDATA;
+
+                    // set boundary
+                    std::size_t index = (this->_parameter["Content-Type"]).find("boundary=");
+                    this->_parameter["boundary"] = std::string((this->_parameter["Content-Type"]).substr(index + 9));
+                    remove_white_space(this->_parameter["boundary"]);
+                    this->_parameter["boundary"].insert(0, "--"); // inset the -- in front of boundary
+                    // std::cout << "set boudnary " << this->_parameter["boundary"] << std::endl;
+                    continue;
+                }
+    
+                // urlencoded
+                if (this->_parameter["Content-Type"].find("application/x-www-form-urlencoded") != std::string::npos)
+                {
+                    this->_postType = URLENCODED;
+                    continue;
+                }
+
             }
-
-            // for Content-type, formdata
-            if (this->_parameter["Content-Type"].find("multipart/form-data") != std::string::npos)
-            {
-                this->_postType = FORMDATA;
-
-                // set boundary
-                std::size_t index = (this->_parameter["Content-Type"]).find("boundary=");
-                this->_parameter["boundary"] = std::string((this->_parameter["Content-Type"]).substr(index + 9));
-                remove_white_space(this->_parameter["boundary"]);
-                this->_parameter["boundary"].insert(0, "--"); // inset the -- in front of boundary
-                // std::cout << "set boudnary " << this->_parameter["boundary"] << std::endl;
-                continue;
-            }
-
-            //
         }
     }
 
     // if no content-type in the request, use defualt text/html
     if (this->_parameter["Content-Type"].size() == 0)
         this->_parameter["Content-Type"].append("text/html");
+
 }
 
 void HttpHandler::handle_response(void)
 {
-
-    // std::cout << this->_req << std::endl;
-
     // Assign server block
     assign_server_block();
-    // std::cout << "Server index: " << this->_serverIndex << std::endl;
-    // std::cout << "Server host: " << this->_parameter["Host"] << std::endl;
-    // std::cout << "Server port: " << this->_server[this->_serverIndex].get_port() << std::endl;
 
     if (this->_status != NO_SERVER_FOUND)
     {
@@ -546,11 +533,15 @@ void HttpHandler::create_response(void)
     {
         // std::cout << "CGI requesting" << std::endl;
         // accept only text/html and urlencoded
-        if (this->_parameter["Content-Type"].compare("text/html") != 0 && this->_parameter["Content-Type"].compare("application/x-www-form-urlencoded") != 0)
+
+        if (this->_parameter["Content-Type"].compare("text/html") != 0
+            && this->_parameter["Content-Type"].compare("application/x-www-form-urlencoded") != 0)
         {
-            set_res_status(403, "CGI Note allowed the Type");
+            this->_isCGI = 0;
+            set_res_status(403, "Not Accept multipart/formdata");
             return;
         }
+
         this->_isCGI = 1;
         handle_cgi();
         // set_res_status(404, "TRYING");
