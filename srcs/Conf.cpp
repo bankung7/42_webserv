@@ -110,8 +110,11 @@ bool Conf::checkconf(void) {
 						return false;
 					if (!this->_port_flag)
 						return false;
+					// std::cout << "groot: " << _groot_flag << " root: " << _root_flag << std::endl;
 					if (!_groot_flag && _root_flag != 0)
 						return false;
+					this->_groot_flag = false;
+					this->_root_flag = 0;
 					this->_port_flag = false;
 					_n_server++;
 					_serverconf.push_back(rtrim(svcf, "\n"));

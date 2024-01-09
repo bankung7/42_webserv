@@ -7,8 +7,8 @@ Webserv::Webserv(void): _backlog(20) {
     try {
 		Conf cf;
 		cf.parseconf(this->_server);
-        // setup();
-        // polling();
+        setup();
+        polling();
     } catch (std::exception &e) {
         std::cerr << e.what() << std::endl;
     }
