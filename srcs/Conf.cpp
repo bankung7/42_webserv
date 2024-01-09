@@ -233,6 +233,7 @@ bool Conf::checkallowedmethods(std::vector<std::string> words){
 		std::vector<std::string> methods = split(words[1], ",");
 		for (size_t i = 0; i < methods.size(); i++)
 		{
+			methods[i] = trim(methods[i], " \n\r\t"); 
 			if (methods[i] != "GET" && methods[i] != "POST" && methods[i] != "DELETE")
 				return false;
 		}
@@ -280,6 +281,7 @@ bool Conf::checkreturn(std::vector<std::string> words) {
 
 bool Conf::checkallowfileupload(std::vector<std::string> words) {
 	if (words[0] == "allowedFileUpload" && words.size() == 2) {
+		words[1] = trim(words[1], " \n\r\t"); 
 		if (words[1] == "yes;" || words[1] == "no;")
 			return true;
 		else
