@@ -42,7 +42,6 @@ private:
     std::string _url;
     std::string _version;
     std::size_t _reqContentLength; // content-length
-    int _readState; // 0 for header, 1 for body
     int _postType; // url or formdata
     std::size_t _maxClientBodySize; // limit body size
 
@@ -69,6 +68,8 @@ private:
     // cgi part
     int _isCGI; // for cgi checking
     int _cgiState; // for cgi detecting
+    int _to_cgi_fd[2];
+    int _from_cgi_fd[2];
     std::string _cgiType; // for bash or python3
     std::string _cgipath;
     std::string _cgiResBody; // for cgi write the output to
@@ -79,6 +80,8 @@ private:
     int _resStatusCode;
     std::string _resStatusText;
     std::string _resContentType;
+    std::string _response; // for sending
+    std::size_t _bytesSent; // for tracking sending
 
     int _tryFileStatus; // to let the server know not to load to file
 
@@ -88,7 +91,7 @@ public:
     
     std::string _res; // testing
 
-    HttpHandler(int);
+    HttpHandler(int, std::vector<Server>);
     ~HttpHandler(void);
 
     // setter
@@ -103,29 +106,24 @@ public:
     std::time_t get_time_out(void) const;
 
     // process
-    void handle_request(void);
-    void reading_request(void);
+    void handle_request(void); // main
+    void reading_phase(void);
     void setup_header(void);
-    void parsing_request(void);
-
-
-    void handle_response(void);
+    void processing(void);
     void assign_server_block(void);
     void assign_location_block(void);
-    void create_response(void);
     void try_file(void);
     void content_builder(void);
+    void uploading_task(void);
+    void set_res_status(int, std::string);
+    void parsing_error_code(std::string);
 
     // cgi
     void handle_cgi(void);
     int get_cgi_state(void) const;
 
     // res handle
-    void open_file(void);
-    void uploading_task(void);
-    void set_res_status(int, std::string);
-    void error_page_set(int, std::string);
-    void parsing_error_code(std::string);
+    void sending(void);
     std::string create_res_attribute(std::string, std::string);
 
     // utils

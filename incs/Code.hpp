@@ -42,19 +42,13 @@
 #define PROCESSING 4
 #define CGI_OUT 5
 #define CGI_IN 6
-#define BUILDING_RES 7
-#define SENDING 8
-#define COMPLETED 9
+#define TRY_FILE_PHASE 7
+#define CONTENT_PHASE 8
+#define SENDING 9
+#define COMPLETED_PHASE 10
 #define CLOSED 99
 #define ERROR -1
 
-#define POST_READ_PHASE 11
-#define FIND_SERVER_PHASE 12
-#define FIND_LOCATION_PHASE 13
-#define CREATE_RESPONSE_PHASE 14
-#define TRY_FILE_PHASE 15
-#define CONTENT_PHASE 16
-#define COMPLETE_PHASE 17
 
 // POST Form type
 #define URLENCODED 11

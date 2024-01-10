@@ -11,7 +11,7 @@ Webserv::Webserv(void): _backlog(20) {
     std::cout << "[DEBUG]: Webserv initiated" << std::endl;
 
     signal(SIGINT, signal_handler);
-    // signal(SIGPIPE, SIG_IGN); // broken pipe when siege
+    signal(SIGPIPE, SIG_IGN); // broken pipe when siege
     
     // for main loop
     try {
