@@ -9,6 +9,7 @@
 #include <sys/epoll.h> // epoll_create(), epoll_wait(), epoll_ctl()
 #include <unistd.h> // close
 #include <stdio.h>
+#include <errno.h>
 
 // C++ library
 #include <iostream>
@@ -42,6 +43,7 @@ private:
     std::stringstream _log; // text for error writing
 
 public:
+
     Webserv(void);
     Webserv(std::string);
     ~Webserv(void);
@@ -60,7 +62,11 @@ public:
 
     // Epoll.cpp
     int polling(void);
-    void close_connection(HttpHandler*);
+    int epoll_add(int, int);
+    void epoll_mod(int, int);
+    void epoll_del(int);
+
+    void close_connection(int);
     void check_time_out(void);
 
     // remover
@@ -73,7 +79,6 @@ public:
 
     //utils
     // void printserverconf(Conf &);
-
 
 };
 

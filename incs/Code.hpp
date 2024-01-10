@@ -24,15 +24,29 @@
 #define B_WHITE "\033[1;37m"
 #define C_RESET "\033[0m"
 
+// state
+#define S_DEBUG "\033[0m[DEBUG]: "
+#define S_INFO "\033[1;34m[INFO]: "
+#define S_WARNING "\033[1;33m[WARNING]: "
+#define S_ERROR "\033[1;31m[ERROR]: "
+#define S_END "\033[0m\n"
+
 // Variable
 #define BUFFER_SIZE 1024
 
 // Progess
 #define NOTSTART 0
 #define READING 1
-#define WRITING 2
-#define COMPLETED 3
+#define READING_HEADER 2
+#define READING_BODY 3
+#define PROCESSING 4
+#define CGI_OUT 5
+#define CGI_IN 6
+#define BUILDING_RES 7
+#define SENDING 8
+#define COMPLETED 9
 #define CLOSED 99
+#define ERROR -1
 
 #define POST_READ_PHASE 11
 #define FIND_SERVER_PHASE 12
@@ -41,7 +55,6 @@
 #define TRY_FILE_PHASE 15
 #define CONTENT_PHASE 16
 #define COMPLETE_PHASE 17
-#define NO_SERVER_FOUND -1
 
 // POST Form type
 #define URLENCODED 11

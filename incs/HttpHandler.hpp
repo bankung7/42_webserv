@@ -68,12 +68,13 @@ private:
 
     // cgi part
     int _isCGI; // for cgi checking
+    int _cgiState; // for cgi detecting
     std::string _cgiType; // for bash or python3
     std::string _cgipath;
     std::string _cgiResBody; // for cgi write the output to
     std::string _queryString; // for query string
 
-    std::string _res;
+    // std::string _res;
     std::ifstream _file;
     int _resStatusCode;
     std::string _resStatusText;
@@ -84,6 +85,9 @@ private:
     HttpHandler(void);
     
 public:
+    
+    std::string _res; // testing
+
     HttpHandler(int);
     ~HttpHandler(void);
 
@@ -114,6 +118,7 @@ public:
 
     // cgi
     void handle_cgi(void);
+    int get_cgi_state(void) const;
 
     // res handle
     void open_file(void);
@@ -122,7 +127,6 @@ public:
     void error_page_set(int, std::string);
     void parsing_error_code(std::string);
     std::string create_res_attribute(std::string, std::string);
-
 
     // utils
     void remove_white_space(std::string&);

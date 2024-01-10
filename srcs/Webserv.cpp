@@ -3,7 +3,7 @@
 static void signal_handler(int sig) {
     (void)sig;
     signal(SIGINT, SIG_IGN);
-    throw (-1);
+    throw (0);
 }
 
 Webserv::Webserv(void): _backlog(20) {
@@ -11,26 +11,37 @@ Webserv::Webserv(void): _backlog(20) {
     std::cout << "[DEBUG]: Webserv initiated" << std::endl;
 
     signal(SIGINT, signal_handler);
-    signal(SIGPIPE, SIG_IGN); // broken pipe when siege
+    // signal(SIGPIPE, SIG_IGN); // broken pipe when siege
     
+    // for main loop
     try {
 		Conf cf;
 		cf.parseconf(this->_server);
         setup();
         polling();
-    } catch (std::exception &e) {
-        std::cerr << B_RED << e.what() << C_RESET << std::endl;
     } catch (int e) {
-        (void)e;
+        switch (e) {
+            case (0):
+                std::cout << B_YELLOW << "Shutdown signal detected" << C_RESET << std::endl;
+                break ;
+            case (-1):
+                std::cout << B_RED << "Something wrong happed" << C_RESET << std::endl;
+                break ;
+            default:
+                break ;
+        }
         // exit signal
         std::cout << B_YELLOW << "\n[WARNING]: Prepare closing the server" << C_RESET << std::endl;
-    } catch (...) {
-        std::cerr << "[WARNING]: Catch other thing, by the way we will close the server" << std::endl;
     }
 
     // cleaning
-    clean_context();
-    clean_socket();
+    try {
+        clean_context();
+        clean_socket();
+        close(this->_epfd);
+    } catch (...) {
+
+    }
 
     std::cout << B_GREEN << "[INFO]: Exit completed" << C_RESET << std::endl;
 }
@@ -108,8 +119,12 @@ void Webserv::clean_socket(void) {
     std::set<int>::iterator it = this->_fd.begin();
 
     for (; it != this->_fd.end(); it++) {
+        std::cout << B_YELLOW << "[DEBUG]: server socket " << *it << " is being closed now" << C_RESET << std::endl;
+        epoll_del(*it); // remove it from epoll events
         close(*it);
     }
+
+    this->_fd.clear();
 }
 
 void Webserv::clean_context(void) {
@@ -117,9 +132,12 @@ void Webserv::clean_context(void) {
     std::map<int, HttpHandler*>::iterator it = this->_context.begin();
 
     for (; it != this->_context.end(); it++) {
+        std::cout << B_YELLOW << "[DEBUG]: Context for client " << it->first << " is being closed now" << C_RESET << std::endl;
+        epoll_del(it->first); // remove it from epoll events
         close(it->first); // close client socket
         delete it->second; // delete the client context
         // std::cout << "delete context for fd " << it->first << std::endl;
     }
     
+    this->_context.clear();
 }
