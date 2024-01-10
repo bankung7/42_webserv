@@ -323,6 +323,10 @@ void HttpHandler::setup_header(void)
 
 void HttpHandler::handle_response(void)
 {
+
+    // std::cout << this->_req << std::endl;
+    // std::cout << this->_method << std::endl;
+
     // Assign server block
     assign_server_block();
 

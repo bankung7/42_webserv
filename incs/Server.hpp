@@ -52,6 +52,7 @@ public:
     // getter
     int get_fd(void) const;
     int get_port(void) const;
+    size_t get_max_client_body_size(void) const;
     std::string get_root(void) const;
     std::string get_server_name(std::string) const;
     int is_server_name_defined(void) const;

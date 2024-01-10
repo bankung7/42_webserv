@@ -104,6 +104,11 @@ std::string Server::get_error_code(int code) {
         }
     }
     return (std::string(""));
+
+}
+
+size_t Server::get_max_client_body_size(void) const {
+    return (this->_maxClientBodySize);
 }
 
 // checker

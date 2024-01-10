@@ -9,13 +9,13 @@ static void signal_handler(int sig) {
 Webserv::Webserv(void): _backlog(20) {
 
     std::cout << "[DEBUG]: Webserv initiated" << std::endl;
-    Conf cf;
-    cf.parseconf(this->_server);
 
     signal(SIGINT, signal_handler);
     signal(SIGPIPE, SIG_IGN); // broken pipe when siege
     
     try {
+		Conf cf;
+		cf.parseconf(this->_server);
         setup();
         polling();
     } catch (std::exception &e) {
@@ -33,6 +33,10 @@ Webserv::Webserv(void): _backlog(20) {
     clean_socket();
 
     std::cout << B_GREEN << "[INFO]: Exit completed" << C_RESET << std::endl;
+}
+
+Webserv::Webserv(std::string filename){
+    Conf cf(filename);
 }
 
 Webserv::~Webserv(void) {
@@ -83,7 +87,7 @@ void Webserv::add_context(int fd, HttpHandler* context) {
 
     if (this->_context.find(fd) != this->_context.end())\
         throw std::runtime_error("[ERROR]: duplicated fd in context");
-    
+
     this->_context[fd] = context;
 }
 
@@ -91,7 +95,7 @@ void Webserv::add_context(int fd, HttpHandler* context) {
 
 // remover
 void Webserv::remove_context(int fd) {
-    
+
     std::map<int, HttpHandler*>::iterator it = this->_context.find(fd);
 
     if (it != this->_context.end())

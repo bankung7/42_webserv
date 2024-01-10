@@ -43,6 +43,7 @@ private:
 
 public:
     Webserv(void);
+    Webserv(std::string);
     ~Webserv(void);
 
     // setter
@@ -69,6 +70,10 @@ public:
     // error handling
     void clean_socket(void);
     void clean_context(void);
+
+    //utils
+    // void printserverconf(Conf &);
+
 
 };
 
