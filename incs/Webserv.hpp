@@ -9,6 +9,7 @@
 #include <sys/epoll.h> // epoll_create(), epoll_wait(), epoll_ctl()
 #include <unistd.h> // close
 #include <stdio.h>
+#include <errno.h>
 
 // C++ library
 #include <iostream>
@@ -16,6 +17,7 @@
 #include <vector>
 #include <set>
 #include <ctime>
+#include <csignal> // signal
 
 // Custom Library
 #include "Server.hpp"
@@ -23,9 +25,9 @@
 #include "Conf.hpp"
 #include "StrUtils.hpp"
 
-// define
-#define MAX_EVENTS 1024
-#define BACKLOG 100
+#include "Code.hpp" // for define variable
+
+// define color
 
 class Webserv {
 
@@ -34,13 +36,17 @@ private:
     std::vector<Server> _server;
     std::set<int> _port;
     std::map<int, HttpHandler*> _context;
-    std::vector<HttpHandler*> _client;
+    std::map<int, int> _cgiList;
 
     int _backlog;
     int _epfd;
 
+    std::stringstream _log; // text for error writing
+
 public:
+
     Webserv(void);
+    Webserv(std::string);
     ~Webserv(void);
 
     // setter
@@ -57,12 +63,23 @@ public:
 
     // Epoll.cpp
     int polling(void);
-    void close_connection(HttpHandler*);
+    int epoll_add(int, int);
+    void epoll_mod(int, int);
+    void epoll_del(int);
+
+    void close_connection(int);
     void check_time_out(void);
 
     // remover
     void remove_context(int);
-    void remove_client(int);
+    
+
+    // error handling
+    void clean_socket(void);
+    void clean_context(void);
+
+    //utils
+    // void printserverconf(Conf &);
 
 };
 

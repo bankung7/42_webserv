@@ -15,20 +15,23 @@ class Conf {
         std::string _filedata;
         std::vector<std::string> _serverconf;
         size_t _n_server;
-        // bool `_root_flag;
+		bool _am_flag;
+		int _root_flag;
+		bool _groot_flag;
+		bool _port_flag;
 
     public:
         Conf();
         Conf(std::string);
         ~Conf();
-        void readfile(); 
+        void readfile();
         bool checkconf();
         void parseconf(std::vector<Server> &);
 
         // Getter
         size_t get_n_server();
         std::string get_serverconf(size_t);
-        
+
         // Check Directives
         bool checkroot(std::vector<std::string>);
         bool checkmaxclientsize(std::vector<std::string>);

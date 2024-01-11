@@ -21,7 +21,7 @@ std::vector<std::string> split(const std::string& str, const std::string& delimi
     return tokens;
 }
 
-//" \t\r\n" 
+//" \t\r\n"
 std::string ltrim(const std::string& str, std::string c_list) {
     std::string::size_type start = str.find_first_not_of(c_list);
     return (start == std::string::npos) ? "" : str.substr(start);

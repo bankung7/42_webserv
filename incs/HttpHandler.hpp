@@ -1,26 +1,6 @@
 #ifndef HTTPHANDLER_HPP
 #define HTTPHANDLER_HPP
 
-#define BUFFER_SIZE 1024
-
-#define NOTSTART 0
-#define READING 1
-#define WRITING 2
-#define COMPLETED 3
-#define CLOSED 9
-
-#define POST_READ_PHASE 1
-#define FIND_CONFIG_PHASE 2
-#define REWRITE_PHASE 3
-#define TRY_FILE_PHASE 4
-#define CONTENT_PHASE 5
-#define COMPLETE_PHASE 6
-
-#define URLENCODED 11
-#define FORMDATA 12
-
-#define KEEP_ALIVE_TIME_OUT 5
-
 // C
 #include <stdio.h>
 #include <unistd.h>
@@ -29,7 +9,6 @@
 #include <errno.h> // errno
 #include <string.h> // strerror
 #include <sys/wait.h> // for wait
-
 
 // C++
 #include <sstream>
@@ -43,70 +22,78 @@
 
 // Custom
 #include "Server.hpp"
+#include "Code.hpp"
 
 class HttpHandler {
 
 private:
+
     int _fd;
-    int _status;
     int _port;
 
+    int _status; // for progress status
+
+    time_t _timeout; // for client timeout
+
+    // request part
     std::string _req;
+    std::string _body; // for requesy body
     std::string _method;
     std::string _url;
     std::string _version;
-    std::string _reqContentType;
     std::size_t _reqContentLength; // content-length
-    std::size_t _bodyLength;        // actual body length
-    std::string _body; // for requesy body
-    int _isContinueRead;
-    int _readState; // 0 for header, 1 for body
     int _postType; // url or formdata
     std::size_t _maxClientBodySize; // limit body size
 
     std::map<std::string, std::string> _parameter;
-
-    time_t _timeout; // for client timeout
 
     std::vector<Server> _server;
     int _serverIndex;
 
     std::string _loc; // location name
     std::string _location; // location block
-    std::string _path;
-    std::string _filename;
     std::string _filepath; // for root + url
     struct stat _fileInfo; // file info
-    std::string _queryString; // for query string
     std::string _root; // root
-    std::string _droot; // root directive from server block
+
+    // directive
     int _isDirectory;
     int _isRedirection;
     int _isAutoIndex;
     int _isIndex;
     size_t _fileSize;
+    std::map<int, std::string> _errorCode; // for error code in the location block
     std::string _temp; // for fileupload
 
     // cgi part
     int _isCGI; // for cgi checking
+    int _to_cgi_fd[2];
+    int _from_cgi_fd[2];
+    pid_t _pid; // for child process
+    std::size_t _toCgiBytes; // tracking writing
+    std::vector<const char *> _cgiEnv; // environment
     std::string _cgiType; // for bash or python3
     std::string _cgipath;
     std::string _cgiResBody; // for cgi write the output to
+    std::string _queryString; // for query string
 
-    std::map<int, std::string> _errorCode;
-
-    std::string _res;
-    std::string _resHeader;
+    // std::string _res;
+    std::string _res; // testing
     std::ifstream _file;
     int _resStatusCode;
     std::string _resStatusText;
     std::string _resContentType;
-    int _tryFileStatus;
+    std::string _response; // for sending
+    std::size_t _bytesSent; // for tracking sending
+
+    int _tryFileStatus; // to let the server know not to load to file
 
     HttpHandler(void);
     
 public:
-    HttpHandler(int);
+    
+
+    HttpHandler(int, std::vector<Server>);
     ~HttpHandler(void);
 
     // setter
@@ -118,33 +105,32 @@ public:
     int get_fd(void) const;
     int get_status(void) const;
     std::string get_connection_type(void);
-    int get_continue_read(void) const;
     std::time_t get_time_out(void) const;
 
     // process
-    void handle_request(void);
-    void reading_request(void);
+    void handle_request(void); // main
+    void reading_phase(void);
     void setup_header(void);
-    void parsing_request(void);
-
-
-    void handle_response(void);
+    void processing(void);
     void assign_server_block(void);
     void assign_location_block(void);
-    void create_response(void);
     void try_file(void);
     void content_builder(void);
+    void uploading_task(void);
+    void set_res_status(int, std::string);
+    void parsing_error_code(std::string);
 
     // cgi
     void handle_cgi(void);
+    void cgi_writing(void);
+    void cgi_reading(void);
+    int cgi_get_to_fd(void);
+    int cgi_get_from_fd(void);
+    pid_t cgi_get_pid(void);
 
     // res handle
-    void uploading_task(void);
-    void set_res_status(int, std::string);
-    void error_page_set(int, std::string);
-    void parsing_error_code(std::string);
+    void sending(void);
     std::string create_res_attribute(std::string, std::string);
-
 
     // utils
     void remove_white_space(std::string&);
