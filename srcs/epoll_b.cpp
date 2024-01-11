@@ -209,9 +209,9 @@ void Webserv::check_time_out(void) {
         // std::cout << "[DEBUG]: client [" << cont->get_fd() << "] : status [" << cont->get_status() << "]";
         // std::cout << " time out in " << cont->get_time_out() - ctime << std::endl;
 
-        if (cont->get_status() < 2) {
+        if (cont->get_status() < SENDING) {
             if (cont->get_time_out() < ctime) {
-                std::cout << "[DEBUG]: client " << cont->get_fd() << " has time out" << std::endl;
+                // std::cout << "[DEBUG]: client " << cont->get_fd() << " has time out" << std::endl;
                 fd_list.push_back(it->first);
             }
         }

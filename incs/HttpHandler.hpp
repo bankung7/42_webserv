@@ -67,15 +67,18 @@ private:
 
     // cgi part
     int _isCGI; // for cgi checking
-    int _cgiState; // for cgi detecting
     int _to_cgi_fd[2];
     int _from_cgi_fd[2];
+    pid_t _pid; // for child process
+    std::size_t _toCgiBytes; // tracking writing
+    std::vector<const char *> _cgiEnv; // environment
     std::string _cgiType; // for bash or python3
     std::string _cgipath;
     std::string _cgiResBody; // for cgi write the output to
     std::string _queryString; // for query string
 
     // std::string _res;
+    std::string _res; // testing
     std::ifstream _file;
     int _resStatusCode;
     std::string _resStatusText;
@@ -89,7 +92,6 @@ private:
     
 public:
     
-    std::string _res; // testing
 
     HttpHandler(int, std::vector<Server>);
     ~HttpHandler(void);
@@ -120,7 +122,11 @@ public:
 
     // cgi
     void handle_cgi(void);
-    int get_cgi_state(void) const;
+    void cgi_writing(void);
+    void cgi_reading(void);
+    int cgi_get_to_fd(void);
+    int cgi_get_from_fd(void);
+    pid_t cgi_get_pid(void);
 
     // res handle
     void sending(void);

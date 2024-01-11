@@ -20,6 +20,7 @@ Webserv::Webserv(void): _backlog(20) {
         setup();
         polling();
     } catch (int e) {
+        
         switch (e) {
             case (0):
                 std::cout << B_YELLOW << "Shutdown signal detected" << C_RESET << std::endl;

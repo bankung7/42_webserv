@@ -24,11 +24,9 @@ HttpHandler::HttpHandler(int fd, std::vector<Server> server) : _fd(fd), _status(
 
     // cgi part
     this->_isCGI = 0;
-    this->_cgiState = 0;
     this->_queryString = std::string("");
-
+    this->_toCgiBytes = 0;
     this->_tryFileStatus = 0;
-
     this->_isDirectory = 0;
     this->_isRedirection = 0;
     this->_isAutoIndex = 0;
@@ -107,36 +105,40 @@ std::time_t HttpHandler::get_time_out(void) const
 // [OK] handle request
 void HttpHandler::handle_request(void)
 {
-    if (this->_status <= READING_BODY) {
+    if (this->_status <= READING_BODY)
+    {
 
         reading_phase();
 
         // not finish reading
         if (this->_status <= READING_BODY)
-            return ;
+            return;
     }
-    
+
     // finish reading, starting processing
-    if (this->_status == PROCESSING) {
+    if (this->_status == PROCESSING)
+    {
         processing();
     }
 
     // try file phase
-    if (this->_status == TRY_FILE_PHASE) {
+    if (this->_status == TRY_FILE_PHASE)
+    {
         // std::cout << "try file" << std::endl;
         try_file();
     }
 
     // content builing
-    if (this->_status == CONTENT_PHASE) {
+    if (this->_status == CONTENT_PHASE)
+    {
         // std::cout << "content builder" << std::endl;
         content_builder();
     }
-
 }
 
 // [OK] Reading Phase
-void HttpHandler::reading_phase(void) {
+void HttpHandler::reading_phase(void)
+{
 
     std::vector<char> bf(BUFFER_SIZE);
     int bytesRead;
@@ -171,11 +173,11 @@ void HttpHandler::reading_phase(void) {
         // when reading to body
         if (this->_status == READING_BODY)
         {
-            std::cout << "==== reading to body ====" << std::endl;
+            // std::cout << "==== reading to body ====" << std::endl;
             // if completed, to epollout
             if (this->_body.size() == this->_reqContentLength)
             {
-                std::cout << S_DEBUG << "Request body size: " << this->_reqContentLength << "/" << this->_body.size() << S_END;
+                // std::cout << S_DEBUG << "Request body size: " << this->_reqContentLength << "/" << this->_body.size() << S_END;
                 this->_status = PROCESSING;
                 return;
             }
@@ -187,7 +189,7 @@ void HttpHandler::reading_phase(void) {
         // check \r\n\r\n
         if (this->_status <= READING_HEADER && this->_req.find("\r\n\r\n") != std::string::npos)
         {
-            std::cout << "==== end of header found, set up header ====" << std::endl;
+            // std::cout << "==== end of header found, set up header ====" << std::endl;
             // split after \r\n\r\n to body if exist, and remove it for req
             this->_body.append(this->_req.substr(this->_req.find("\r\n\r\n") + 4));
             this->_req.erase(this->_req.find("\r\n\r\n"));
@@ -198,7 +200,7 @@ void HttpHandler::reading_phase(void) {
             setup_header();
 
             std::cout << "[DEBUG]: Request body size: " << this->_reqContentLength << "/" << this->_body.size() << S_END;
-           
+
             if (this->_body.size() >= this->_reqContentLength)
             {
                 this->_status = PROCESSING;
@@ -320,8 +322,9 @@ void HttpHandler::setup_header(void)
             }
 
             // for Content-type
-            if (attr.compare("Content-Type") == 0 && this->_parameter["Content-Type"].size() != 0) {
-                
+            if (attr.compare("Content-Type") == 0 && this->_parameter["Content-Type"].size() != 0)
+            {
+
                 // formdata
                 if (this->_parameter["Content-Type"].find("multipart/form-data") != std::string::npos)
                 {
@@ -342,7 +345,6 @@ void HttpHandler::setup_header(void)
                     this->_postType = URLENCODED;
                     continue;
                 }
-
             }
         }
     }
@@ -350,7 +352,6 @@ void HttpHandler::setup_header(void)
     // if no content-type in the request, use defualt text/html
     if (this->_parameter["Content-Type"].size() == 0)
         this->_parameter["Content-Type"].append("text/plain"); /// try here
-
 }
 
 // [OK]
@@ -359,22 +360,19 @@ void HttpHandler::assign_server_block(void)
     // as the subject is not clear, we will design this step as to exactly match host:port.
     for (int i = 0; i < (int)this->_server.size(); i++)
     {
-
         // if port not match, skip
         if (this->_server[i].get_port() != this->_port)
-        {
             continue;
-        }
 
         // // check if the server index was not assign to be default
         // if (this->_serverIndex == -1)
         //     this->_serverIndex = i;
 
-        // if the port match but no server_name defined
+        // if the port match but no server_name defined, set default as it self
         if (this->_server[i].is_server_name_defined() == -1)
         {
-            // std::cout << "no servername defined" << std::endl;
             this->_serverIndex = i;
+            std::cout << S_INFO << "no servername defined" << S_END;
             return;
         }
 
@@ -385,10 +383,10 @@ void HttpHandler::assign_server_block(void)
             this->_serverIndex = i;
             return;
         }
-
     }
 
-    set_res_status(404, "Not Found");
+    std::cout << S_WARNING << "server not found" << S_END;
+    set_res_status(400, "Bad Request");
     this->_parameter["Connection"] = "closed";
     this->_status = CONTENT_PHASE; // as no servername match
 }
@@ -406,23 +404,29 @@ void HttpHandler::assign_location_block(void)
 }
 
 // [ON PROCESS] proceesing the request
-void HttpHandler::processing(void) {
+void HttpHandler::processing(void)
+{
 
     std::cout << S_INFO << "Processing state" << S_END;
 
     // assign server block and set location
-    assign_server_block();
+    assign_server_block(); // if server_name not found in the block
+    if (this->_status != PROCESSING)
+    {
+        return;
+    }
+
     assign_location_block();
 
     std::size_t startIndex, length;
     startIndex = 0;
 
-
     // ==> error_page [OPTIONAL]
-    while (1) {
+    while (1)
+    {
         startIndex = this->_location.find("error_page:");
         if (startIndex == std::string::npos)
-            break ;
+            break;
 
         // found the directive, in location block only
         length = this->_location.find(";", startIndex + 1) - startIndex;
@@ -433,15 +437,16 @@ void HttpHandler::processing(void) {
     // std::cout << S_INFO << "error_page: " << this->_errorCode.size() << S_END;
     // =========>
 
-
     // ==> set root [MANDATORY]
     startIndex = this->_location.find("root:");
     // root not exist in the location block, fall back to server block
-    if (startIndex == std::string::npos) {
+    if (startIndex == std::string::npos)
+    {
         this->_root = std::string(this->_server[this->_serverIndex].get_root());
     }
     // found root in the location block
-    else {
+    else
+    {
         length = this->_location.find(";", startIndex + 1) - startIndex;
         this->_root = std::string(this->_location.substr(startIndex + 5, length - 5));
     }
@@ -449,9 +454,12 @@ void HttpHandler::processing(void) {
     if (this->_root[0] == '/')
         this->_root.erase(0, 1); // remove the first /
 
+    // check if the / is put at the end of rootdirective
+    if (this->_root[this->_root.size() - 1] == '/')
+        this->_root.erase(this->_root.size() - 1); // remove the first /
+
     // std::cout << S_INFO << "root: " << this->_root << S_END;
     // =========>
-
 
     // create the resource path
     this->_filepath = std::string(this->_root);
@@ -460,116 +468,152 @@ void HttpHandler::processing(void) {
     std::cout << S_INFO << "filepath => " << this->_filepath << S_END;
 
     // [TODO]: check if is file or directory exist
-    if (stat(this->_filepath.c_str(), &this->_fileInfo) == 0) {
+    if (stat(this->_filepath.c_str(), &this->_fileInfo) == 0)
+    {
 
         // file check
-        if (S_ISREG(this->_fileInfo.st_mode)) {
+        if (S_ISREG(this->_fileInfo.st_mode))
+        {
             std::cout << S_INFO << "this is a file, existing" << S_END;
         }
         // directory check
-        else if (S_ISDIR(this->_fileInfo.st_mode)) {
-            
+        else if (S_ISDIR(this->_fileInfo.st_mode))
+        {
+
             // the index directive found
-            if (this->_location.find("index:") != std::string::npos) {
+            if (this->_location.find("index:") != std::string::npos)
+            {
                 startIndex = this->_location.find("index:");
                 length = this->_location.find(";", startIndex + 1) - startIndex;
-                this->_filepath.append(this->_location.substr(startIndex +  6, length - 6));
-                std::cout << S_DEBUG << "default index page " << this->_location.substr(startIndex +  6, length - 6) << " has setted up" << S_END;
+                this->_filepath.append(this->_location.substr(startIndex + 6, length - 6));
+                std::cout << S_DEBUG << "default index page " << this->_location.substr(startIndex + 6, length - 6) << " has setted up" << S_END;
             }
             // if the autoindex directive is on [OPTIONAL]
-            else if (this->_location.find("autoIndex:on;") != std::string::npos) {
-                startIndex = this->_location.find("autoIndex:on;");
+            else if (this->_location.find("autoIndex:on;") != std::string::npos)
+            {
                 std::cout << S_INFO << "generating index listing page" << S_END;
-            } 
+
+                // [TODO]: support GET only
+                if (this->_method.compare("GET") == 0)
+                {
+                    // put the url to query as it will be path
+                    this->_queryString = std::string("");
+                    this->_queryString.append("root=");
+                    this->_queryString.append(this->_root);
+                    this->_queryString.append("&");
+                    this->_queryString.append("url=");
+                    this->_queryString.append(this->_url.substr(1, this->_url.size() - 1));
+
+                    std::cout << B_GREEN << this->_queryString << S_END;
+
+                    this->_url.clear(); // remove the url, replace with the path of cgi
+                    this->_url.append("/cgi-bin/directory_listing.py");
+                    this->_status = CGI_IN;
+
+                    handle_cgi();
+                    return ;
+                }
+                
+            }
             // the default case if the directory is request but no 2 above
-            else {
+            else
+            {
                 this->_filepath.append("/index.html");
             }
         }
-    } 
+    }
     // file or directory not found
-    else {
+    else
+    {
         std::cout << this->_location.find("allowedFileUpload:yes;") << std::endl;
         // if this is not a redirection and uploadfile and cgi also
-        if(this->_location.find("return: ") == std::string::npos &&
+        if (this->_location.find("return: ") == std::string::npos &&
             this->_location.find("allowedFileUpload:yes;") == std::string::npos &&
-            this->_loc.compare("/cgi-bin/") != 0) {
+            this->_loc.compare("/cgi-bin/") != 0)
+        {
             std::cout << S_WARNING << "No file or directory exists" << S_END;
             set_res_status(404, "NOT FOUND");
-            return ;
+            return;
         }
 
         // std::cout << "potential redirection case" << std::endl;
     }
     // =========>
 
-
     // ==> allowedMethod [MANDATORY]
     startIndex = this->_location.find("allowedMethod:");
     length = this->_location.find(";", startIndex + 1) - startIndex;
     std::string locationMethod(this->_location.substr(startIndex + 14, length - 14));
 
-    // if method is not found, mean not allowed
-    if (locationMethod.find(this->_method) == std::string::npos) {
-        std::cout << S_WARNING << this->_method << " is not ALLOWED" << S_END;
-        set_res_status(405, "Method Not Allowed");
-        return ;
-    }
 
     // let check if the method is not GET,POST,DELETE, 501 return
-    if (std::string(",GET,POST,DELETE,").find(this->_method) == std::string::npos) {
+    std::string methodSet(",GET,POST,DELETE,");
+    if (methodSet.find(this->_method) == std::string::npos)
+    {
         std::cout << S_WARNING << this->_method << " is not implemented for this server" << S_END;
         set_res_status(501, "Not Implemented");
-        return ;
+        return;
+    }
+
+    // if method is not found, mean not allowed
+    if (locationMethod.find(this->_method) == std::string::npos)
+    {
+        std::cout << S_WARNING << this->_method << " is not ALLOWED" << S_END;
+        set_res_status(405, "Method Not Allowed");
+        return;
     }
     // =========>
 
-
     // for DELETE method case
-    if (this->_method.compare("DELETE") == 0) {
+    if (this->_method.compare("DELETE") == 0)
+    {
 
         // check the right to delete, support file only
-        if (this->_isDirectory == 0 && (this->_filepath.c_str(), W_OK) == 0) {
+        // W_OK not work properly
+        if (this->_isDirectory == 0 && (this->_filepath.c_str(), F_OK) == 0)
+        {
             std::remove(this->_filepath.c_str());
             set_res_status(204, "No Content");
-            return ;
+            return;
         }
         // no right to delete, include if it is a folder, we not support folder deletion
-        else {
+        else
+        {
             std::cout << S_WARNING << this->_method << " is not ALLOWED" << S_END;
             set_res_status(403, "FORBIDDEN");
-            return ;
+            return;
         }
-
-    }   
+    }
     // =========>
-
 
     // ==> maxClientBodySize [OPTIONAL]
     startIndex = this->_location.find("client_max_body_size:");
-    if (startIndex != std::string::npos) {
+    if (startIndex != std::string::npos)
+    {
         length = this->_location.find(";", startIndex + 1) - startIndex;
         this->_maxClientBodySize = string_to_size(this->_location.substr(startIndex + 21, length - 21));
 
         // check if it goes over limit
-        if (this->_maxClientBodySize < this->_reqContentLength) {
+        if (this->_maxClientBodySize < this->_reqContentLength)
+        {
             std::cout << S_WARNING << "the body is over the value limited by server" << S_END;
             set_res_status(413, "CONTENT TOO LARGE");
-            return ;
+            return;
         }
     }
-    // std::cout << S_INFO << "client max body size: " << this->_maxClientBodySize << S_END;
+    std::cout << S_INFO << "client max body size: " << this->_maxClientBodySize << S_END;
     // =========>
 
 
     // ==> Redirection [OPTIONAL]
     startIndex = this->_location.find("return: "); // must have space
-    if (startIndex != std::string::npos) {
+    if (startIndex != std::string::npos)
+    {
         length = this->_location.find(";", startIndex + 1) - startIndex;
 
         std::stringstream returnStream(this->_location.substr(startIndex + 8, length - 8));
         std::string returnAttr;
-        
+
         // get code first
         std::getline(returnStream, returnAttr, ' ');
         remove_white_space(returnAttr);
@@ -580,80 +624,86 @@ void HttpHandler::processing(void) {
         remove_white_space(returnAttr);
 
         // split the case, only 3xx series will redirect to other url as specified
-        if (code >= 300 && code <= 399) {
+        if (code >= 300 && code <= 399)
+        {
             std::cout << S_INFO << "redirection to site" << S_END;
             this->_isRedirection = 1;
             this->_filepath = std::string(returnAttr);
             set_res_status(code, "MOVED");
-            return ;
-        } 
+            return;
+        }
         // for code 400 - 599, return as text
-        else if (code >= 400 && code <= 599) {
+        else if (code >= 400 && code <= 599)
+        {
             std::cout << S_INFO << "redirection with code" << S_END;
-            returnAttr.erase(0, 1); // remove " begin
+            returnAttr.erase(0, 1);                  // remove " begin
             returnAttr.erase(returnAttr.size() - 1); // remove " end
             set_res_status(code, returnAttr);
-            return ;
-        } 
+            return;
+        }
         // other code that not in criteria, will use 404 for default [protected case]
-        else {
+        else
+        {
             std::cout << S_INFO << "unknown res code" << S_END;
             set_res_status(404, "NOT FOUND");
-            return ;
+            return;
         }
-
     }
     // std::cout << S_INFO << "redirection not found" << S_END;
     // =========>
 
-    
     // upload file request
-    if (this->_location.find("allowedFileUpload:yes;") != std::string::npos) {
+    if (this->_location.find("allowedFileUpload:yes;") != std::string::npos)
+    {
         std::cout << S_INFO << "upload file requested" << S_END;
         uploading_task();
-        return ;
+        return;
     }
     // =========>
 
-
     // [TODO]: CGI [OPTIONAL]
-    if (this->_loc.compare("/cgi-bin/") == 0) {
+    if (this->_loc.compare("/cgi-bin/") == 0)
+    {
         std::cout << S_DEBUG << "cgi request" << S_END;
 
         // support only get and post
-        if (std::string(",GET,POST,").find(this->_method) == std::string::npos) {
-            std::cout << S_INFO << "CGI not support this request" << S_END;
+        if (std::string(",GET,POST,").find(this->_method) == std::string::npos)
+        {
+            std::cout << S_WARNING << "CGI not support this request" << S_END;
             set_res_status(405, "Method Not Allowed");
-            return ;
+            return;
         }
 
         // accept only urlencoded type
         std::cout << this->_parameter["Content-Type"] << std::endl;
-        if (this->_parameter["Content-Type"].compare("text/plain") == 0) {
+        if (this->_parameter["Content-Type"].compare("text/plain") == 0)
+        {
             // put the query string to body
             startIndex = this->_url.find("?");
-            if (startIndex != std::string::npos) {
+            if (startIndex != std::string::npos)
+            {
                 this->_queryString.clear();
                 this->_queryString.append(this->_url.substr(startIndex + 1)); // not include ?
                 this->_url.erase(startIndex);
             }
             handle_cgi();
-            return ;
-        } else if (this->_parameter["Content-Type"].compare("application/x-www-form-urlencoded") == 0) {
+            return;
+        }
+        else if (this->_parameter["Content-Type"].compare("application/x-www-form-urlencoded") == 0)
+        {
             handle_cgi();
-            return ;
+            return;
         }
         // not support
-        else {
+        else
+        {
             std::cout << S_INFO << "CGI not support this request" << S_END;
             set_res_status(501, "Not Implemented");
-            return ;
+            return;
         }
-
     }
 
     // =========>
-
 
     // if normal file (resource) request
     this->_status = TRY_FILE_PHASE;
@@ -674,15 +724,16 @@ void HttpHandler::try_file(void)
         // std::cout << YELLOW << "[WARNING]: File does not exist" << std::endl;
         set_res_status(404, "Not Found");
         this->_status = CONTENT_PHASE;
-        return ;
+        return;
     }
 
     // check the permission
-    if (access(this->_filepath.c_str(), R_OK) == -1) {
+    if (access(this->_filepath.c_str(), R_OK) == -1)
+    {
         // dont have permission to read it
         set_res_status(403, "Forbidden");
         this->_status = CONTENT_PHASE;
-        return ;
+        return;
     }
 
     // get the file size
@@ -691,11 +742,12 @@ void HttpHandler::try_file(void)
     this->_file.open(this->_filepath.c_str(), std::ios::in);
 
     // check if the file cannot open for some reasone
-    if (!this->_file.is_open()) {
+    if (!this->_file.is_open())
+    {
         std::cout << S_WARNING << "The file cannot be open for some reason" << std::endl;
         set_res_status(500, "Internal Server Error");
         this->_status = CONTENT_PHASE;
-        return ;
+        return;
     }
 
     this->_fileSize = this->_fileInfo.st_size;
@@ -713,7 +765,8 @@ void HttpHandler::set_res_status(int code, std::string text)
     this->_resStatusCode = code;
     this->_resStatusText = std::string(text);
 
-    if (code < 400 || this->_isCGI == 1) {
+    if (code < 400 || this->_isCGI == 1)
+    {
         // std::cout << "OK or CGI completed" << std::endl;
         this->_status = CONTENT_PHASE;
         return;
@@ -728,9 +781,9 @@ void HttpHandler::set_res_status(int code, std::string text)
     if (it == this->_errorCode.end())
     {
         this->_tryFileStatus = -1;
-        return ;
+        return;
     }
-    
+
     // guaruntee that custom error_page is exist before try_file
     // std::cout << "the default error page was setup" << std::endl;
     this->_filepath.clear();
@@ -739,15 +792,15 @@ void HttpHandler::set_res_status(int code, std::string text)
 
     // check if the custom error page is exist
     if (access(this->_filepath.c_str(), F_OK | R_OK) != -1)
-    { 
+    {
         // std::cout << "file found" << std::endl;
 
         // if the file open, close it
         if (this->_file.is_open())
             this->_file.close();
-        
+
         this->_file.open(this->_filepath.c_str());
-        
+
         // if file cannot open for some reason
         if (!this->_file.is_open())
             this->_tryFileStatus = -1;
@@ -757,189 +810,6 @@ void HttpHandler::set_res_status(int code, std::string text)
 
     // default file not found
     this->_tryFileStatus = -1;
-}
-
-// [ON PROCESS]
-void HttpHandler::handle_cgi(void)
-{
-    std::cout << S_INFO << "Processing CGI: " << this->_url << S_END;
-
-    // === specify CGI type === //
-    std::string cgiExtension;
-    cgiExtension.append(this->_url.substr(this->_url.rfind(".")));
-    std::cout << S_DEBUG << "extension: " << cgiExtension << S_END;
-
-    if (cgiExtension.compare(".sh") != 0 && cgiExtension.compare(".py") != 0)
-    {
-        std::cout << S_INFO <<  "CGI Not support type" << S_END;
-        set_res_status(501, "Not Implemented");
-        return;
-    }
-
-    // === Create the argv for execve === //
-    this->_cgipath.append(".");
-    this->_cgipath.append(this->_url);
-    // std::cout << "cgi path : "  << this->_cgipath << std::endl;
-
-    // check that there is a cgi file and executable
-    if (access(this->_cgipath.c_str(), F_OK) == -1)
-    {
-        std::cout << S_WARNING << "File does not exist" << S_END;
-        set_res_status(404, "Not Found");
-        return;
-    }
-
-    // if the file was not permit to run
-    if (access(this->_cgipath.c_str(), X_OK) == -1) {
-        std::cout << S_WARNING << "Permission required for the file" << S_END;
-        set_res_status(403, "Forbidden");
-        return;
-    }
-
-    // === create the environment === //
-    std::vector<const char *> env;
-
-    env.push_back("PATH=/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin");
-
-    std::string host("SERVER_NAME=127.0.0.1"); //========= hard code
-    env.push_back(host.c_str());
-
-    std::string content_length("CONTENT_LENGTH=");
-    env.push_back(content_length.append(int_to_string(this->_body.size())).c_str());
-
-    std::string contentType("CONTENT_TYPE=");
-    contentType.append(this->_parameter["Content-Type"]);
-    env.push_back(contentType.c_str());
-
-    env.push_back("GATEWAT_INTERFACE=CGI/1.1");
-
-    std::string path_info("PATH_INFO=");
-    env.push_back(path_info.append(this->_url).c_str());
-
-    std::string reqMethod("REQUEST_METHOD=");
-    reqMethod.append(this->_method);
-    env.push_back(reqMethod.c_str());
-
-    // === GET : put it in the query string === //
-    std::string query_string("QUERY_STRING=");
-    env.push_back(query_string.append(this->_queryString).c_str());
-    std::cout << "query string for get: " << query_string << std::endl;
-
-    // === NULL terminate : End part of environment=== //
-    env.push_back(NULL);
-
-    this->_isCGI = 1; // hard code
-
-    if (pipe(this->_to_cgi_fd) == -1 || pipe(this->_from_cgi_fd) == -1)
-    {
-        perror("pipe");
-        set_res_status(500, "Internal Server Error");
-        return;
-    }
-
-    pid_t pid = fork();
-
-    if (pid < 0)
-    {
-        // error case
-        set_res_status(500, "Internal Server Error");
-        return;
-    }
-    else if (pid == 0)
-    {
-        // Child process
-
-        close(this->_to_cgi_fd[1]);   // close to cgi write end
-        close(this->_from_cgi_fd[0]); // close from cgi read end
-
-        dup2(this->_to_cgi_fd[0], STDIN_FILENO);    // dup read-to to stdno
-        dup2(this->_from_cgi_fd[1], STDOUT_FILENO); // dup write-from to stdout
-
-        close(this->_to_cgi_fd[0]);   // close original
-        close(this->_from_cgi_fd[1]); // close original
-
-        // close(this->_fd); // close the server fd // not sure
-        for (int i = 0; i < (int)this->_server.size(); i++)
-        {
-            if (this->_server[i].get_fd() > 0)
-                close(this->_server[i].get_fd());
-        }
-
-        // === create parameter for execve === //
-        std::vector<const char *> argv;
-        argv.push_back(this->_cgipath.c_str());
-        argv.push_back(NULL);
-
-        // execve
-        execve(argv[0], const_cast<char *const *>(argv.data()), const_cast<char *const *>(env.data()));
-        std::cout << "[ERROR]: execve error => " << strerror(errno) << std::endl;
-        set_res_status(500, "CGI FAILED");
-    }
-    else
-    {
-        // Parent process
-
-        close(this->_to_cgi_fd[0]);   // close to cgi write end
-        close(this->_from_cgi_fd[1]); // close from cgi read end
-
-        // write post data to pipe
-        write(this->_to_cgi_fd[1], this->_body.c_str(), this->_body.size());
-        close(this->_to_cgi_fd[1]); // close when write complete
-
-        std::vector<char> bf(BUFFER_SIZE);
-        int bytesRead;
-
-        // wait for CGI writing back to server, push it in the _cgiResBody
-        while (1)
-        {
-
-            bytesRead = read(this->_from_cgi_fd[0], bf.data(), BUFFER_SIZE);
-            // std::cout << bf.data() << std::endl;
-
-            if (bytesRead == 0)
-            {
-                std::cout << "[CGI]: end of file detecting" << std::endl;
-                set_res_status(200, "CGI OK");
-                break;
-            }
-
-            if (bytesRead == -1)
-            {
-                std::cout << "[CGI]: error reading for CGI output" << std::endl;
-                this->_isCGI = 0;
-                set_res_status(500, "CGI FAILED");
-                break;
-            }
-
-            std::cout << "[CGI]: reading " << bytesRead << std::endl;
-            // std::cout << bf.data() << std::endl;
-
-            this->_res.append(bf.data(), bytesRead); // fixed this to add only what read
-        }
-
-        close(this->_from_cgi_fd[0]); // close read end pipe when completed
-
-        // std::cout << "===== CGI OUTPUT =====" << std::endl;
-        // std::cout << this->_res << std::endl;
-        // std::cout << "===== CGI OUTPUT =====" << std::endl;
-
-        waitpid(pid, NULL, 0); // wait for child to finish
-
-    }
-
-    this->_status = CONTENT_PHASE;
-
-    // check that they are well-format html like it should be ended with </html>
-    if (this->_res.rfind("</html>") == std::string::npos) {
-        std::cout << YELLOW << "[CGI]: Something wrong for CGI output" << S_END;
-        this->_isCGI = 0;
-        set_res_status(500, "Internal Server Error");
-        return ;
-    }
-
-    this->_tryFileStatus = -1;
-    this->_resContentType = std::string("text/html");
-    set_res_status(200, "CGI OK");
 }
 
 // [OK]
@@ -969,21 +839,23 @@ void HttpHandler::uploading_task(void)
         if (uploadPath[0] == '/')
             uploadPath.erase(0, 1); // remove first /
     }
-    
+
     // std::cout << "uploadpath: " << uploadPath << std::endl;
 
     // check directory is exist
-    if (access(uploadPath.c_str(), F_OK) == -1) {
+    if (access(uploadPath.c_str(), F_OK) == -1)
+    {
         perror("upload");
         std::cout << "could be " << std::endl;
         set_res_status(404, "Not Found");
-        return ;
+        return;
     }
 
     // check directory is writable
-    if (access(uploadPath.c_str(), W_OK) == -1) {
+    if (access(uploadPath.c_str(), W_OK) == -1)
+    {
         set_res_status(403, "Forbidden");
-        return ;
+        return;
     }
 
     // std::cout << "============== start of body ==============" << std::endl;
@@ -1031,9 +903,10 @@ void HttpHandler::uploading_task(void)
         std::string filename(disposition, sindex + 10, length);
 
         // if filename is null, mean nothing pass in
-        if (filename.size() == 0) {
+        if (filename.size() == 0)
+        {
             set_res_status(400, "Bad Request");
-            return ;
+            return;
         }
 
         // get the file data
@@ -1075,14 +948,16 @@ void HttpHandler::uploading_task(void)
             this->_status = CONTENT_PHASE;
             // sindex = eindex - 1; // return back 1 char
             // continue;
-            return ;
-        } else {
+            return;
+        }
+        else
+        {
             file << block.substr(sindex + 4);
             file.close();
             std::cout << S_DEBUG << "File save successfully" << S_END;
             set_res_status(201, "Created");
             this->_tryFileStatus = -1;
-            return ;
+            return;
         }
 
         sindex = eindex - 1; // return back 1 char
@@ -1096,8 +971,28 @@ void HttpHandler::uploading_task(void)
 // [TODO]
 void HttpHandler::content_builder(void)
 {
+
+    // std::cout << S_INFO << "Content Building State" << S_END;
+
     std::string fileData(""); // for other response that not CGI
-    
+
+    // if CGI, check the output is in well-formed
+    if (this->_isCGI == 1) {
+
+        // std::cout << this->_res << std::endl;
+
+        // check if well-formed received
+        if (this->_res.rfind("</html>") == std::string::npos) {
+            std::cout << S_WARNING << "CGI output failed" << S_END;
+            set_res_status(500, "Internal Server Error");
+            this->_isCGI = 0;
+            // this->_parameter["Connection"] = std::string("closed");
+        } else {
+            set_res_status(200, "OK");
+        }
+    }
+
+
     // if not cgi
     if (this->_isCGI != 1)
     {
@@ -1121,8 +1016,8 @@ void HttpHandler::content_builder(void)
             this->_fileSize = fileData.size();
 
         // std::cout << "file size: " << this->_fileSize << std::endl;
-    }
-
+    } 
+    
     // create response header
     this->_response.clear();
 
@@ -1164,7 +1059,10 @@ void HttpHandler::content_builder(void)
     // std::cout << "===================" << std::endl;
 }
 
-void HttpHandler::sending(void) {
+void HttpHandler::sending(void)
+{
+
+    // std::cout << S_INFO << "Sending State" << std::endl;
 
     int sentByte;
 
@@ -1176,25 +1074,27 @@ void HttpHandler::sending(void) {
     this->_bytesSent += sentByte;
 
     // std::cout << "sending: " << this->_bytesSent << "/" << this->_response.size() << std::endl;
-    
-    if (sentByte == -1) {
+
+    if (sentByte == -1)
+    {
         std::cout << S_ERROR << "send failed [" << this->_fd << "]" << S_END;
         this->_status = CLOSED;
-        return ;
+        return;
     }
 
-    if (sentByte == 0) {
+    if (sentByte == 0)
+    {
         std::cout << S_WARNING << "[" << this->_fd << "] connection was closed" << S_END;
         this->_status = CLOSED;
-        return ;
+        return;
     }
 
-    if (this->_bytesSent >= this->_response.size()) {
-        std::cout << "completed: " << this->_bytesSent << "/" << this->_response.size() << std::endl;
+    if (this->_bytesSent >= this->_response.size())
+    {
+        std::cout << S_DEBUG << "completed: " << this->_bytesSent << "/" << this->_response.size() << S_END;
         this->_status = COMPLETED_PHASE;
-        return ;
+        return;
     }
-
 }
 
 // [OK]

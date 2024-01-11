@@ -36,6 +36,7 @@ private:
     std::vector<Server> _server;
     std::set<int> _port;
     std::map<int, HttpHandler*> _context;
+    std::map<int, int> _cgiList;
 
     int _backlog;
     int _epfd;

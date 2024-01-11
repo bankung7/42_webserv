@@ -185,8 +185,9 @@ void Conf::parseconf(std::vector<Server> &svs) {
 			if (checkport(words)) {sv.set_port(isvalidport(words[1]));}
 			// set server name
 			else if (checkservername(words)) {
-				for (size_t k = 1; k < words.size() - 1; k++)
+				for (size_t k = 1; k <= words.size() - 1; k++) { // just fixed this line, for server_name
 					sv.add_server_name(words[k]);
+				}
 			}
 			// set root
 			else if (checkroot(words)) {sv.set_root(words[1]);}
@@ -197,7 +198,9 @@ void Conf::parseconf(std::vector<Server> &svs) {
 				sv.set_location(words[1], words[2]);
 			}
 			// set max client body size
-			else if (checkmaxclientsize(words)) {sv.set_max_client_body_size(ft_stost(words[1]));}
+			else if (checkmaxclientsize(words)) {
+				sv.set_max_client_body_size(ft_stost(words[1]));
+			}
 		}
 		svs.push_back(sv);
 	}

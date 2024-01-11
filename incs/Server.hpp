@@ -18,6 +18,7 @@
 
 // Customs
 #include "StrUtils.hpp"
+#include "Code.hpp"
 
 class Server {
 

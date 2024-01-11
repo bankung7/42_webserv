@@ -147,14 +147,18 @@ void Server::initiated(int backlog) {
 
     // create socket
     int fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (fd == -1)
-        throw std::runtime_error("[ERROR]: create socket failed");
-    
+    if (fd == -1) {
+        std::cout << S_ERROR << "create socket failed" << S_END;
+        throw (-1);
+    }
+
     // set socket for reusing address
     int optval = 1;
-    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int)) == -1)
-        throw std::runtime_error("[ERROR]: set socket option failed");
-    
+    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int)) == -1) {
+        std::cout << S_ERROR << "set socket option failed" << S_END;
+        throw (-1);
+    }
+
     // struct sockaddr
     struct sockaddr_in addr;
     addr.sin_family = AF_INET;                  // for IPv4
@@ -163,21 +167,26 @@ void Server::initiated(int backlog) {
 
     // bind
     if (bind(fd, (struct sockaddr*)&addr, (int)(sizeof(addr))) == -1) {
-        throw std::runtime_error("[ERROR]: bind port failed");
+        std::cout << S_ERROR << "failed to bind port " << this->_port << S_END;
+        throw (-1);
     }
     // the COMMON PORT can be binded if we put sudo when starting the server
 
     // set nonblocking
-    if (fcntl(fd, F_SETFL, O_NONBLOCK) == -1)
-        throw std::runtime_error("[ERROR]: set non-blocking failed");
-    
+    if (fcntl(fd, F_SETFL, O_NONBLOCK) == -1) {
+        std::cout << S_ERROR << "set sockopt failed" << S_END;
+        throw (-1);
+    }
+
     // listen
-    if (listen(fd, backlog) == -1)
-        throw std::runtime_error("[ERROR]: listen failed");
+    if (listen(fd, backlog) == -1) {
+        std::cout << S_ERROR << "listen failed" << S_END;
+        throw (-1);
+    }
 
     // set socket to it fd
     this->_fd = fd;
-    
+
 };
 
 // Utils

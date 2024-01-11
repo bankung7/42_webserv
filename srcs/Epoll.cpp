@@ -57,18 +57,25 @@ int Webserv::polling(void) {
             HttpHandler* context = NULL;
             if (this->_context.find(events[i].data.fd) != this->_context.end())
                 context = this->_context[events[i].data.fd];
-        
+
             // EPOLLIN event
             if (events[i].events & EPOLLIN) {
 
                 // [TODO]: New Connection
                 if (this->_fd.find(events[i].data.fd) != this->_fd.end()) {
 
-                    std::cout << S_DEBUG << "New connection request to " << events[i].data.fd << std::endl;
+                    std::cout << S_DEBUG << "New connection request to " << events[i].data.fd << S_END;
 
                     int conn = accept(events[i].data.fd, (struct sockaddr*)&client_addr, (socklen_t*)&client_len);
                     if (conn == -1) {
                         std::cout << S_WARNING << "failed to establish connection" << S_END;
+                        continue ;
+                    }
+
+                    // set nonblocking
+                    if (fcntl(conn, F_SETFL, O_NONBLOCK) == -1) {
+                        std::cout << S_WARNING << "set non block failed" << S_END;
+                        close(conn);
                         continue ;
                     }
 
@@ -93,9 +100,28 @@ int Webserv::polling(void) {
                     
                     continue ;
                 }
+                // ================================>
+
 
                 // [TODO]: reading request event
                 if (context != NULL) {
+
+                    // [TODO]: for cgi reading
+                    if (context->get_status() == CGI_IN) {
+                        std::cout << S_DEBUG << events[i].data.fd << " is in [CGI] reading state" << S_END;
+                        context->cgi_reading();
+
+                        if (context->get_status() == CONTENT_PHASE) {
+                            context->content_builder();
+                            epoll_mod(context->get_fd(), EPOLLOUT);
+                            std::cout << S_INFO << "content completed, send to epoll out for seding" << S_END;
+                            continue ;
+                        }
+
+                        std::cout << "thing need to conitnue" << std::endl;
+
+                        continue ;
+                    }
 
                     // [TODO]: Normal Request
                     if (context->get_status() <= READING_BODY) {
@@ -105,10 +131,24 @@ int Webserv::polling(void) {
                         // this may include the processing state if finish reading
                         context->handle_request();
 
+                        // if there is a cgi job to run
+                        if (context->get_status() == CGI_OUT) {
+                            std::cout << S_INFO << "push to cgi writing step" << S_END;
+                            // epoll_mod(context->get_fd(), EPOLLOUT);
+
+                            // add both pipe to the epoll loop
+                            epoll_add(context->cgi_get_to_fd(), EPOLLOUT);
+                            this->_context[context->cgi_get_to_fd()] = context;
+
+                            this->_context[context->cgi_get_from_fd()] = context;
+                            epoll_add(context->cgi_get_from_fd(), EPOLLIN);
+
+                            continue ;
+                        }
+
                         // if all thing built, sent to epollout
                         if (context->get_status() == SENDING) {
                             epoll_mod(context->get_fd(), EPOLLOUT);
-                            std::cout << "to epoll out" << std::endl;
                             continue ;
                         }
 
@@ -119,32 +159,44 @@ int Webserv::polling(void) {
                         }
 
                         continue;
-
-                    }
-
-                    // [TODO]: for cgi reading
-                    if (context->get_status() == CGI_IN) {
-
-                        std::cout << S_DEBUG << events[i].data.fd << " is in [CGI] reading state" << S_END;
-                        
-                        context->set_status(CONTENT_PHASE);
-
-                        continue ;                        
-
                     }
 
                     continue ;
                 }
-                
 
                 continue;
             }
+            // ================================>
+
 
             // EPOLLOUT event
             if (events[i].events & EPOLLOUT) {
 
                 // check if it still in the context
                 if (context != NULL) {
+                
+                    // [TODO]: CGI Writing
+                    if (context->get_status() == CGI_OUT) {
+
+                        std::cout << S_INFO << "cgi writing on process" << S_END;
+
+                        context->cgi_writing();
+
+                        if (context->get_status() == CGI_IN) {
+
+                            std::cout << S_INFO << "[CGI][" << context->cgi_get_to_fd() << "] writing completed, push to CGI reading" << S_END;
+
+                            epoll_del(context->cgi_get_to_fd()); // remove itself
+                            this->_context.erase(this->_context.find(context->cgi_get_to_fd()));
+                            close(context->cgi_get_to_fd());
+
+                            std::cout << S_WARNING << "[CGI][" << context->cgi_get_to_fd() << "] removing the to_cgi_fd from the list" << S_END;
+                            
+                            continue ;
+                        }
+                        std::cout << S_INFO << "[CGI] still have thing to write" << S_END;
+                        continue;
+                    }
 
                     // [TODO]: Sending the response to client
                     if (context->get_status() == SENDING) {
@@ -169,7 +221,7 @@ int Webserv::polling(void) {
                             delete this->_context[events[i].data.fd];
                             this->_context[events[i].data.fd] = new HttpHandler(events[i].data.fd, this->_server);
                             epoll_mod(events[i].data.fd, EPOLLIN);
-                            std::cout << "keep alive, go to in state again" << std::endl;
+                            // std::cout << "keep alive, go to in state again" << std::endl;
                             continue ;
 
                         }
@@ -177,31 +229,55 @@ int Webserv::polling(void) {
                         continue ;
                     }
     
-                    // [TODO]: sending the input to cgi
-                    if (context->get_status() == CGI_OUT) {
-
-                        continue ;
-                    }
-
                 }
 
                 continue;
             }
+            // =======================>
+
 
             // EPOLLHUP or EPOLLERR
-            if ((events[i].events & EPOLLHUP) || (events[i].events & EPOLLERR)) {
+            if ((events[i].events & EPOLLHUP)) {
+                if (context->get_status() == CGI_IN) {
 
-                std::cout << S_ERROR << "epollerr or epollhup" << S_END;
+                    std::cout << S_INFO << "may received the EOF here" << S_END;
+
+                    this->_context.erase(this->_context.find(context->cgi_get_from_fd()));
+                    epoll_del(context->cgi_get_from_fd());
+                    close(context->cgi_get_from_fd());
+
+                    std::cout << S_WARNING << "Reading output from CGI Completed" << S_END;
+
+                    context->set_status(CONTENT_PHASE);
+                    context->content_builder();
+
+                    epoll_mod(context->get_fd(), EPOLLOUT);
+
+                    continue ;
+                } else {
+
+                    std::cout << S_ERROR << "epollhup with [" << events[i].data.fd << "]" << S_END;
+                    close_connection(events[i].data.fd);
+                    continue;    
+
+                }
+            }
+            // =======================>
+
+
+            // For error case
+            if  (events[i].events & EPOLLERR) {
+                std::cout << S_ERROR << "epollerr with [" << events[i].data.fd << "]" << S_END;
                 close_connection(events[i].data.fd);
-                
                 continue;
             }
+            // =======================>
             
         }
 
     }
 
-    std::cout << B_YELLOW << "[INFO]: epoll loop ended" << C_RESET << std::endl;
+    std::cout << B_YELLOW << "[INFO]: epoll loop ended" << S_END;
 
     return (0);
 }
@@ -211,7 +287,7 @@ int Webserv::epoll_add(int fd, int op) {
     ev.events = op;
     ev.data.fd = fd;
     if (epoll_ctl(this->_epfd, EPOLL_CTL_ADD, fd, &ev) == -1) {
-        epoll_del(fd);
+        std::cout << S_ERROR << "epoll_ctl add " << fd << " failed" << S_END;
         return (-1);
     }
     return (0);
@@ -222,14 +298,14 @@ void Webserv::epoll_mod(int fd, int op) {
     ev.events = op;
     ev.data.fd = fd;
     if (epoll_ctl(this->_epfd, EPOLL_CTL_MOD, fd, &ev) == -1) {
-        std::cout << B_RED << "[ERROR]: epoll_ctl mod failed for " << fd << C_RESET << std::endl;
+        std::cout << S_ERROR << "epoll_ctl mod failed for " << fd << S_END;
         throw (-1);
     }
 }
 
 void Webserv::epoll_del(int fd) {
     if (epoll_ctl(this->_epfd, EPOLL_CTL_DEL, fd, NULL) == -1) {
-        std::cout << B_RED << "[ERROR]: epoll_ctl del failed for " << fd << C_RESET << std::endl;
+        std::cout << S_ERROR << "epoll_ctl del failed for " << fd << S_END;
         throw (-1);
     }
 }
@@ -238,7 +314,7 @@ void Webserv::close_connection(int fd) {
 
     // clear the context
     if (this->_context.find(fd) != this->_context.end()) {
-        delete this->_context[fd];
+        delete this->_context[fd]; // double free
         this->_context.erase(this->_context.find(fd));
         epoll_del(fd);
         close(fd);
@@ -263,13 +339,21 @@ void Webserv::check_time_out(void) {
 
         HttpHandler* cont = it->second;
 
-        std::cout << S_DEBUG << "client [" << cont->get_fd() << "] : status [" << cont->get_status() << "]";
-        std::cout << " time out in " << cont->get_time_out() - ctime << S_END;
+        // std::cout << S_DEBUG << "client [" << cont->get_fd() << "] : status [" << cont->get_status() << "]";
+        // std::cout << " time out in " << cont->get_time_out() - ctime << S_END;
 
         if (cont->get_status() < SENDING) {
             if (cont->get_time_out() < ctime) {
-                std::cout << S_DEBUG << "client " << cont->get_fd() << " has time out" << S_END;
-                fd_list.push_back(it->first);
+                std::cout << S_INFO << "client " << cont->get_fd() << " has time out" << S_END;
+                if (std::find(fd_list.begin(), fd_list.end(), it->first) == fd_list.end()) {
+
+                    fd_list.push_back(it->first);
+                    if (cont->get_status() == CGI_IN) {
+                        std::cout << "waiting for cgi output" << std::endl;
+                        kill(cont->cgi_get_pid(), SIGINT);
+                    }
+
+                }
             }
         }
     }
