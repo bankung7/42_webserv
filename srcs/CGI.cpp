@@ -9,7 +9,7 @@ void HttpHandler::handle_cgi(void)
     std::string cgiExtension;
     cgiExtension.append(this->_url.substr(this->_url.rfind(".")));
 
-    std::cout << S_DEBUG << "extension: " << cgiExtension << S_END;
+    // std::cout << S_DEBUG << "extension: " << cgiExtension << S_END;
     if (cgiExtension.compare(".sh") != 0 && cgiExtension.compare(".py") != 0)
     {
         std::cout << S_INFO << "CGI Not support type" << S_END;
@@ -22,7 +22,7 @@ void HttpHandler::handle_cgi(void)
     // === Create the argv for execve === //
     this->_cgipath.append(".");
     this->_cgipath.append(this->_url);
-    std::cout << "cgi path : "  << this->_cgipath << std::endl;
+    // std::cout << "cgi path : "  << this->_cgipath << std::endl;
 
     // check that there is a cgi file and executable
     if (access(this->_cgipath.c_str(), F_OK) == -1)
@@ -66,7 +66,7 @@ void HttpHandler::handle_cgi(void)
     // === GET : put it in the query string === //
     std::string query_string("QUERY_STRING=");
     this->_cgiEnv.push_back(query_string.append(this->_queryString).c_str());
-    std::cout << "query string for get: " << query_string << std::endl;
+    // std::cout << "query string for get: " << query_string << std::endl;
 
     // === NULL terminate : End part of environment=== //
     this->_cgiEnv.push_back(NULL);
@@ -87,7 +87,7 @@ void HttpHandler::handle_cgi(void)
     // =============================>
 
     // give more timeout for cgi
-    this->_timeout += 10;
+    this->_timeout += 5;
 
     if (pipe(this->_to_cgi_fd) == -1 || pipe(this->_from_cgi_fd) == -1)
     {
@@ -165,7 +165,7 @@ void HttpHandler::cgi_writing(void) {
 
     // if nothing to send, just close the pipe
     if (this->_body.size() == 0) {
-        std::cout << S_INFO << "Null body" << S_END;
+        // std::cout << S_DEBUG << "Null body" << S_END;
         this->_status = CGI_IN;
         return ;
     }
@@ -179,7 +179,7 @@ void HttpHandler::cgi_writing(void) {
 
     // [TODO]
     if (bytesSent == -1) {
-        std::cout << S_WARNING << "error while sending to CGI" << S_END;
+        std::cout << S_WARNING << "[CGI][" << this->_to_cgi_fd[1] << "] error while sending to CGI" << S_END;
         set_res_status(500, "Internal Server Error");
         close(this->_to_cgi_fd[1]);
         close(this->_from_cgi_fd[1]);
@@ -189,15 +189,15 @@ void HttpHandler::cgi_writing(void) {
 
     // in case of cannot write for a while
     if (bytesSent == 0) {
-        std::cout << S_WARNING << "cannot write at the moment, will try later" << S_END;
+        std::cout << S_WARNING << "[CGI][" << this->_to_cgi_fd[1] << "] cannot write at the moment, will try later" << S_END;
         return ;
     }
 
     this->_toCgiBytes += bytesSent;
 
     if (this->_toCgiBytes >= this->_body.size()) {
-        std::cout << S_INFO << "writing completed " << this->_toCgiBytes << "/" << this->_body.size() << S_END;
         this->_status = CGI_IN;
+        std::cout << S_DEBUG << "writing completed " << this->_toCgiBytes << "/" << this->_body.size() << S_END;
         return ;
     }
 
@@ -210,42 +210,44 @@ void HttpHandler::cgi_reading(void) {
 
     bytesRead = read(this->_from_cgi_fd[0], bf.data(), BUFFER_SIZE);
 
-    std::cout << S_INFO << "CGI read :" << bytesRead << S_END;
+    // std::cout << S_DEBUG << "[CGI][" << this->_from_cgi_fd[0] << "] read :" << bytesRead << S_END;
 
     // error case
     if (bytesRead == -1) {
         set_res_status(500, "Internal Server Error");
+        std::cout << S_WARNING << "[CGI][" << this->_from_cgi_fd[0] << "] error while reading from CGI" << S_END;
+        set_res_status(500, "Internal Server Error");
+        close(this->_from_cgi_fd[1]);
         this->_parameter["Connection"] = std::string("closed");
         return ;
     }
 
-    // if EOF found
-    if (bytesRead == 0) {
-        // [TODO]: check what status of cgi return
-        waitpid(this->_pid, NULL, 0);
+    // // if EOF found, this will found in EPOLLHUP
+    // if (bytesRead == 0) {
+    //     // [TODO]: check what status of cgi return
+    //     waitpid(this->_pid, NULL, 0);
 
-        // check if well-formed received
-        if (this->_res.rfind("</html>") == std::string::npos) {
-            std::cout << S_WARNING << "CGI output failed" << S_END;
-            set_res_status(500, "Internal Server Error");
-            this->_parameter["Connection"] = std::string("closed");
-            return ;
-        }
+    //     // check if well-formed received
+    //     if (this->_res.rfind("</html>") == std::string::npos) {
+    //         std::cout << S_WARNING << "CGI output failed" << S_END;
+    //         set_res_status(500, "Internal Server Error");
+    //         this->_parameter["Connection"] = std::string("closed");
+    //         return ;
+    //     }
 
-        // assume ok
-        this->_resContentType = std::string("text/html");
-        this->_tryFileStatus = -1;
-        this->_isCGI = 1;
-        this->_status = CONTENT_PHASE;
-        set_res_status(200, "OK");
-        return ;
-    }
+    //     // assume ok
+    //     this->_resContentType = std::string("text/html");
+    //     this->_tryFileStatus = -1;
+    //     this->_isCGI = 1;
+    //     this->_status = CONTENT_PHASE;
+    //     set_res_status(200, "OK");
+    //     return ;
+    // }
 
     // push to res
     this->_res.append(bf.data(), bytesRead);
 
-    std::cout << S_INFO << "=========================" << S_END;
-    std::cout << S_INFO << "Status " << this->_status << S_END;
+    std::cout << S_DEBUG << "[CGI][" << this->_from_cgi_fd[0] << "] Status =[" << this->_status << S_END;
 
 }
 

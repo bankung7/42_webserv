@@ -34,6 +34,11 @@ HttpHandler::HttpHandler(int fd, std::vector<Server> server) : _fd(fd), _status(
     this->_fileSize = 0;
     this->_bytesSent = 0;
     this->_response.clear();
+    this->_to_cgi_fd[0] = -1;
+    this->_to_cgi_fd[1] = -1;
+    this->_from_cgi_fd[0] = -1;
+    this->_from_cgi_fd[1] = -1; // check to close later
+
 
     this->_resStatusCode = 0;
     this->_resStatusText = std::string("");
@@ -146,7 +151,7 @@ void HttpHandler::reading_phase(void)
     bf.clear();
     bytesRead = recv(this->get_fd(), bf.data(), BUFFER_SIZE, 0);
 
-    std::cout << S_DEBUG << "Request Bytes read: " << bytesRead << S_END;
+    // std::cout << S_DEBUG << "Request Bytes read: " << bytesRead << S_END;
 
     // error case
     if (bytesRead < 0)
@@ -465,7 +470,7 @@ void HttpHandler::processing(void)
     this->_filepath = std::string(this->_root);
     this->_filepath.append(this->_url);
 
-    std::cout << S_INFO << "filepath => " << this->_filepath << S_END;
+    // std::cout << S_DEBUG << "filepath => " << this->_filepath << S_END;
 
     // [TODO]: check if is file or directory exist
     if (stat(this->_filepath.c_str(), &this->_fileInfo) == 0)
@@ -504,7 +509,7 @@ void HttpHandler::processing(void)
                     this->_queryString.append("url=");
                     this->_queryString.append(this->_url.substr(1, this->_url.size() - 1));
 
-                    std::cout << B_GREEN << this->_queryString << S_END;
+                    // std::cout << B_GREEN << this->_queryString << S_END;
 
                     this->_url.clear(); // remove the url, replace with the path of cgi
                     this->_url.append("/cgi-bin/directory_listing.py");
@@ -525,7 +530,8 @@ void HttpHandler::processing(void)
     // file or directory not found
     else
     {
-        std::cout << this->_location.find("allowedFileUpload:yes;") << std::endl;
+        // std::cout << this->_location.find("allowedFileUpload:yes;") << std::endl;
+
         // if this is not a redirection and uploadfile and cgi also
         if (this->_location.find("return: ") == std::string::npos &&
             this->_location.find("allowedFileUpload:yes;") == std::string::npos &&
@@ -664,7 +670,7 @@ void HttpHandler::processing(void)
     // [TODO]: CGI [OPTIONAL]
     if (this->_loc.compare("/cgi-bin/") == 0)
     {
-        std::cout << S_DEBUG << "cgi request" << S_END;
+        // std::cout << S_DEBUG << "cgi request" << S_END;
 
         // support only get and post
         if (std::string(",GET,POST,").find(this->_method) == std::string::npos)
@@ -675,7 +681,7 @@ void HttpHandler::processing(void)
         }
 
         // accept only urlencoded type
-        std::cout << this->_parameter["Content-Type"] << std::endl;
+        // std::cout << this->_parameter["Content-Type"] << std::endl;
         if (this->_parameter["Content-Type"].compare("text/plain") == 0)
         {
             // put the query string to body
@@ -971,7 +977,9 @@ void HttpHandler::uploading_task(void)
 // [TODO]
 void HttpHandler::content_builder(void)
 {
-
+    // add more time
+    this->_timeout += 2;
+    
     // std::cout << S_INFO << "Content Building State" << S_END;
 
     std::string fileData(""); // for other response that not CGI
