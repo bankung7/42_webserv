@@ -20,7 +20,7 @@ HttpHandler::HttpHandler(int fd, std::vector<Server> server) : _fd(fd), _status(
     this->_timeout += KEEP_ALIVE_TIME_OUT;
 
     this->_postType = 0;
-    this->_maxClientBodySize = std::numeric_limits<std::size_t>::max(); // if not specified
+    // this->_maxClientBodySize = 0; // if not specified, set from config
 
     // cgi part
     this->_isCGI = 0;
@@ -365,7 +365,10 @@ void HttpHandler::setup_header(void)
 // [OK]
 void HttpHandler::assign_server_block(void)
 {
-    // as the subject is not clear, we will design this step as to exactly match host:port.
+    // as the subject is not clear
+    // it set to first server as default
+    this->_serverIndex = 0;
+
     for (int i = 0; i < (int)this->_server.size(); i++)
     {
         // if port not match, skip
@@ -381,7 +384,7 @@ void HttpHandler::assign_server_block(void)
         {
             this->_serverIndex = i;
             std::cout << S_DEBUG << "[" << this->_fd << "] no servername defined" << S_END;
-            return;
+            continue;
         }
 
         // if the port and  server name match
@@ -393,10 +396,10 @@ void HttpHandler::assign_server_block(void)
         }
     }
 
-    std::cout << S_WARNING << "[" << this->_fd << "] server not found" << S_END;
-    set_res_status(400, "Bad Request");
-    this->_parameter["Connection"] = "closed";
-    this->_status = CONTENT_PHASE; // as no servername match
+    // std::cout << S_WARNING << "[" << this->_fd << "] server not found" << S_END;
+    // set_res_status(400, "Bad Request");
+    // this->_parameter["Connection"] = "closed";
+    // this->_status = CONTENT_PHASE; // as no servername match
 }
 
 // [OK]
@@ -468,6 +471,20 @@ void HttpHandler::processing(void)
 
     // std::cout << S_INFO << "root: " << this->_root << S_END;
     // =========>
+
+    // [TODO]: set the maxclientbodysize [OPTIONAL][Fall back case]
+    startIndex = this->_location.find("client_max_body_size:");
+    if (startIndex != std::string::npos)
+    {
+        length = this->_location.find(";", startIndex + 1) - startIndex;
+        // std::cout << "set : " << this->_location.substr(startIndex + 21, length - 21) << std::endl;
+        this->_maxClientBodySize = string_to_size(this->_location.substr(startIndex + 21, length - 21));
+    }
+    // if it stll -1, set to deafult
+    // if (this->_maxClientBodySize == 0) {
+    //     this->_maxClientBodySize = std::numeric_limits<std::size_t>::max();
+    // }
+    // =============>
 
     // create the resource path
     this->_filepath = std::string(this->_root);
@@ -599,19 +616,12 @@ void HttpHandler::processing(void)
     // =========>
 
     // ==> maxClientBodySize [OPTIONAL]
-    startIndex = this->_location.find("client_max_body_size:");
-    if (startIndex != std::string::npos)
+    // check if it goes over limit
+    if (this->_maxClientBodySize < this->_reqContentLength)
     {
-        length = this->_location.find(";", startIndex + 1) - startIndex;
-        this->_maxClientBodySize = string_to_size(this->_location.substr(startIndex + 21, length - 21));
-
-        // check if it goes over limit
-        if (this->_maxClientBodySize < this->_reqContentLength)
-        {
-            std::cout << S_WARNING << "[" << this->_fd << "] the body is over the value limited by server" << S_END;
-            set_res_status(413, "CONTENT TOO LARGE");
-            return;
-        }
+        std::cout << S_WARNING << "[" << this->_fd << "] the body is over the value limited by server" << S_END;
+        set_res_status(413, "CONTENT TOO LARGE");
+        return;
     }
     std::cout << S_INFO << "[" << this->_fd << "] client max body size: " << this->_maxClientBodySize << S_END;
     // =========>
