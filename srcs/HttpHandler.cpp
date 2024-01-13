@@ -378,7 +378,6 @@ void HttpHandler::assign_server_block(void)
         // // check if the server index was not assign to be default
         // if (this->_serverIndex == -1)
         //     this->_serverIndex = i;
-
         // if the port match but no server_name defined, set default as it self
         if (this->_server[i].is_server_name_defined() == -1)
         {

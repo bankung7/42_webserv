@@ -91,7 +91,6 @@ void HttpHandler::handle_cgi(void)
 
     if (pipe(this->_to_cgi_fd) == -1 || pipe(this->_from_cgi_fd) == -1)
     {
-        perror("pipe");
         set_res_status(500, "Internal Server Error");
         return;
     }
