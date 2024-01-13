@@ -70,6 +70,7 @@ private:
     int _to_cgi_fd[2];
     int _from_cgi_fd[2];
     pid_t _pid; // for child process
+    int _cgiStatus; // tracking failure
     std::size_t _toCgiBytes; // tracking writing
     std::vector<const char *> _cgiEnv; // environment
     std::string _cgiType; // for bash or python3
@@ -92,7 +93,6 @@ private:
     
 public:
     
-
     HttpHandler(int, std::vector<Server>);
     ~HttpHandler(void);
 
@@ -100,6 +100,7 @@ public:
     void set_status(int);
     void set_server(std::vector<Server>&);
     void set_res_content_type(void);
+    void set_timeout(int);
 
     // getter
     int get_fd(void) const;
@@ -127,6 +128,7 @@ public:
     int cgi_get_to_fd(void);
     int cgi_get_from_fd(void);
     pid_t cgi_get_pid(void);
+    int cgi_get_status();
 
     // res handle
     void sending(void);

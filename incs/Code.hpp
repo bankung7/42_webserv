@@ -25,6 +25,7 @@
 #define C_RESET "\033[0m"
 
 // state
+#define S_GREEN "\033[1;32m[DEBUG]: "
 #define S_DEBUG "\033[0m[DEBUG]: "
 #define S_INFO "\033[1;34m[INFO]: "
 #define S_WARNING "\033[1;33m[WARNING]: "

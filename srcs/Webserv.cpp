@@ -1,42 +1,76 @@
 #include "Webserv.hpp"
 
-static void signal_handler(int sig) {
+static void signal_handler(int sig)
+{
     (void)sig;
     signal(SIGINT, SIG_IGN);
-    throw (0);
+    throw(0);
 }
 
-Webserv::Webserv(void): _backlog(20) {
+Webserv::Webserv(void) : _backlog(BACKLOG)
+{
+    starting(std::string(""));
+}
 
-    std::cout << "[DEBUG]: Webserv initiated" << std::endl;
+Webserv::Webserv(std::string filename) : _backlog(BACKLOG)
+{
+    starting(filename);
+}
+
+void Webserv::starting(std::string filename)
+{
+    std::cout << B_GREEN << "Webserv initiated" << S_END;
 
     signal(SIGINT, signal_handler);
     signal(SIGPIPE, SIG_IGN); // broken pipe when siege
-    
+
     // for main loop
-    try {
-		Conf cf;
-		cf.parseconf(this->_server);
+    try
+    {
+        if (filename.size() == 0) {
+            Conf cf;
+            cf.parseconf(this->_server);
+        }
+        else {
+            Conf cf(filename);
+            cf.parseconf(this->_server);
+        }
+
         setup();
         polling();
-    } catch (int e) {
-        
-        switch (e) {
-            case (0):
-                std::cout << B_YELLOW << "Shutdown signal detected" << C_RESET << std::endl;
-                break ;
-            case (-1):
-                std::cout << B_RED << "Something wrong happed" << C_RESET << std::endl;
-                break ;
-            default:
-                break ;
+
+    }
+    catch (std::exception &e)
+    {
+        std::cout << S_ERROR << e.what() << S_END;
+    }
+    catch (int e)
+    {
+        switch (e)
+        {
+        case (0):
+            std::cout << S_WARNING << "Shutdown signal detected" << S_END;
+            break;
+        case (-1):
+            std::cout << S_ERROR << "Something wrong happed" << S_END;
+            break;
+        default:
+            break;
         }
-        // exit signal
-        std::cout << B_YELLOW << "\n[WARNING]: Prepare closing the server" << C_RESET << std::endl;
     }
 
+    std::cout << S_WARNING << "Prepare closing the server" << S_END;
+    // ~Webserv();
+
+}
+
+Webserv::~Webserv(void)
+{
+    // should use destructor ???
+
     // cleaning
-    try {
+    try
+    {
         clean_context();
         clean_socket();
         close(this->_epfd);
@@ -44,83 +78,83 @@ Webserv::Webserv(void): _backlog(20) {
 
     }
 
-    std::cout << B_GREEN << "[INFO]: Exit completed" << C_RESET << std::endl;
-}
-
-Webserv::Webserv(std::string filename){
-    Conf cf(filename);
-}
-
-Webserv::~Webserv(void) {
+    std::cout << B_GREEN << "[INFO]: Exit completed" << S_END;
 
 }
 
 // Server Structure Setup Part
-void Webserv::setup(void) {
+void Webserv::setup(void)
+{
 
-    std::cout << "[DEBUG]: Setting up the server" << std::endl;
+    std::cout << S_DEBUG << "Setting up the server" << S_END;
 
     // loop read the _server to initiated
-    for (int i = 0; i < (int)this->_server.size(); i++) {
+    for (int i = 0; i < (int)this->_server.size(); i++)
+    {
 
         int port = this->_server[i].get_port();
 
-        if (this->_port.find(port) == this->_port.end()) {
+        if (this->_port.find(port) == this->_port.end())
+        {
 
             this->_server[i].initiated(BACKLOG);
             this->add_fd(this->_server[i].get_fd());
             this->add_port(port);
-            std::cout << "[DEBUG]: Create socket [" << this->_server[i].get_fd() << "] for port [" << port << "]" << std::endl;
-            continue ;
+            std::cout << S_DEBUG << "Create socket [" << this->_server[i].get_fd() << "] for port [" << port << "]" << S_END;
+            continue;
         }
-       
-       // Port Duplication case
-       this->_log.clear();
-       this->_log << "[ERROR]: Port [" << port << "] is duplicatied";
-       throw std::runtime_error(this->_log.str());
 
+        // Port Duplication case
+        this->_log.clear();
+        this->_log << S_ERROR << "Port [" << port << "] is duplicatied" << S_END;
+        throw std::runtime_error(this->_log.str());
     }
 };
 
 // setter
-void Webserv::add_fd(int fd) {
+void Webserv::add_fd(int fd)
+{
     this->_fd.insert(fd);
 }
 
-void Webserv::add_server(Server sv) {
+void Webserv::add_server(Server sv)
+{
     this->_server.push_back(sv);
 }
 
-void Webserv::add_port(int port) {
+void Webserv::add_port(int port)
+{
     this->_port.insert(port);
 }
 
-void Webserv::add_context(int fd, HttpHandler* context) {
+void Webserv::add_context(int fd, HttpHandler *context)
+{
 
-    if (this->_context.find(fd) != this->_context.end())\
-        throw std::runtime_error("[ERROR]: duplicated fd in context");
+    if (this->_context.find(fd) != this->_context.end())
+        throw std::runtime_error("duplicated fd in context");
 
     this->_context[fd] = context;
 }
 
-// getter
-
 // remover
-void Webserv::remove_context(int fd) {
+void Webserv::remove_context(int fd)
+{
 
-    std::map<int, HttpHandler*>::iterator it = this->_context.find(fd);
+    std::map<int, HttpHandler *>::iterator it = this->_context.find(fd);
 
     if (it != this->_context.end())
         this->_context.erase(it);
 }
 
 // error handling part
-void Webserv::clean_socket(void) {
+void Webserv::clean_socket(void)
+{
 
     std::set<int>::iterator it = this->_fd.begin();
 
-    for (; it != this->_fd.end(); it++) {
-        std::cout << B_YELLOW << "[DEBUG]: server socket " << *it << " is being closed now" << C_RESET << std::endl;
+    for (; it != this->_fd.end(); it++)
+    {
+        std::cout << S_WARNING << "server socket " << *it << " is being closed now" << S_END;
         epoll_del(*it); // remove it from epoll events
         close(*it);
     }
@@ -128,17 +162,29 @@ void Webserv::clean_socket(void) {
     this->_fd.clear();
 }
 
-void Webserv::clean_context(void) {
+void Webserv::clean_context(void)
+{
 
-    std::map<int, HttpHandler*>::iterator it = this->_context.begin();
+    std::map<int, HttpHandler *>::iterator it = this->_context.begin();
 
-    for (; it != this->_context.end(); it++) {
-        std::cout << B_YELLOW << "[DEBUG]: Context for client " << it->first << " is being closed now" << C_RESET << std::endl;
-        epoll_del(it->first); // remove it from epoll events
-        close(it->first); // close client socket
-        delete it->second; // delete the client context
-        // std::cout << "delete context for fd " << it->first << std::endl;
-    }
+    std::cout << this->_context.size() << std::endl;
+
+    for (; it != this->_context.end(); it++)
+    {
+        std::cout << S_INFO << "Context for client " << it->first << " is being deleted" << S_END;
     
-    this->_context.clear();
+        epoll_del(it->first); // remove it from epoll events
+        close(it->first);     // close client socket
+
+        if (this->_cgiList.find(it->first) == this->_cgiList.end()) {
+            if (it->second != NULL) {
+                delete it->second;    // delete the client context
+                it->second = NULL;
+            }
+        }
+
+        // std::cout << "delete context for fd " << it->first << S_END;
+    }
+
+    // this->_context.clear();
 }

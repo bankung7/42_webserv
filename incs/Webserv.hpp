@@ -18,13 +18,13 @@
 #include <set>
 #include <ctime>
 #include <csignal> // signal
+#include <stdexcept>
 
 // Custom Library
 #include "Server.hpp"
 #include "HttpHandler.hpp"
 #include "Conf.hpp"
 #include "StrUtils.hpp"
-
 #include "Code.hpp" // for define variable
 
 // define color
@@ -60,6 +60,7 @@ public:
 
     // general    
     void setup(void);
+    void starting(std::string);
 
     // Epoll.cpp
     int polling(void);
