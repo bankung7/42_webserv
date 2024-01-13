@@ -480,6 +480,9 @@ void HttpHandler::processing(void)
         // std::cout << "set : " << this->_location.substr(startIndex + 21, length - 21) << std::endl;
         this->_maxClientBodySize = string_to_size(this->_location.substr(startIndex + 21, length - 21));
     }
+    else {
+        this->_maxClientBodySize = this->_server[this->_serverIndex].get_max_client_body_size();
+    }
     // if it stll -1, set to deafult
     // if (this->_maxClientBodySize == 0) {
     //     this->_maxClientBodySize = std::numeric_limits<std::size_t>::max();
@@ -599,7 +602,7 @@ void HttpHandler::processing(void)
 
         // check the right to delete, support file only
         // W_OK not work properly
-        if (this->_isDirectory == 0 && (this->_filepath.c_str(), F_OK) == 0)
+        if (this->_isDirectory == 0 && access(this->_filepath.c_str(), F_OK | W_OK) == 0)
         {
             std::remove(this->_filepath.c_str());
             set_res_status(204, "No Content");
@@ -821,10 +824,12 @@ void HttpHandler::set_res_status(int code, std::string text)
             this->_file.close();
 
         this->_file.open(this->_filepath.c_str());
-
+        this->_resContentType = std::string("text/html");
         // if file cannot open for some reason
-        if (!this->_file.is_open())
+        if (!this->_file.is_open()) {
             this->_tryFileStatus = -1;
+            this->_resContentType = std::string("text/plain"); 
+        }
 
         return;
     }
@@ -866,7 +871,6 @@ void HttpHandler::uploading_task(void)
     // check directory is exist
     if (access(uploadPath.c_str(), F_OK) == -1)
     {
-        perror("upload");
         set_res_status(404, "Not Found");
         return;
     }

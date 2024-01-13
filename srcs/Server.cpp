@@ -224,3 +224,20 @@ int Server::string_to_int(std::string str)
     ss >> output;
     return (output);
 }
+
+void Server::print_debug() {
+    std::cout << "[SERVER]fd: " << this->_fd << std::endl;
+    std::cout << "[SERVER]port: " << this->_port << std::endl;
+    std::cout << "[SERVER]maxClientBodySize: " << this->_maxClientBodySize << std::endl;
+    std::cout << "[SERVER]root: " << this->_root << std::endl;
+    std::cout << "[SERVER]allowedMethod: " << this->_allowedMethod << std::endl;
+    for(size_t i = 0; i < _serverName.size(); i++)
+        std::cout << "[SERVER]serverName[ " << i << "]: " << this->_serverName[i] << std::endl;
+    for(std::map<int, std::string>::iterator it = _errorCode.begin();
+        it != _errorCode.end(); ++it)
+        std::cout << "[SERVER]errorCode[" << it->first << "]: " << it->second << std::endl;
+    for(std::map<std::string, std::string>::iterator it = _location.begin();
+        it != _location.end(); ++it)
+        std::cout << "[SERVER]location[" << it->first << "]: " << it->second << std::endl;
+    }
+    

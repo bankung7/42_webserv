@@ -110,7 +110,6 @@ bool Conf::checkconf(void) {
 						return false;
 					if (!this->_port_flag)
 						return false;
-					// std::cout << "groot: " << _groot_flag << " root: " << _root_flag << std::endl;
 					if (!_groot_flag && _root_flag != 0)
 						return false;
 					this->_groot_flag = false;
@@ -167,6 +166,7 @@ void Conf::parseconf(std::vector<Server> &svs) {
 	for (size_t i = 0; i < _n_server; i++)
 	{
 		Server sv;
+		sv.set_max_client_body_size(std::numeric_limits<std::size_t>::max());
 		std::vector<std::string> lines = split(_serverconf[i], "\n");
 		for (size_t j = 0; j < lines.size(); j++) {
 			std::vector<std::string> words = split(lines[j], " \t\n\r");

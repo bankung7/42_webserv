@@ -35,7 +35,7 @@ void Webserv::starting(std::string filename)
             Conf cf(filename);
             cf.parseconf(this->_server);
         }
-
+        std::cout << "[SOUND]: " << this->_server[0].get_max_client_body_size() << std::endl;
         setup();
         polling();
 
