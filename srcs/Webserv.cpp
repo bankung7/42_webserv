@@ -35,7 +35,7 @@ void Webserv::starting(std::string filename)
             Conf cf(filename);
             cf.parseconf(this->_server);
         }
-        std::cout << "[SOUND]: " << this->_server[0].get_max_client_body_size() << std::endl;
+        // std::cout << "[SOUND]: " << this->_server[0].get_max_client_body_size() << std::endl;
         setup();
         polling();
 
@@ -52,7 +52,7 @@ void Webserv::starting(std::string filename)
             std::cout << S_WARNING << "Shutdown signal detected" << S_END;
             break;
         case (-1):
-            std::cout << S_ERROR << "Something wrong happed" << S_END;
+            std::cout << S_ERROR << "Fatal: Something wrong happed, " << S_END;
             break;
         default:
             break;
@@ -75,7 +75,7 @@ Webserv::~Webserv(void)
         clean_socket();
         close(this->_epfd);
     } catch (...) {
-
+        // std::cerr << S_ERROR << "Somthing wrong while cleaning" << S_END;
     }
 
     std::cout << B_GREEN << "[INFO]: Exit completed" << S_END;
@@ -105,9 +105,8 @@ void Webserv::setup(void)
         }
 
         // Port Duplication case
-        this->_log.clear();
-        this->_log << S_ERROR << "Port [" << port << "] is duplicatied" << S_END;
-        throw std::runtime_error(this->_log.str());
+        std::cout << S_ERROR << "Port [" << port << "] is duplicatied" << S_END;
+        throw (-1);
     }
 };
 
@@ -155,8 +154,10 @@ void Webserv::clean_socket(void)
     for (; it != this->_fd.end(); it++)
     {
         std::cout << S_WARNING << "server socket " << *it << " is being closed now" << S_END;
-        epoll_del(*it); // remove it from epoll events
-        close(*it);
+        if (this->_context.find(*it) != this->_context.end()) {
+            epoll_del(*it); // remove it from epoll events
+            close(*it);
+        }
     }
 
     this->_fd.clear();
@@ -167,7 +168,7 @@ void Webserv::clean_context(void)
 
     std::map<int, HttpHandler *>::iterator it = this->_context.begin();
 
-    std::cout << this->_context.size() << std::endl;
+    // std::cout << this->_context.size() << std::endl;
 
     for (; it != this->_context.end(); it++)
     {
