@@ -1,4 +1,4 @@
-# Webserv [EPOLL] test
+# Webserv [EPOLL]
 
 ## Requirements
 - Accept configuration file as argument, use default if not defined.
@@ -20,14 +20,14 @@
 - Must be able to listen to multiple port (defined in config file). 
 
 ## PROGRESS
-[N] Parsing Configuration file\
-[C] Server setup and Initializing\
-[I] Epoll Server\
-[C] Handling request\
-[I] Handling response => [GOLF]\
-[I] CGI => [GOLF]\
-[N] Error Handling\
-[I] Static Web => [GOLF]\
+[C] Parsing Configuration file \
+[C] Server setup and Initializing \
+[C] Epoll Server \
+[C] Handling request \
+[C] Handling response \
+[C] CGI \
+[C] Error Handling\
+[C] Static Web \
 
 ### Specifications
 [C] root directive \
@@ -39,50 +39,14 @@
 [C] maxClientBodyLimit directive \
 [C] error_page directive \
 [C] GET request \
-[I] POST request \
-[C] POST with form-data \
-[N] POST with text/plain \
-[N] POST with urlencoded \
+[C] POST request \
 [C] DELETE request \
-[C] Uploading file (Window/WSL only) \
-[I] Downloading file \
-[N] Connection keep-alive \
-[N] Response Code checking \
+[C] Uploading file [multipart-formdata] \
+[C] Downloading file \
+[C] Connection keep-alive \
+[C] Response Code checking \
 
-## Defect
-- Sometime request stuck in the epoll in and go out with nothign to read, throw error (basic_string::erase: __pos (which is 18446744073709551615) > this->size() (which is 0)).
-[REPRODUCE]->just click link fo redirection and wait.
-[SOLVED]-> the connection was closed by client, close it when it came back to epoll.
-
-- when try to open the directory that not authorized in the route, throw error (basic_filebuf::underflow error reading the file: Is a directory)
-[REPRODUCE]-> browser webserv1:8080/test/
-[TESTING]
-
-- routing not expected,
-   when no modifier, will match most char in every routing.
-   when = modifier, will match exacty in every routing
-= the root will be appended by uri like 
-   root /var/www;
-   uri 127.0.0.1/test1/index.html
-   routing /test1
-== output: /var/www/test1/index.html
-[SOLVED]
-
-- Multiple file upload, protect case.
-[SOLVED]-> reloop the payload part
-
-- redirection: return only for location
-[SOLVED]-> it can use url for code 3xx and text for other code
-
-- For macos, when try to uplaod the file or delete the file by curl. the system does not permit to do.
-
-- When testing with Macos by VM, it does no support this test method. Use window with wsl only.
-
-- the browser keep it cache, some test must clear the cache before (redirection)
-
-- the server cannot process the keep-alive connection.
-
-#### update: 28/12/23 15:27
+#### update: 14/01/24 09:05
 
 ## Flowchart
 https://app.diagrams.net/#G1HveiOX7h5U4jHvzp7YklAA40VSXkAxFU
@@ -90,32 +54,35 @@ https://app.diagrams.net/#G1HveiOX7h5U4jHvzp7YklAA40VSXkAxFU
 ## Configuration file
 ```
 server {
-    listen 8080;                            // mandatory
-    server_name webserv1;                   // need to set in /etc/hosts
-    error_page 404 /404.html;               // default error page
-    client_max_body_size 1000;              // 
-    root /var/www/;                         // mandatory, for fallback case
+
+    listen 8080                             // mandatory
+    server_name webserv1 webserv2           // need to set in /etc/hosts
+    client_max_body_size 1000               // 
+    root /var/www                           // mandatory, for fallback case
     index index.html                        // defautl page when directory is request
 
     location / {
-        allowedMethod GET POST DELETE;      // list of accepted HTTP methods
-        return webserv2:8082;               // HTTP redirection
-        root /var/www/;                     // rot directory
-        autoindex on;                       // directory listing
-        allowedUploadFile on;               // allowed for upload file
-        uploadPath /var/www/uploads;        // default path of uploaded file
+        allowedMethod:GET,POST,DELETE;      // list of accepted HTTP methods
+        return 301 https://www.hotmail.com; // HTTP redirection
+        root:/sites/www1;                   // rot directory
+        autoindex:on;                       // directory listing
+        allowedUploadFile:yes;              // allowed for upload file
+        uploadPath:/sites/www1/temp;        // default path of uploaded file
+        error_page: 404 /404.html;          // set default error page
+        error_page: 500 501 502 /50x.html;  // set default error page
     }
 
-    location cgi-bin {
-        root ./;                             // mandatory, cgi-bin location
-        cgi_path /usr/bin/python3 /bin/bash; // mandatory, interpreter location
-        cgi_extension                        // mandatory, accepted cgi extension
+    location /cgi-bin/ {
+        allowedMethod:GET,POST;
+    }
+
+    location /temp/ {
+        allowedMethod:GET,POST;
+        root:/sites/www1;
+        autoIndex:on;
     }
 }
 ```
-
-## Local Address
-It is the IP address and Port
 
 ## Binding the port
 ```
@@ -138,12 +105,12 @@ This is interpreted as a prefix match. It means that the location given will be 
 #### Example
 ```
 location / {
-    root /var/www;
+    root:/var/www;
     error_page 404 /site/404.html;
 }
 
 location /site {
-    root /var/www/other;
+    root:/var/www/other;
 }
 ```
 
@@ -153,7 +120,7 @@ if the request is made for /site/index.html, the second location will be called.
 
 This project will apply to non-modifier only!!!!.
 
-## Location anatomy
+## URI anatomy
 ```
 https://example.org:8080/foo/bar?q=baz#bang
 
@@ -250,7 +217,6 @@ password=test
 ```
 
 ### Redirection
-[DONE]
 
 for 300 series
 ```
