@@ -137,7 +137,7 @@ href     - https://example.org:8080/foo/bar?q=baz
 > [!NOTE]
 > The /etc/hosts file is a plain text file used in matching a fully qualified domain name (FQDN) with the server IP hosting a specific domain. When the DNS server cannot be reached, the /etc/hosts file to resolve the domain name.
 
->[!NOTE] Tips
+> [!NOTE] Tips
 > to set the /etc/hosts in window run this powershell command 
     Start-Process -FilePath notepad.exe -Verb runas -ArgumentList "$env:SystemRoot\system32\drivers\etc\hosts"
 
