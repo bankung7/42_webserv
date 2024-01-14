@@ -137,6 +137,11 @@ href     - https://example.org:8080/foo/bar?q=baz
 > [!NOTE]
 > The /etc/hosts file is a plain text file used in matching a fully qualified domain name (FQDN) with the server IP hosting a specific domain. When the DNS server cannot be reached, the /etc/hosts file to resolve the domain name.
 
+>[!NOTE] Tips
+> to set the /etc/hosts in window run this powershell command 
+    Start-Process -FilePath notepad.exe -Verb runas -ArgumentList "$env:SystemRoot\system32\drivers\etc\hosts"
+
+
 ### Directory Listing
 This use autoindex directive to show. The webserv will try to display a directory listing when a particular URL path ends with a /. Example, the url is /assets/css/, it will look in the folder /css/ to see if it can find an index.html file. if the autoindex is not active and there is no index.html exist, it will return 404.
 
@@ -241,13 +246,3 @@ There a 3 types of POST, which the book said that it will send the data to CGI v
 https://www.tutorialspoint.com/python/python_cgi_programming.htm
 https://www.ibm.com/docs/en/netcoolomnibus/8.1?topic=scripts-environment-variables-in-cgi-script
 
-## Concept
-### Parsing Configuration file
-### Initialize Servers
-### Polling
-### Read the Request
-### Send the Response
-
-## Tips
-- to set the /etc/hosts in ~window~ run this powershell command 
-    Start-Process -FilePath notepad.exe -Verb runas -ArgumentList "$env:SystemRoot\system32\drivers\etc\hosts"
